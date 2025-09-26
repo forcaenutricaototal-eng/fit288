@@ -1,14 +1,19 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../App';
-import { User, Edit, LogOut, Award, ShieldCheck, Zap } from 'lucide-react';
+import { User, Edit, LogOut, Award, ShieldCheck, Zap, Target, Droplets, Trophy, BookOpen, MessageSquare } from 'lucide-react';
 
 const achievements = [
     { name: 'Início Perfeito', icon: Zap, unlocked: true, description: 'Completou o primeiro dia do plano.' },
     { name: 'Semana Ninja', icon: ShieldCheck, unlocked: true, description: 'Completou 7 dias seguidos.' },
-    { name: 'Hidratação Máxima', icon: Award, unlocked: false, description: 'Bateu a meta de água por 5 dias.' },
-    { name: 'Detox10', icon: Award, unlocked: false, description: 'Completou os primeiros 10 dias.' },
+    { name: 'Meio Caminho', icon: Target, unlocked: true, description: 'Completou 14 dias do plano.' },
+    { name: 'Hidratação Máxima', icon: Droplets, unlocked: true, description: 'Bateu a meta de água por 7 dias.' },
+    { name: 'Meta Batida!', icon: Award, unlocked: false, description: 'Atingiu sua meta de peso inicial.' },
+    { name: 'Mestre Low-Carb', icon: Trophy, unlocked: false, description: 'Completou os 28 dias do plano.' },
+    { name: 'Chef Fit', icon: BookOpen, unlocked: false, description: 'Visualizou 5 receitas diferentes.' },
+    { name: 'Papo em Dia', icon: MessageSquare, unlocked: false, description: 'Enviou 10 mensagens para a IA.' },
 ];
+
 
 const ProfilePage: React.FC = () => {
     const { userProfile, logout } = useApp();
@@ -94,10 +99,17 @@ const ProfilePage: React.FC = () => {
                 <h2 className="text-xl font-semibold text-gray-700 mb-4">Conquistas</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                     {achievements.map((ach) => (
-                        <div key={ach.name} className={`p-4 rounded-lg border-2 ${ach.unlocked ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-gray-50'}`}>
-                            <ach.icon size={32} className={`mx-auto mb-2 ${ach.unlocked ? 'text-emerald-600' : 'text-gray-400'}`} />
-                            <h3 className={`font-semibold ${ach.unlocked ? 'text-emerald-800' : 'text-gray-500'}`}>{ach.name}</h3>
-                            <p className="text-xs text-gray-500">{ach.description}</p>
+                        <div 
+                            key={ach.name} 
+                            className={`p-4 rounded-xl flex flex-col items-center justify-center aspect-square transition-all duration-300 transform hover:scale-105 ${
+                                ach.unlocked 
+                                ? 'bg-gradient-to-br from-emerald-500 to-brand-green text-white shadow-lg' 
+                                : 'bg-gray-100 border-2 border-dashed border-gray-300'
+                            }`}
+                        >
+                            <ach.icon size={32} className={`mb-2 ${ach.unlocked ? 'text-white' : 'text-gray-400'}`} />
+                            <h3 className={`font-semibold text-sm ${ach.unlocked ? 'text-white' : 'text-gray-600'}`}>{ach.name}</h3>
+                            <p className={`text-xs mt-1 ${ach.unlocked ? 'text-white/80' : 'text-gray-500'}`}>{ach.description}</p>
                         </div>
                     ))}
                 </div>
