@@ -103,12 +103,12 @@ const LandingPage: React.FC = () => {
                         </div>
                     </div>
                     <div className="mt-4 flex justify-center space-x-4">
-                        <button aria-label="Login with Google" className="w-12 h-12 flex items-center justify-center border-2 border-gray-200 rounded-full hover:bg-gray-100">
+                        <a href="https://accounts.google.com/AccountChooser" target="_blank" rel="noopener noreferrer" aria-label="Login with Google" className="w-12 h-12 flex items-center justify-center border-2 border-gray-200 rounded-full hover:bg-gray-100">
                            <img src="https://www.google.com/favicon.ico" alt="Google" className="w-6 h-6"/>
-                        </button>
-                         <button aria-label="Login with Facebook" className="w-12 h-12 flex items-center justify-center border-2 border-gray-200 rounded-full hover:bg-gray-100">
+                        </a>
+                         <a href="https://www.facebook.com/login" target="_blank" rel="noopener noreferrer" aria-label="Login with Facebook" className="w-12 h-12 flex items-center justify-center border-2 border-gray-200 rounded-full hover:bg-gray-100">
                            <svg className="w-6 h-6 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-1.5c-.86 0-1.04.41-1.04 1.02V12h2.5l-.33 3H13.5v6.8c4.56-.93 8-4.96 8-9.8z" /></svg>
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>

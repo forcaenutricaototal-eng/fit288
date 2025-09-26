@@ -1,9 +1,10 @@
 
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserProfile } from '../types';
 import { useApp } from '../App';
-import { ChevronRight, Scale, Ruler, User, MoveHorizontal, GitCommitVertical, ChevronsUpDown, CircleDot, Container } from 'lucide-react';
+import { ChevronRight, Scale, Ruler, User, MoveHorizontal, GitCommitVertical, ChevronsUpDown, CircleDot, Container, ChevronLeft } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,6 +42,10 @@ const OnboardingPage: React.FC = () => {
   const nextStep = () => {
     if (step < totalSteps) setStep((prev) => prev + 1);
     else handleSubmit();
+  };
+  
+  const prevStep = () => {
+    if (step > 1) setStep(prev => prev - 1);
   };
 
   const handleSubmit = () => {
@@ -196,10 +201,19 @@ const OnboardingPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="w-full max-w-md mx-auto mt-8">
+      <div className="w-full max-w-md mx-auto mt-8 flex items-center gap-4">
+          {step > 1 && (
+            <button
+                onClick={prevStep}
+                className="bg-white text-emerald-600 font-bold py-4 px-6 rounded-xl hover:bg-emerald-50 transition-colors shadow-md flex items-center justify-center"
+                aria-label="Voltar para o passo anterior"
+            >
+                <ChevronLeft className="h-5 w-5" />
+            </button>
+          )}
           <button 
             onClick={nextStep} 
-            className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center"
+            className="flex-1 bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center"
           >
             {step < totalSteps ? 'Continuar' : 'Concluir'} <ChevronRight className="ml-2 h-5 w-5"/>
           </button>
