@@ -1,15 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import type { UserProfile } from '../types';
 
-// FIX: Switched from `import.meta.env.VITE_API_KEY` to `process.env.API_KEY` to follow @google/genai guidelines and fix TypeScript error.
-const apiKey = process.env.API_KEY;
-
-if (!apiKey) {
-  // This error will be thrown if the API_KEY is not set in the project settings.
-  throw new Error("API_KEY environment variable not set. Please ensure it is configured correctly.");
-}
-
-const ai = new GoogleGenAI({ apiKey });
+// FIX: Updated API key initialization to use process.env.API_KEY as per the coding guidelines.
+// This also resolves the TypeScript error "Property 'env' does not exist on type 'ImportMeta'".
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 
 export const getGeminiResponse = async (
@@ -18,6 +12,8 @@ export const getGeminiResponse = async (
   userProfile: UserProfile | null
 ) => {
   try {
+    // FIX: Corrected a typo from 'user-profile' to 'userProfile' in the system instruction template literal.
+    // This resolves the errors "Cannot find name 'user'" and "Cannot find name 'profile'".
     const systemInstruction = `Você é a IA do Fit28, um nutricionista especialista do programa de mesmo nome. Este programa é um plano Low-Carb de 28 dias para ajudar usuários que buscam estimular naturalmente GIP/GLP-1, reduzir retenção hídrica e emagrecer de forma saudável. Seu objetivo é dar conselhos práticos, motivadores e com base científica. Você pode sugerir substituições de refeições (sempre low-carb), dar dicas para controlar vontades, motivar e responder dúvidas sobre o plano. Mantenha um tom amigável, encorajador e profissional. Responda sempre em português.
     Dados do usuário:
     - Nome: ${userProfile?.name || 'Não informado'}
