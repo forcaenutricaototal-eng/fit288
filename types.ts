@@ -6,15 +6,7 @@ export interface UserProfile {
   height: number;
   goal: string;
   dietaryRestrictions: string[];
-}
-
-export interface Recipe {
-  id: number;
-  name: string;
-  description: string;
-  image: string;
-  ingredients: string[];
-  instructions: string[];
+  weightGoal: number;
 }
 
 export interface ChatMessage {
@@ -33,4 +25,18 @@ export interface DailyPlan {
         snack?: string;
     };
     tasks: string[];
+}
+
+export interface CheckInData {
+  day: number;
+  weight: number;
+  waterIntake: number;
+  fluidRetention: number; // 1 to 3
+  waist?: number;
+  hips?: number;
+  neck?: number;
+  rightArm?: number;
+  leftArm?: number;
+  rightThigh?: number;
+  leftThigh?: number;
 }

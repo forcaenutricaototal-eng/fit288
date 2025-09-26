@@ -1,24 +1,89 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../App';
-import { User, Edit, LogOut, Award, ShieldCheck, Zap, Target, Droplets, Trophy, BookOpen, MessageSquare } from 'lucide-react';
+import type { CheckInData } from '../types';
+import { User, Edit, LogOut, Award, ShieldCheck, Zap, Target, Droplets, Trophy, MessageSquare, CalendarCheck, Flame } from 'lucide-react';
 
 const achievements = [
-    { name: 'Início Perfeito', icon: Zap, unlocked: true, description: 'Completou o primeiro dia do plano.' },
-    { name: 'Semana Ninja', icon: ShieldCheck, unlocked: true, description: 'Completou 7 dias seguidos.' },
-    { name: 'Meio Caminho', icon: Target, unlocked: true, description: 'Completou 14 dias do plano.' },
-    { name: 'Hidratação Máxima', icon: Droplets, unlocked: true, description: 'Bateu a meta de água por 7 dias.' },
-    { name: 'Meta Batida!', icon: Award, unlocked: false, description: 'Atingiu sua meta de peso inicial.' },
-    { name: 'Mestre Low-Carb', icon: Trophy, unlocked: false, description: 'Completou os 28 dias do plano.' },
-    { name: 'Chef Fit', icon: BookOpen, unlocked: false, description: 'Visualizou 5 receitas diferentes.' },
-    { name: 'Papo em Dia', icon: MessageSquare, unlocked: false, description: 'Enviou 10 mensagens para a IA.' },
+    { name: 'Início Perfeito', icon: Zap, unlocked: true, description: 'Completou o 1º dia.' },
+    { name: 'Check-in Consistente', icon: CalendarCheck, unlocked: true, description: '3 check-ins seguidos.'},
+    { name: 'Semana Ninja', icon: ShieldCheck, unlocked: true, description: 'Completou 7 dias.' },
+    { name: 'Hidratação Máxima', icon: Droplets, unlocked: true, description: 'Meta de água: 7 dias.' },
+    { name: 'Meio Caminho', icon: Target, unlocked: true, description: 'Completou 14 dias.' },
+    { name: 'Maratonista Fit', icon: Flame, unlocked: false, description: 'Completou 21 dias.' },
+    { name: 'Mestre Low-Carb', icon: Trophy, unlocked: false, description: 'Completou 28 dias.' },
+    { name: 'Meta Batida!', icon: Award, unlocked: false, description: 'Meta de peso atingida.' },
+    { name: 'Papo em Dia', icon: MessageSquare, unlocked: false, description: 'Enviou 10 mensagens.' },
 ];
 
 
 const ProfilePage: React.FC = () => {
-    const { userProfile, logout } = useApp();
+    const { userProfile, logout, addCheckIn, checkIns, planDuration } = useApp();
     const [isEditing, setIsEditing] = useState(false);
     const [profileData, setProfileData] = useState(userProfile);
+
+    // State for check-in form
+    const [todayWeight, setTodayWeight] = useState<string>(userProfile?.weight.toString() ?? '');
+    const [waterIntake, setWaterIntake] = useState<string>('');
+    const [fluidRetention, setFluidRetention] = useState<string>('1');
+    const [waist, setWaist] = useState<string>('');
+    const [hips, setHips] = useState<string>('');
+    const [neck, setNeck] = useState<string>('');
+    const [rightArm, setRightArm] = useState<string>('');
+    const [leftArm, setLeftArm] = useState<string>('');
+    const [rightThigh, setRightThigh] = useState<string>('');
+    const [leftThigh, setLeftThigh] = useState<string>('');
+
+    const currentDayOfPlan = checkIns.length -1;
+    const nextCheckInDay = checkIns.length;
+    const planComplete = currentDayOfPlan >= planDuration;
+
+    const handleCheckIn = () => {
+        const weightNum = parseFloat(todayWeight);
+        const waterNum = parseFloat(waterIntake);
+        const retentionNum = parseInt(fluidRetention, 10);
+        
+        const waistNum = parseFloat(waist);
+        const hipsNum = parseFloat(hips);
+        const neckNum = parseFloat(neck);
+        const rightArmNum = parseFloat(rightArm);
+        const leftArmNum = parseFloat(leftArm);
+        const rightThighNum = parseFloat(rightThigh);
+        const leftThighNum = parseFloat(leftThigh);
+
+
+        if (isNaN(weightNum) || isNaN(waterNum) || weightNum <= 0 || waterNum < 0) {
+            alert('Por favor, insira valores válidos para peso e água.');
+            return;
+        }
+
+        const checkInData: Omit<CheckInData, 'day'> = {
+            weight: weightNum,
+            waterIntake: waterNum,
+            fluidRetention: retentionNum,
+        };
+        
+        if (!isNaN(waistNum) && waistNum > 0) checkInData.waist = waistNum;
+        if (!isNaN(hipsNum) && hipsNum > 0) checkInData.hips = hipsNum;
+        if (!isNaN(neckNum) && neckNum > 0) checkInData.neck = neckNum;
+        if (!isNaN(rightArmNum) && rightArmNum > 0) checkInData.rightArm = rightArmNum;
+        if (!isNaN(leftArmNum) && leftArmNum > 0) checkInData.leftArm = leftArmNum;
+        if (!isNaN(rightThighNum) && rightThighNum > 0) checkInData.rightThigh = rightThighNum;
+        if (!isNaN(leftThighNum) && leftThighNum > 0) checkInData.leftThigh = leftThighNum;
+
+
+        addCheckIn(checkInData);
+        
+        // Reset fields for next day
+        setWaterIntake(''); 
+        setWaist('');
+        setHips('');
+        setNeck('');
+        setRightArm('');
+        setLeftArm('');
+        setRightThigh('');
+        setLeftThigh('');
+    };
     
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const {name, value} = e.target;
@@ -68,28 +133,64 @@ const ProfilePage: React.FC = () => {
 
             {/* Check-in Section */}
              <div className="bg-white p-6 rounded-xl shadow-sm">
-                <h2 className="text-xl font-semibold text-gray-700 mb-4">Check-in Diário</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h2 className="text-xl font-semibold text-gray-700 mb-4">Check-in Diário (Dia {nextCheckInDay})</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Peso de Hoje (kg)</label>
-                        <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" defaultValue={userProfile?.weight} />
+                        <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" value={todayWeight} onChange={e => setTodayWeight(e.target.value)} disabled={planComplete} />
                      </div>
                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Água Consumida (L)</label>
-                        <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: 2.5" />
+                        <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: 2.5" value={waterIntake} onChange={e => setWaterIntake(e.target.value)} disabled={planComplete} />
                      </div>
                 </div>
+
                  <div className="mt-4">
+                    <h3 className="text-base font-semibold text-gray-700 mb-2">Medidas Corporais (cm) - Opcional</h3>
+                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Cintura</label>
+                           <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: 85" value={waist} onChange={e => setWaist(e.target.value)} disabled={planComplete} />
+                        </div>
+                         <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Quadril</label>
+                           <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: 102" value={hips} onChange={e => setHips(e.target.value)} disabled={planComplete} />
+                        </div>
+                        <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Pescoço</label>
+                           <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: 38" value={neck} onChange={e => setNeck(e.target.value)} disabled={planComplete} />
+                        </div>
+                        <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Braço D.</label>
+                           <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: 35" value={rightArm} onChange={e => setRightArm(e.target.value)} disabled={planComplete} />
+                        </div>
+                         <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Braço E.</label>
+                           <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: 35" value={leftArm} onChange={e => setLeftArm(e.target.value)} disabled={planComplete} />
+                        </div>
+                         <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Coxa D.</label>
+                           <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: 60" value={rightThigh} onChange={e => setRightThigh(e.target.value)} disabled={planComplete} />
+                        </div>
+                        <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-1">Coxa E.</label>
+                           <input type="number" step="0.1" className="w-full p-2 border border-gray-300 rounded-md" placeholder="Ex: 60" value={leftThigh} onChange={e => setLeftThigh(e.target.value)} disabled={planComplete} />
+                        </div>
+                     </div>
+                 </div>
+
+                 <div className="mt-6">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nível de Retenção Hídrica</label>
                     <div className="flex justify-between text-sm text-gray-600">
                         <span>Baixa</span>
                         <span>Média</span>
                         <span>Alta</span>
                     </div>
-                    <input type="range" min="1" max="3" step="1" className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+                    <input type="range" min="1" max="3" step="1" className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500" value={fluidRetention} onChange={e => setFluidRetention(e.target.value)} disabled={planComplete} />
                  </div>
-                 <button className="mt-6 bg-emerald-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors w-full md:w-auto">
-                    Registrar Check-in
+                 <button onClick={handleCheckIn} disabled={planComplete} className="mt-6 bg-emerald-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition-colors w-full md:w-auto disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    {planComplete ? 'Plano Concluído!' : `Registrar Check-in do Dia ${nextCheckInDay}`}
                  </button>
             </div>
 
@@ -97,7 +198,7 @@ const ProfilePage: React.FC = () => {
             {/* Achievements Section */}
             <div className="bg-white p-6 rounded-xl shadow-sm">
                 <h2 className="text-xl font-semibold text-gray-700 mb-4">Conquistas</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 text-center">
                     {achievements.map((ach) => (
                         <div 
                             key={ach.name} 

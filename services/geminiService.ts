@@ -18,16 +18,16 @@ export const getGeminiResponse = async (
     - Objetivo: ${userProfile?.goal || 'Não informado'}
     - Restrições: ${userProfile?.dietaryRestrictions.join(', ') || 'Nenhuma'}
     `;
+    
+    const contents = [...history, { role: 'user' as const, parts: [{ text: newMessage }] }];
 
-    const chat = ai.chats.create({
+    const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
+        contents: contents,
         config: {
             systemInstruction: systemInstruction,
         },
-        history: history,
     });
-    
-    const response = await chat.sendMessage({ message: newMessage });
 
     return response.text;
   } catch (error) {

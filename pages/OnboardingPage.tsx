@@ -1,29 +1,37 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserProfile } from '../types';
 import { useApp } from '../App';
-// Fix: Changed Rulers to Ruler as it's the correct export from lucide-react.
-import { ChevronRight, Scale, Ruler, User } from 'lucide-react';
+import { ChevronRight, Scale, Ruler, User, MoveHorizontal, GitCommitVertical, ChevronsUpDown, CircleDot, Container } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { completeOnboarding } = useApp();
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<UserProfile & { retainsLiquids: boolean; weightGoal: number }>>({
+  const [formData, setFormData] = useState<Partial<UserProfile & { retainsLiquids: boolean; waist?: number; hips?: number; neck?: number; rightArm?: number; leftArm?: number; rightThigh?: number; leftThigh?: number; }>>({
     name: '',
     age: undefined,
     weight: undefined,
     height: undefined,
     weightGoal: undefined,
+    waist: undefined,
+    hips: undefined,
+    neck: undefined,
+    rightArm: undefined,
+    leftArm: undefined,
+    rightThigh: undefined,
+    leftThigh: undefined,
     retainsLiquids: false,
     goal: 'Perda de peso',
     dietaryRestrictions: [],
   });
+  
+  const numericFields = ['age', 'weight', 'height', 'weightGoal', 'waist', 'hips', 'neck', 'rightArm', 'leftArm', 'rightThigh', 'leftThigh'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const numValue = value ? Number(value) : undefined;
-    setFormData((prev) => ({ ...prev, [name]: ['age', 'weight', 'height', 'weightGoal'].includes(name) ? numValue : value }));
+    setFormData((prev) => ({ ...prev, [name]: numericFields.includes(name) ? (value === '' ? undefined : Number(value)) : value }));
   };
   
   const handleToggle = (name: string, value: boolean) => {
@@ -41,12 +49,13 @@ const OnboardingPage: React.FC = () => {
       typeof formData.age === 'number' && !isNaN(formData.age) && formData.age > 0 &&
       typeof formData.weight === 'number' && !isNaN(formData.weight) && formData.weight > 0 &&
       typeof formData.height === 'number' && !isNaN(formData.height) && formData.height > 0 &&
+      typeof formData.weightGoal === 'number' && !isNaN(formData.weightGoal) && formData.weightGoal > 0 &&
       formData.goal;
 
     if (isDataValid) {
       // Omit temporary fields before completing onboarding
-      const { retainsLiquids, weightGoal, ...profile } = formData;
-      completeOnboarding(profile as UserProfile);
+      const { retainsLiquids, waist, hips, neck, rightArm, leftArm, rightThigh, leftThigh, ...profile } = formData;
+      completeOnboarding(profile as UserProfile, { waist, hips, neck, rightArm, leftArm, rightThigh, leftThigh });
       navigate('/dashboard');
     } else {
       alert("Ops! Parece que alguns dados obrigatórios não foram preenchidos ou são inválidos. Por favor, verifique os passos anteriores e tente novamente.");
@@ -82,7 +91,7 @@ const OnboardingPage: React.FC = () => {
             <h2 className="text-3xl font-bold text-gray-800 mb-2">Suas medidas actuais</h2>
             <p className="text-gray-600 mb-8">Esses dados nos ajudam a personalizar seu plano.</p>
             <div className="bg-white/80 p-6 rounded-xl shadow-sm space-y-4">
-              <h3 className="font-semibold text-gray-700">Qual o seu peso e altura actuais?</h3>
+              <h3 className="font-semibold text-gray-700">Peso e altura</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex items-center bg-gray-100 rounded-lg p-3">
                   <Scale className="text-gray-400 mr-2" size={20} />
@@ -93,6 +102,37 @@ const OnboardingPage: React.FC = () => {
                   <input type="number" name="height" placeholder="Altura (cm)" className="w-full bg-transparent focus:outline-none" value={formData.height === undefined ? '' : formData.height} onChange={handleChange} />
                 </div>
               </div>
+               <h3 className="font-semibold text-gray-700 pt-4">Medidas corporais (opcional)</h3>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                      <MoveHorizontal className="text-gray-400 mr-2" size={20} />
+                      <input type="number" name="waist" placeholder="Cintura (cm)" className="w-full bg-transparent focus:outline-none" value={formData.waist === undefined ? '' : formData.waist} onChange={handleChange} />
+                    </div>
+                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                      <Container className="text-gray-400 mr-2" size={20} />
+                      <input type="number" name="hips" placeholder="Quadril (cm)" className="w-full bg-transparent focus:outline-none" value={formData.hips === undefined ? '' : formData.hips} onChange={handleChange} />
+                    </div>
+                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                      <GitCommitVertical className="text-gray-400 mr-2" size={20} />
+                      <input type="number" name="rightArm" placeholder="Braço D. (cm)" className="w-full bg-transparent focus:outline-none" value={formData.rightArm === undefined ? '' : formData.rightArm} onChange={handleChange} />
+                    </div>
+                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                      <GitCommitVertical className="text-gray-400 mr-2" size={20} />
+                      <input type="number" name="leftArm" placeholder="Braço E. (cm)" className="w-full bg-transparent focus:outline-none" value={formData.leftArm === undefined ? '' : formData.leftArm} onChange={handleChange} />
+                    </div>
+                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                      <ChevronsUpDown className="text-gray-400 mr-2" size={20} />
+                      <input type="number" name="rightThigh" placeholder="Coxa D. (cm)" className="w-full bg-transparent focus:outline-none" value={formData.rightThigh === undefined ? '' : formData.rightThigh} onChange={handleChange} />
+                    </div>
+                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                      <ChevronsUpDown className="text-gray-400 mr-2" size={20} />
+                      <input type="number" name="leftThigh" placeholder="Coxa E. (cm)" className="w-full bg-transparent focus:outline-none" value={formData.leftThigh === undefined ? '' : formData.leftThigh} onChange={handleChange} />
+                    </div>
+                     <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                      <CircleDot className="text-gray-400 mr-2" size={20} />
+                      <input type="number" name="neck" placeholder="Pescoço (cm)" className="w-full bg-transparent focus:outline-none" value={formData.neck === undefined ? '' : formData.neck} onChange={handleChange} />
+                    </div>
+               </div>
             </div>
           </>
         );

@@ -33,10 +33,12 @@ const ChatPage: React.FC = () => {
         const loadingMessage: ChatMessage = { id: 'loading', text: '...', sender: 'ai', isLoading: true };
         setMessages(prev => [...prev, loadingMessage]);
 
-        const chatHistory = messages.map(m => ({
-            role: m.sender === 'user' ? 'user' as const : 'model' as const,
-            parts: [{ text: m.text }],
-        }));
+        const chatHistory = messages
+            .filter(msg => msg.id !== '1') // Exclude initial greeting
+            .map(m => ({
+                role: m.sender === 'user' ? 'user' as const : 'model' as const,
+                parts: [{ text: m.text }],
+            }));
 
         try {
             const aiResponseText = await getGeminiResponse(chatHistory, input, userProfile);
