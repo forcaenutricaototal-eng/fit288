@@ -79,7 +79,7 @@ const LandingPage: React.FC = () => {
                     
                     {authMode === 'login' && (
                         <div className="flex items-center justify-between text-sm">
-                            <a href="#" className="font-medium text-emerald-600 hover:text-emerald-500">
+                            <a href="https://accounts.google.com/signin/recovery" target="_blank" rel="noopener noreferrer" className="font-medium text-emerald-600 hover:text-emerald-500">
                                 Esqueceu sua senha?
                             </a>
                         </div>

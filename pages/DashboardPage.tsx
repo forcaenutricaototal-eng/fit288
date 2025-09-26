@@ -52,6 +52,33 @@ const DashboardPage: React.FC = () => {
         checkIn => checkIn.waist || checkIn.hips || checkIn.neck || checkIn.rightArm || checkIn.leftArm || checkIn.rightThigh || checkIn.leftThigh
     );
 
+    // Dynamic Y-axis domain calculation for measurements
+    const allValues = measurementsWithData.flatMap(checkIn => 
+        [
+            checkIn.waist, 
+            checkIn.hips, 
+            checkIn.neck, 
+            checkIn.rightArm, 
+            checkIn.leftArm, 
+            checkIn.rightThigh, 
+            checkIn.leftThigh
+        ].filter((value): value is number => typeof value === 'number' && value > 0)
+    );
+
+    let yDomain: [number, number] | ['auto', 'auto'] = ['auto', 'auto'];
+
+    if (allValues.length > 0) {
+        const minVal = Math.min(...allValues);
+        const maxVal = Math.max(...allValues);
+        
+        // Add a buffer to the min and max to create a nice visual range.
+        const padding = Math.max((maxVal - minVal) * 0.1, 5); // Use 10% padding, but at least 5 units.
+        
+        const domainMin = Math.max(0, Math.floor(minVal - padding)); 
+        const domainMax = Math.ceil(maxVal + padding);
+        yDomain = [domainMin, domainMax];
+    }
+
     const measurementsChartData = measurementsWithData.map(checkIn => ({
         name: checkIn.day === 0 ? 'Início' : `Dia ${checkIn.day}`,
         Cintura: checkIn.waist,
@@ -75,7 +102,7 @@ const DashboardPage: React.FC = () => {
         }
         
         return (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={250}>
                 {activeTab === 'weight' ? (
                      <LineChart data={weightChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -85,12 +112,12 @@ const DashboardPage: React.FC = () => {
                         <Line type="monotone" dataKey="peso" stroke="#10b981" strokeWidth={3} dot={{ r: 5, fill: '#10b981' }} activeDot={{ r: 7, stroke: '#fff', strokeWidth: 2 }}/>
                     </LineChart>
                 ) : (
-                    <LineChart data={measurementsChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <LineChart data={measurementsChartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="name" tick={{fontSize: 12}} axisLine={false} tickLine={false}/>
-                        <YAxis tick={{fontSize: 12}} axisLine={false} tickLine={false} domain={['dataMin - 5', 'dataMax + 5']}/>
+                        <YAxis tick={{fontSize: 12}} axisLine={false} tickLine={false} domain={yDomain} type="number" />
                         <Tooltip formatter={(value: number, name: string) => `${value.toFixed(1)} cm (${name})`} />
-                        <Legend />
+                        <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{fontSize: "12px", paddingLeft: "10px"}} iconSize={10} />
                         <Line type="monotone" dataKey="Cintura" stroke="#8884d8" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                         <Line type="monotone" dataKey="Quadril" stroke="#82ca9d" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                         <Line type="monotone" dataKey="Pescoço" stroke="#387908" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
