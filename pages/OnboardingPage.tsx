@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserProfile } from '../types';
 import { useApp } from '../App';
-import { ChevronRight, Scale, Ruler, User, MoveHorizontal, GitCommitVertical, ChevronsUpDown, CircleDot, Container, ChevronLeft } from 'lucide-react';
+import { ChevronRight, Scale, Ruler, User, MoveHorizontal, GitCommitVertical, ChevronsUpDown, CircleDot, Container, ChevronLeft, PersonStanding, Dumbbell } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +16,8 @@ const OnboardingPage: React.FC = () => {
     weight: undefined,
     height: undefined,
     weightGoal: undefined,
+    gender: 'Feminino',
+    activityLevel: 'Sedentário',
     waist: undefined,
     hips: undefined,
     neck: undefined,
@@ -55,7 +57,7 @@ const OnboardingPage: React.FC = () => {
       typeof formData.weight === 'number' && !isNaN(formData.weight) && formData.weight > 0 &&
       typeof formData.height === 'number' && !isNaN(formData.height) && formData.height > 0 &&
       typeof formData.weightGoal === 'number' && !isNaN(formData.weightGoal) && formData.weightGoal > 0 &&
-      formData.goal;
+      formData.goal && formData.gender && formData.activityLevel;
 
     if (isDataValid) {
       // Omit temporary fields before completing onboarding
@@ -67,7 +69,7 @@ const OnboardingPage: React.FC = () => {
     }
   };
   
-  const totalSteps = 4;
+  const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
 
   const renderStepContent = () => {
@@ -76,7 +78,7 @@ const OnboardingPage: React.FC = () => {
         return (
           <>
             <h2 className="text-3xl font-bold text-gray-800 mb-2">Seu ponto de partida!</h2>
-            <p className="text-gray-600 mb-8">Histórico de saúde e metas</p>
+            <p className="text-gray-600 mb-8">Informações básicas</p>
             <div className="bg-white/80 p-6 rounded-xl shadow-sm space-y-4">
                <h3 className="font-semibold text-gray-700">Qual o seu nome e idade?</h3>
                <div className="flex items-center bg-gray-100 rounded-lg p-3">
@@ -92,9 +94,42 @@ const OnboardingPage: React.FC = () => {
         );
       case 2:
         return (
+           <>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">Sobre você</h2>
+            <p className="text-gray-600 mb-8">Esses dados ajudam a personalizar o plano.</p>
+            <div className="bg-white/80 p-6 rounded-xl shadow-sm space-y-6">
+               <div>
+                  <h3 className="font-semibold text-gray-700 mb-2">Gênero</h3>
+                  <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                     <PersonStanding className="text-gray-400 mr-3" size={20} />
+                     <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-transparent focus:outline-none">
+                        <option>Feminino</option>
+                        <option>Masculino</option>
+                        <option>Outro</option>
+                        <option>Prefiro não dizer</option>
+                     </select>
+                  </div>
+               </div>
+               <div>
+                  <h3 className="font-semibold text-gray-700 mb-2">Nível de Atividade Física</h3>
+                  <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                     <Dumbbell className="text-gray-400 mr-3" size={20} />
+                     <select name="activityLevel" value={formData.activityLevel} onChange={handleChange} className="w-full bg-transparent focus:outline-none">
+                        <option>Sedentário (pouco ou nenhum exercício)</option>
+                        <option>Levemente Ativo (exercício leve 1-3 dias/semana)</option>
+                        <option>Moderadamente Ativo (exercício moderado 3-5 dias/semana)</option>
+                        <option>Muito Ativo (exercício intenso 6-7 dias/semana)</option>
+                     </select>
+                  </div>
+               </div>
+            </div>
+          </>
+        );
+      case 3:
+        return (
           <>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Suas medidas actuais</h2>
-            <p className="text-gray-600 mb-8">Esses dados nos ajudam a personalizar seu plano.</p>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">Suas medidas atuais</h2>
+            <p className="text-gray-600 mb-8">Esses dados nos ajudam a acompanhar sua evolução.</p>
             <div className="bg-white/80 p-6 rounded-xl shadow-sm space-y-4">
               <h3 className="font-semibold text-gray-700">Peso e altura</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -141,7 +176,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           </>
         );
-      case 3:
+      case 4:
          return (
           <>
             <h2 className="text-3xl font-bold text-gray-800 mb-2">Definindo suas metas</h2>
@@ -164,7 +199,7 @@ const OnboardingPage: React.FC = () => {
             </div>
           </>
         );
-      case 4:
+      case 5:
          return (
           <>
             <h2 className="text-3xl font-bold text-gray-800 mb-2">Preferências</h2>

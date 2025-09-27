@@ -7,6 +7,8 @@ export interface UserProfile {
   goal: string;
   dietaryRestrictions: string[];
   weightGoal: number;
+  gender: string;
+  activityLevel: string;
 }
 
 export interface ChatMessage {
