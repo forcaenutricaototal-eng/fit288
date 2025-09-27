@@ -1,12 +1,15 @@
 
+// FIX: Removed reference to 'vite/client' which was causing a type error.
+// The @google/genai guidelines mandate using process.env, making Vite-specific types unnecessary.
 import { GoogleGenAI, Type } from "@google/genai";
 import type { UserProfile, DailyPlan } from '../types';
 
 let ai: GoogleGenAI | null = null;
 
 // The API key is retrieved from environment variables.
-// The execution environment (like Vercel or a similar platform) is expected to provide this value.
-const apiKey = process.env.GEMINI_API_KEY;
+// FIX: Switched from import.meta.env.VITE_GEMINI_API_KEY to process.env.API_KEY to adhere to @google/genai SDK guidelines.
+// The execution environment is expected to provide this value.
+const apiKey = process.env.API_KEY;
 
 
 if (apiKey) {
@@ -16,12 +19,13 @@ if (apiKey) {
     console.error("Erro ao inicializar o GoogleGenAI:", error);
   }
 } else {
-  console.warn("A variável de ambiente GEMINI_API_KEY não está definida. As funcionalidades de IA estarão desativadas.");
+  // FIX: Updated warning message to reflect the change to process.env.API_KEY.
+  console.warn("A variável de ambiente API_KEY não está definida. As funcionalidades de IA estarão desativadas.");
 }
 
 const getAi = () => {
     if (!ai) {
-        throw new Error("O cliente Gemini AI não foi inicializado. Verifique a chave da API.");
+        throw new Error("O cliente Gemini AI não foi inicializado. Verifique a chave da API e as variáveis de ambiente.");
     }
     return ai;
 }
