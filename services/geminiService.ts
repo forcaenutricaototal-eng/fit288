@@ -1,8 +1,13 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { UserProfile, DailyPlan } from '../types';
 
 let ai: GoogleGenAI | null = null;
+
+// The API key is retrieved from environment variables.
+// The execution environment (like Vercel or a similar platform) is expected to provide this value.
 const apiKey = process.env.GEMINI_API_KEY;
+
 
 if (apiKey) {
   try {
