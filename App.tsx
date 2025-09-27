@@ -17,7 +17,8 @@ interface AppContextType {
   userProfile: UserProfile | null;
   login: () => void;
   logout: () => void;
-  completeOnboarding: (profile: UserProfile, initialMeasurements: Pick<CheckInData, 'waist' | 'hips' | 'neck' | 'rightArm' | 'leftArm' | 'rightThigh' | 'leftThigh'>) => void;
+  completeOnboarding: (profile: UserProfile) => void;
+  updateUserProfile: (updatedProfile: Partial<UserProfile>) => void;
   checkIns: CheckInData[];
   addCheckIn: (data: Omit<CheckInData, 'day'>) => void;
   planDuration: number;
@@ -45,7 +46,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setUserProfile(null);
     setCheckIns([]); // Reset progress on logout
   };
-  const completeOnboarding = (profile: UserProfile, initialMeasurements: Pick<CheckInData, 'waist' | 'hips' | 'neck' | 'rightArm' | 'leftArm' | 'rightThigh' | 'leftThigh'>) => {
+  
+  const completeOnboarding = (profile: UserProfile) => {
     setUserProfile(profile);
     // Add initial state as the starting point (Day 0)
     setCheckIns([{ 
@@ -53,9 +55,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       weight: profile.weight, 
       waterIntake: 0, 
       fluidRetention: 1,
-      ...initialMeasurements
     }]);
     setIsAuthenticated(true);
+  };
+
+  const updateUserProfile = (updatedProfile: Partial<UserProfile>) => {
+    setUserProfile(prev => prev ? { ...prev, ...updatedProfile } : null);
   };
 
   const addCheckIn = (data: Omit<CheckInData, 'day'>) => {
@@ -79,6 +84,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     login,
     logout,
     completeOnboarding,
+    updateUserProfile,
     checkIns,
     addCheckIn,
     planDuration,
@@ -100,7 +106,7 @@ const Main: React.FC = () => {
     const { isAuthenticated, userProfile } = useApp();
 
     return (
-        <div className="bg-gray-50 min-h-screen">
+        <div className="bg-neutral-100 min-h-screen">
             <HashRouter>
                 <Routes>
                     {!isAuthenticated ? (
@@ -119,8 +125,8 @@ const Main: React.FC = () => {
                             <Route index element={<Navigate to="/dashboard" />} />
                             <Route path="dashboard" element={<DashboardPage />} />
                             <Route path="chat" element={<ChatPage />} />
-                            <Route path="plan" element={<PlanPage />} />
-                            <Route path="plan/dia/:id" element={<PlanPage />} />
+                            <Route path="meal-plan" element={<PlanPage />} />
+                            <Route path="meal-plan/day/:day" element={<PlanPage />} />
                             <Route path="profile" element={<ProfilePage />} />
                             <Route path="*" element={<Navigate to="/dashboard" />} />
                         </Route>

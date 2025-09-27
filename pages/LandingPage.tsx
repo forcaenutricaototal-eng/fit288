@@ -1,114 +1,125 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
-import { Lock, Leaf, AtSign, User } from 'lucide-react';
+import { Lock, Leaf, AtSign, User, Zap, BrainCircuit, FlaskConical, TrendingUp, Star } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
     const { login } = useApp();
-    const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+    const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
 
     const handleAuth = (e: React.FormEvent) => {
         e.preventDefault();
         // In a real app, you'd have actual auth logic.
-        // For this demo, we'll just log in and go to onboarding.
         login();
         navigate('/onboarding');
     };
 
+    const toggleAuthMode = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setAuthMode(prev => prev === 'login' ? 'signup' : 'login');
+    }
+
+    const benefits = [
+        { icon: Zap, text: "Ativa naturalmente GLP-1 e GIP (mesmos hormônios do Monjaro)" },
+        { icon: BrainCircuit, text: "Reduz compulsão alimentar e aumenta a saciedade" },
+        { icon: FlaskConical, text: "Baseado em ciência e tradição japonesa" },
+        { icon: TrendingUp, text: "Resultados reais e duradouros" },
+    ];
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-400 to-cyan-400 flex flex-col justify-center items-center p-4">
-            <div className="text-center mb-8">
-                <div className="flex items-center justify-center space-x-2">
-                    <Leaf size={40} className="text-white" />
-                    <h1 className="text-5xl font-bold text-white">Fit28</h1>
-                </div>
-                <p className="text-white/90 mt-2">Seu plano Low-Carb de 28 dias.</p>
-            </div>
+        <div className="min-h-screen bg-primary-light flex items-center justify-center p-4 lg:p-8 font-sans">
+            <div className="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                {/* Left Column: Content */}
+                <div className="space-y-6 text-center lg:text-left animate-fade-in-right">
+                    <div className="flex items-center justify-center lg:justify-start space-x-3 mb-4">
+                        <Leaf size={32} className="text-primary" />
+                        <span className="text-3xl font-bold text-neutral-900">Fit28</span>
+                    </div>
 
-            <div className="w-full max-w-sm bg-white/90 backdrop-blur-sm p-8 rounded-2xl shadow-lg">
-                <div className="flex border-b-2 border-gray-200 mb-6">
-                    <button
-                        onClick={() => setAuthMode('login')}
-                        className={`w-1/2 py-3 font-semibold text-center transition-colors ${
-                            authMode === 'login' ? 'text-emerald-600 border-b-2 border-emerald-600' : 'text-gray-500'
-                        }`}
-                    >
-                        Entrar
-                    </button>
-                    <button
-                        onClick={() => setAuthMode('signup')}
-                        className={`w-1/2 py-3 font-semibold text-center transition-colors ${
-                            authMode === 'signup' ? 'text-emerald-600 border-b-2 border-emerald-600' : 'text-gray-500'
-                        }`}
-                    >
-                        Cadastrar
-                    </button>
+                    <h1 className="text-4xl lg:text-5xl font-extrabold text-neutral-900 leading-tight">
+                        <span className="text-primary-dark">Monjaro Japonês:</span> a alternativa 100% natural para emagrecimento real.
+                    </h1>
+
+                    <p className="text-lg text-neutral-800">
+                        O mesmo poder do Monjaro, mas em versão natural e japonesa.
+                    </p>
+                    
+                    <ul className="space-y-3 pt-4 text-left inline-block">
+                        {benefits.map((benefit, index) => (
+                            <li key={index} className="flex items-center space-x-3">
+                                <benefit.icon className="text-primary flex-shrink-0" size={20} />
+                                <span className="text-neutral-900">{benefit.text}</span>
+                            </li>
+                        ))}
+                    </ul>
+
+                    <div className="flex items-center space-x-4 pt-4 justify-center lg:justify-start">
+                        <div className="text-sm font-semibold border-2 border-primary text-primary px-4 py-1 rounded-full">100% Natural</div>
+                        <div className="text-sm font-semibold text-neutral-800">Baseado em ciência</div>
+                    </div>
                 </div>
 
-                <form onSubmit={handleAuth} className="space-y-6">
-                    {authMode === 'signup' && (
-                         <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                {/* Right Column: Auth Card */}
+                <div className="w-full max-w-md mx-auto bg-white p-8 rounded-lg shadow-soft animate-fade-in-left">
+                    <h2 className="text-2xl font-bold text-center text-neutral-900 mb-6">
+                        {authMode === 'signup' ? 'Inicie sua transformação' : 'Bem-vindo de volta'}
+                    </h2>
+                    
+                    <form onSubmit={handleAuth} className="space-y-5">
+                        {authMode === 'signup' && (
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="Nome Completo"
+                                    required
+                                    className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                                />
+                            </div>
+                        )}
+                        <div className="relative">
+                            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input
-                                type="text"
-                                placeholder="Nome Completo"
+                                type="email"
+                                placeholder="Seu melhor e-mail"
                                 required
-                                className="w-full pl-10 pr-3 py-3 bg-gray-100 border-2 border-transparent rounded-lg focus:outline-none focus:border-emerald-400 transition-colors"
+                                className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                             />
                         </div>
-                    )}
-                    <div className="relative">
-                        <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            required
-                            className="w-full pl-10 pr-3 py-3 bg-gray-100 border-2 border-transparent rounded-lg focus:outline-none focus:border-emerald-400 transition-colors"
-                        />
-                    </div>
-                    <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                        <input
-                            type="password"
-                            placeholder="Senha"
-                            required
-                            className="w-full pl-10 pr-3 py-3 bg-gray-100 border-2 border-transparent rounded-lg focus:outline-none focus:border-emerald-400 transition-colors"
-                        />
-                    </div>
-                    
-                    {authMode === 'login' && (
-                        <div className="flex items-center justify-between text-sm">
-                            <a href="https://accounts.google.com/signin/recovery" target="_blank" rel="noopener noreferrer" className="font-medium text-emerald-600 hover:text-emerald-500">
-                                Esqueceu sua senha?
-                            </a>
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="password"
+                                placeholder="Crie uma senha"
+                                required
+                                className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                            />
                         </div>
-                    )}
+                        
+                        <button
+                            type="submit"
+                            className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md"
+                        >
+                            Iniciar minha transformação
+                        </button>
+                    </form>
 
-                    <button
-                        type="submit"
-                        className="w-full bg-emerald-500 text-white font-bold py-3 rounded-lg hover:bg-emerald-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                    >
-                        {authMode === 'login' ? 'Entrar' : 'Criar Conta'}
-                    </button>
-                </form>
+                    <p className="text-center text-sm text-neutral-800 mt-6">
+                        {authMode === 'signup' 
+                            ? "Já tem uma conta? "
+                            : "Primeira vez aqui? "
+                        }
+                        <button onClick={toggleAuthMode} className="font-semibold text-primary-dark hover:underline">
+                            {authMode === 'signup' ? "Faça login" : "Criar conta aqui"}
+                        </button>
+                    </p>
 
-                <div className="mt-6">
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300" />
+                    <div className="border-t border-neutral-200 mt-6 pt-6 text-center">
+                        <div className="flex justify-center text-yellow-400 mb-2">
+                            {[...Array(5)].map((_, i) => <Star key={i} size={20} fill="currentColor" />)}
                         </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-gray-500">Ou entre com</span>
-                        </div>
-                    </div>
-                    <div className="mt-4 flex justify-center space-x-4">
-                        <a href="https://accounts.google.com/AccountChooser" target="_blank" rel="noopener noreferrer" aria-label="Login with Google" className="w-12 h-12 flex items-center justify-center border-2 border-gray-200 rounded-full hover:bg-gray-100">
-                           <img src="https://www.google.com/favicon.ico" alt="Google" className="w-6 h-6"/>
-                        </a>
-                         <a href="https://www.facebook.com/login" target="_blank" rel="noopener noreferrer" aria-label="Login with Facebook" className="w-12 h-12 flex items-center justify-center border-2 border-gray-200 rounded-full hover:bg-gray-100">
-                           <svg className="w-6 h-6 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-1.5c-.86 0-1.04.41-1.04 1.02V12h2.5l-.33 3H13.5v6.8c4.56-.93 8-4.96 8-9.8z" /></svg>
-                        </a>
+                        <p className="text-sm text-neutral-800 italic">"Resultados incríveis! Uma abordagem que realmente funciona."</p>
                     </div>
                 </div>
             </div>

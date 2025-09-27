@@ -4,13 +4,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserProfile } from '../types';
 import { useApp } from '../App';
-import { ChevronRight, Scale, Ruler, User, MoveHorizontal, GitCommitVertical, ChevronsUpDown, CircleDot, Container, ChevronLeft, PersonStanding, Dumbbell } from 'lucide-react';
+import { ChevronRight, Scale, Ruler, User, ChevronLeft, PersonStanding, Dumbbell } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { completeOnboarding } = useApp();
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<UserProfile & { retainsLiquids: boolean; waist?: number; hips?: number; neck?: number; rightArm?: number; leftArm?: number; rightThigh?: number; leftThigh?: number; }>>({
+  const [formData, setFormData] = useState<Partial<UserProfile & { retainsLiquids: boolean; }>>({
     name: '',
     age: undefined,
     weight: undefined,
@@ -18,19 +18,12 @@ const OnboardingPage: React.FC = () => {
     weightGoal: undefined,
     gender: 'Feminino',
     activityLevel: 'Sedentário',
-    waist: undefined,
-    hips: undefined,
-    neck: undefined,
-    rightArm: undefined,
-    leftArm: undefined,
-    rightThigh: undefined,
-    leftThigh: undefined,
     retainsLiquids: false,
     goal: 'Perda de peso',
     dietaryRestrictions: [],
   });
   
-  const numericFields = ['age', 'weight', 'height', 'weightGoal', 'waist', 'hips', 'neck', 'rightArm', 'leftArm', 'rightThigh', 'leftThigh'];
+  const numericFields = ['age', 'weight', 'height', 'weightGoal'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -60,9 +53,8 @@ const OnboardingPage: React.FC = () => {
       formData.goal && formData.gender && formData.activityLevel;
 
     if (isDataValid) {
-      // Omit temporary fields before completing onboarding
-      const { retainsLiquids, waist, hips, neck, rightArm, leftArm, rightThigh, leftThigh, ...profile } = formData;
-      completeOnboarding(profile as UserProfile, { waist, hips, neck, rightArm, leftArm, rightThigh, leftThigh });
+      const { retainsLiquids, ...profile } = formData;
+      completeOnboarding(profile as UserProfile);
       navigate('/dashboard');
     } else {
       alert("Ops! Parece que alguns dados obrigatórios não foram preenchidos ou são inválidos. Por favor, verifique os passos anteriores e tente novamente.");
@@ -77,15 +69,15 @@ const OnboardingPage: React.FC = () => {
       case 1:
         return (
           <>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Seu ponto de partida!</h2>
-            <p className="text-gray-600 mb-8">Informações básicas</p>
-            <div className="bg-white/80 p-6 rounded-xl shadow-sm space-y-4">
-               <h3 className="font-semibold text-gray-700">Qual o seu nome e idade?</h3>
-               <div className="flex items-center bg-gray-100 rounded-lg p-3">
+            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Seu ponto de partida!</h2>
+            <p className="text-neutral-800 mb-8">Informações básicas</p>
+            <div className="bg-white p-6 rounded-lg shadow-soft space-y-4">
+               <h3 className="font-semibold text-neutral-900">Qual o seu nome e idade?</h3>
+               <div className="flex items-center bg-neutral-100 rounded-md p-3">
                   <User className="text-gray-400 mr-3" size={20} />
                   <input type="text" name="name" placeholder="Seu nome" className="w-full bg-transparent focus:outline-none" value={formData.name} onChange={handleChange} />
                </div>
-                <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                <div className="flex items-center bg-neutral-100 rounded-md p-3">
                     <User className="text-gray-400 mr-3" size={20} />
                     <input type="number" name="age" placeholder="Sua idade" className="w-full bg-transparent focus:outline-none" value={formData.age === undefined ? '' : formData.age} onChange={handleChange} />
                 </div>
@@ -95,12 +87,12 @@ const OnboardingPage: React.FC = () => {
       case 2:
         return (
            <>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Sobre você</h2>
-            <p className="text-gray-600 mb-8">Esses dados ajudam a personalizar o plano.</p>
-            <div className="bg-white/80 p-6 rounded-xl shadow-sm space-y-6">
+            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Sobre você</h2>
+            <p className="text-neutral-800 mb-8">Esses dados ajudam a personalizar o plano.</p>
+            <div className="bg-white p-6 rounded-lg shadow-soft space-y-6">
                <div>
-                  <h3 className="font-semibold text-gray-700 mb-2">Gênero</h3>
-                  <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                  <h3 className="font-semibold text-neutral-900 mb-2">Gênero</h3>
+                  <div className="flex items-center bg-neutral-100 rounded-md p-3">
                      <PersonStanding className="text-gray-400 mr-3" size={20} />
                      <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-transparent focus:outline-none">
                         <option>Feminino</option>
@@ -111,8 +103,8 @@ const OnboardingPage: React.FC = () => {
                   </div>
                </div>
                <div>
-                  <h3 className="font-semibold text-gray-700 mb-2">Nível de Atividade Física</h3>
-                  <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                  <h3 className="font-semibold text-neutral-900 mb-2">Nível de Atividade Física</h3>
+                  <div className="flex items-center bg-neutral-100 rounded-md p-3">
                      <Dumbbell className="text-gray-400 mr-3" size={20} />
                      <select name="activityLevel" value={formData.activityLevel} onChange={handleChange} className="w-full bg-transparent focus:outline-none">
                         <option>Sedentário (pouco ou nenhum exercício)</option>
@@ -128,72 +120,41 @@ const OnboardingPage: React.FC = () => {
       case 3:
         return (
           <>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Suas medidas atuais</h2>
-            <p className="text-gray-600 mb-8">Esses dados nos ajudam a acompanhar sua evolução.</p>
-            <div className="bg-white/80 p-6 rounded-xl shadow-sm space-y-4">
-              <h3 className="font-semibold text-gray-700">Peso e altura</h3>
+            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Suas medidas atuais</h2>
+            <p className="text-neutral-800 mb-8">Esses dados nos ajudam a acompanhar sua evolução.</p>
+            <div className="bg-white p-6 rounded-lg shadow-soft space-y-4">
+              <h3 className="font-semibold text-neutral-900">Peso e altura</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                <div className="flex items-center bg-neutral-100 rounded-md p-3">
                   <Scale className="text-gray-400 mr-2" size={20} />
                   <input type="number" name="weight" placeholder="Peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weight === undefined ? '' : formData.weight} onChange={handleChange} />
                 </div>
-                <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                <div className="flex items-center bg-neutral-100 rounded-md p-3">
                   <Ruler className="text-gray-400 mr-2" size={20} />
                   <input type="number" name="height" placeholder="Altura (cm)" className="w-full bg-transparent focus:outline-none" value={formData.height === undefined ? '' : formData.height} onChange={handleChange} />
                 </div>
               </div>
-               <h3 className="font-semibold text-gray-700 pt-4">Medidas corporais (opcional)</h3>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
-                      <MoveHorizontal className="text-gray-400 mr-2" size={20} />
-                      <input type="number" name="waist" placeholder="Cintura (cm)" className="w-full bg-transparent focus:outline-none" value={formData.waist === undefined ? '' : formData.waist} onChange={handleChange} />
-                    </div>
-                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
-                      <Container className="text-gray-400 mr-2" size={20} />
-                      <input type="number" name="hips" placeholder="Quadril (cm)" className="w-full bg-transparent focus:outline-none" value={formData.hips === undefined ? '' : formData.hips} onChange={handleChange} />
-                    </div>
-                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
-                      <GitCommitVertical className="text-gray-400 mr-2" size={20} />
-                      <input type="number" name="rightArm" placeholder="Braço D. (cm)" className="w-full bg-transparent focus:outline-none" value={formData.rightArm === undefined ? '' : formData.rightArm} onChange={handleChange} />
-                    </div>
-                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
-                      <GitCommitVertical className="text-gray-400 mr-2" size={20} />
-                      <input type="number" name="leftArm" placeholder="Braço E. (cm)" className="w-full bg-transparent focus:outline-none" value={formData.leftArm === undefined ? '' : formData.leftArm} onChange={handleChange} />
-                    </div>
-                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
-                      <ChevronsUpDown className="text-gray-400 mr-2" size={20} />
-                      <input type="number" name="rightThigh" placeholder="Coxa D. (cm)" className="w-full bg-transparent focus:outline-none" value={formData.rightThigh === undefined ? '' : formData.rightThigh} onChange={handleChange} />
-                    </div>
-                    <div className="flex items-center bg-gray-100 rounded-lg p-3">
-                      <ChevronsUpDown className="text-gray-400 mr-2" size={20} />
-                      <input type="number" name="leftThigh" placeholder="Coxa E. (cm)" className="w-full bg-transparent focus:outline-none" value={formData.leftThigh === undefined ? '' : formData.leftThigh} onChange={handleChange} />
-                    </div>
-                     <div className="flex items-center bg-gray-100 rounded-lg p-3">
-                      <CircleDot className="text-gray-400 mr-2" size={20} />
-                      <input type="number" name="neck" placeholder="Pescoço (cm)" className="w-full bg-transparent focus:outline-none" value={formData.neck === undefined ? '' : formData.neck} onChange={handleChange} />
-                    </div>
-               </div>
             </div>
           </>
         );
       case 4:
          return (
           <>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Definindo suas metas</h2>
-            <p className="text-gray-600 mb-8">Onde você quer chegar?</p>
-            <div className="bg-white/80 p-6 rounded-xl shadow-sm space-y-6">
+            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Definindo suas metas</h2>
+            <p className="text-neutral-800 mb-8">Onde você quer chegar?</p>
+            <div className="bg-white p-6 rounded-lg shadow-soft space-y-6">
                 <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Qual sua meta de peso para 28 dias?</h3>
-                     <div className="flex items-center bg-gray-100 rounded-lg p-3">
+                    <h3 className="font-semibold text-neutral-900 mb-2">Qual sua meta de peso para 28 dias?</h3>
+                     <div className="flex items-center bg-neutral-100 rounded-md p-3">
                         <Scale className="text-gray-400 mr-2" size={20} />
                         <input type="number" name="weightGoal" placeholder="Meta de peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weightGoal === undefined ? '' : formData.weightGoal} onChange={handleChange} />
                     </div>
                 </div>
                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-3">Você costuma reter líquidos?</h3>
-                     <div className="flex bg-gray-200 rounded-full p-1">
-                        <button onClick={() => handleToggle('retainsLiquids', true)} className={`w-1/2 py-2 rounded-full font-semibold transition-colors ${formData.retainsLiquids ? 'bg-white shadow' : 'text-gray-500'}`}>Sim</button>
-                        <button onClick={() => handleToggle('retainsLiquids', false)} className={`w-1/2 py-2 rounded-full font-semibold transition-colors ${!formData.retainsLiquids ? 'bg-white shadow' : 'text-gray-500'}`}>Não</button>
+                    <h3 className="font-semibold text-neutral-900 mb-3">Você costuma reter líquidos?</h3>
+                     <div className="flex bg-neutral-200 rounded-full p-1">
+                        <button onClick={() => handleToggle('retainsLiquids', true)} className={`w-1/2 py-2 rounded-full font-semibold transition-colors ${formData.retainsLiquids ? 'bg-white shadow' : 'text-neutral-800'}`}>Sim</button>
+                        <button onClick={() => handleToggle('retainsLiquids', false)} className={`w-1/2 py-2 rounded-full font-semibold transition-colors ${!formData.retainsLiquids ? 'bg-white shadow' : 'text-neutral-800'}`}>Não</button>
                     </div>
                 </div>
             </div>
@@ -202,11 +163,11 @@ const OnboardingPage: React.FC = () => {
       case 5:
          return (
           <>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Preferências</h2>
-            <p className="text-gray-600 mb-8">Vamos finalizar os detalhes do seu plano.</p>
-            <div className="bg-white/80 p-6 rounded-xl shadow-sm space-y-4">
-              <h3 className="font-semibold text-gray-700">Qual seu principal objetivo?</h3>
-              <select name="goal" id="goal" value={formData.goal} onChange={handleChange} className="w-full p-3 bg-gray-100 rounded-lg focus:outline-none border-2 border-transparent focus:border-emerald-400">
+            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Preferências</h2>
+            <p className="text-neutral-800 mb-8">Vamos finalizar os detalhes do seu plano.</p>
+            <div className="bg-white p-6 rounded-lg shadow-soft space-y-4">
+              <h3 className="font-semibold text-neutral-900">Qual seu principal objetivo?</h3>
+              <select name="goal" id="goal" value={formData.goal} onChange={handleChange} className="w-full p-3 bg-neutral-100 rounded-md focus:outline-none border-2 border-transparent focus:border-primary">
                 <option>Perda de peso</option>
                 <option>Reduzir retenção hídrica</option>
                 <option>Melhorar sensibilidade metabólica</option>
@@ -221,13 +182,12 @@ const OnboardingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-200 to-cyan-200 flex flex-col justify-between p-6">
+    <div className="min-h-screen bg-neutral-100 flex flex-col justify-between p-6">
       <div className="w-full max-w-md mx-auto">
-        {/* Progress Bar */}
         <div className="mb-8">
-            <p className="text-center text-emerald-800 font-semibold mb-2">Passo {step} de {totalSteps}</p>
-            <div className="overflow-hidden h-2 text-xs flex rounded-full bg-white/80">
-                <div style={{ width: `${progress}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-emerald-500 transition-all duration-500"></div>
+            <p className="text-center text-primary-dark font-semibold mb-2">Passo {step} de {totalSteps}</p>
+            <div className="overflow-hidden h-2 text-xs flex rounded-full bg-neutral-200">
+                <div style={{ width: `${progress}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary transition-all duration-500"></div>
             </div>
         </div>
         
@@ -240,7 +200,7 @@ const OnboardingPage: React.FC = () => {
           {step > 1 && (
             <button
                 onClick={prevStep}
-                className="bg-white text-emerald-600 font-bold py-4 px-6 rounded-xl hover:bg-emerald-50 transition-colors shadow-md flex items-center justify-center"
+                className="bg-white text-primary font-bold py-4 px-6 rounded-lg hover:bg-neutral-200 transition-colors shadow-soft flex items-center justify-center"
                 aria-label="Voltar para o passo anterior"
             >
                 <ChevronLeft className="h-5 w-5" />
@@ -248,7 +208,7 @@ const OnboardingPage: React.FC = () => {
           )}
           <button 
             onClick={nextStep} 
-            className="flex-1 bg-emerald-600 text-white font-bold py-4 rounded-xl hover:bg-emerald-700 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center"
+            className="flex-1 bg-primary text-white font-bold py-4 rounded-lg hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md flex items-center justify-center"
           >
             {step < totalSteps ? 'Continuar' : 'Concluir'} <ChevronRight className="ml-2 h-5 w-5"/>
           </button>
