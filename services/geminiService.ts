@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import type { UserProfile, DailyPlan } from '../types';
 
 let ai: GoogleGenAI | null = null;
-const apiKey = process.env.API_KEY;
+const apiKey = process.env.GEMINI_API_KEY;
 
 if (apiKey) {
   try {
@@ -11,7 +11,7 @@ if (apiKey) {
     console.error("Erro ao inicializar o GoogleGenAI:", error);
   }
 } else {
-  console.warn("A variável de ambiente API_KEY não está definida. As funcionalidades de IA estarão desativadas.");
+  console.warn("A variável de ambiente GEMINI_API_KEY não está definida. As funcionalidades de IA estarão desativadas.");
 }
 
 const getAi = () => {
