@@ -10,6 +10,7 @@ import ChatPage from './pages/ChatPage';
 import PlanPage from './pages/PlanPage';
 import ProfilePage from './pages/ProfilePage';
 import LandingPage from './pages/LandingPage';
+import ProtocolsPage from './pages/ProtocolsPage';
 
 
 interface AppContextType {
@@ -127,6 +128,7 @@ const Main: React.FC = () => {
                             <Route path="chat" element={<ChatPage />} />
                             <Route path="meal-plan" element={<PlanPage />} />
                             <Route path="meal-plan/day/:day" element={<PlanPage />} />
+                            <Route path="protocols" element={<ProtocolsPage />} />
                             <Route path="profile" element={<ProfilePage />} />
                             <Route path="*" element={<Navigate to="/dashboard" />} />
                         </Route>

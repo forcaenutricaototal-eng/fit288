@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
-import { Lock, Leaf, AtSign, User, Zap, BrainCircuit, FlaskConical, TrendingUp, Star } from 'lucide-react';
+import { Lock, Leaf, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
@@ -21,10 +21,13 @@ const LandingPage: React.FC = () => {
     }
 
     const benefits = [
-        { icon: Zap, text: "Ativa naturalmente GLP-1 e GIP (mesmos hormônios do Monjaro)" },
-        { icon: BrainCircuit, text: "Reduz compulsão alimentar e aumenta a saciedade" },
-        { icon: FlaskConical, text: "Baseado em ciência e tradição japonesa" },
-        { icon: TrendingUp, text: "Resultados reais e duradouros" },
+        { icon: DollarSign, text: "Infinitamente mais barato que o farmacêutico" },
+        { icon: Leaf, text: "Não invasivo e 100% natural" },
+        { icon: SmilePlus, text: "Eleva naturalmente a saciedade" },
+        { icon: HeartPulse, text: "Ajuda no tratamento do lipedema (sem crises inflamatórias)" },
+        { icon: Droplets, text: "Auxilia no controle do diabetes tipo 2" },
+        { icon: Sparkles, text: "Ajuda a combater sintomas de depressão e ansiedade" },
+        { icon: TrendingUp, text: "Resultados duradouros e reeducativos" },
     ];
 
     return (
@@ -45,14 +48,17 @@ const LandingPage: React.FC = () => {
                         O mesmo poder do Monjaro, mas em versão natural e japonesa.
                     </p>
                     
-                    <ul className="space-y-3 pt-4 text-left inline-block">
-                        {benefits.map((benefit, index) => (
-                            <li key={index} className="flex items-center space-x-3">
-                                <benefit.icon className="text-primary flex-shrink-0" size={20} />
-                                <span className="text-neutral-900">{benefit.text}</span>
-                            </li>
-                        ))}
-                    </ul>
+                    <div className="pt-4 text-left inline-block">
+                        <h2 className="text-2xl font-bold text-neutral-900 mb-3">Benefícios do Monjaro Japonês 🍵</h2>
+                        <ul className="space-y-3">
+                            {benefits.map((benefit, index) => (
+                                <li key={index} className="flex items-center space-x-3">
+                                    <benefit.icon className="text-primary flex-shrink-0" size={20} />
+                                    <span className="text-neutral-900">{benefit.text}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
 
                     <div className="flex items-center space-x-4 pt-4 justify-center lg:justify-start">
                         <div className="text-sm font-semibold border-2 border-primary text-primary px-4 py-1 rounded-full">100% Natural</div>
