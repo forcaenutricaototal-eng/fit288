@@ -56,10 +56,10 @@ const ChatPage: React.FC = () => {
             };
             // Replace loading message with the actual AI response
             setMessages(prev => [...prev.filter(m => !m.isLoading), aiMessage]);
-        } catch (error) {
+        } catch (error: any) {
             const errorMessage: ChatMessage = {
                 id: (Date.now() + 1).toString(),
-                text: 'Erro ao conectar. Tente novamente.',
+                text: error.message || 'Erro ao conectar. Tente novamente.',
                 sender: 'ai',
             };
             setMessages(prev => [...prev.filter(m => !m.isLoading), errorMessage]);

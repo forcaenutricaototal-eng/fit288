@@ -128,11 +128,7 @@ const PlanPage: React.FC = () => {
         setError(null);
         try {
             const generatedPlan = await generateMealPlan(userProfile, currentDay);
-            if (generatedPlan) {
-                setPlan(generatedPlan);
-            } else {
-                throw new Error("Não foi possível gerar o plano. Tente novamente.");
-            }
+            setPlan(generatedPlan);
         } catch (e: any) {
             setError(e.message);
         } finally {
@@ -154,9 +150,25 @@ const PlanPage: React.FC = () => {
         );
     }
     
-    if (error || !plan) {
-        return <div className="text-center text-red-500">{error || "Plano não encontrado."}</div>
+    if (error) {
+        return (
+            <div className="text-center p-6 bg-red-50 rounded-lg border border-red-200 shadow-soft">
+                <h3 className="font-bold text-lg text-red-700 mb-2">Não foi possível gerar o plano.</h3>
+                <p className="text-red-600 mb-4">{error}</p>
+                <button 
+                    onClick={() => fetchPlan(dayId)} 
+                    className="bg-primary text-white font-semibold px-6 py-2 rounded-md hover:bg-primary-dark transition-colors"
+                >
+                    Tentar Novamente
+                </button>
+            </div>
+        );
     }
+    
+    if (!plan) {
+         return <div className="text-center text-neutral-800">Plano não encontrado.</div>;
+    }
+
 
     return (
         <div className="space-y-6">

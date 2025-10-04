@@ -58,7 +58,10 @@ export const getGeminiResponse = async (
     return response.text;
   } catch (error) {
     console.error("Erro ao chamar a API Gemini:", error);
-    return "Desculpe, não consegui processar sua solicitação no momento. Tente novamente mais tarde.";
+    if (error instanceof Error) {
+        throw error;
+    }
+    throw new Error("Desculpe, não consegui processar sua solicitação no momento. Tente novamente mais tarde.");
   }
 };
 
@@ -79,7 +82,7 @@ const recipeSchema = {
 };
 
 
-export const generateMealPlan = async (userProfile: UserProfile, day: number): Promise<DailyPlan | null> => {
+export const generateMealPlan = async (userProfile: UserProfile, day: number): Promise<DailyPlan> => {
     try {
         const ai = getAi();
         const systemInstruction = `Você é um nutricionista expert para o app Fit28. Sua tarefa é criar um plano alimentar Low-Carb detalhado para um usuário, focado em estimular GIP/GLP-1 e promover saciedade e emagrecimento saudável. Retorne APENAS o objeto JSON, sem nenhum texto adicional ou formatação markdown.`;
@@ -164,11 +167,17 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number): P
         });
         
         const jsonText = response.text.trim();
+        if (!jsonText) {
+            throw new Error("A API retornou uma resposta vazia, o que impediu a criação do plano.");
+        }
         return JSON.parse(jsonText) as DailyPlan;
 
     } catch (error) {
         console.error("Erro ao gerar o plano alimentar:", error);
-        return null;
+        if (error instanceof Error) {
+            throw error;
+        }
+        throw new Error("Não foi possível gerar o plano. Tente novamente.");
     }
 }
 
