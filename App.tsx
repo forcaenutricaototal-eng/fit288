@@ -1,5 +1,4 @@
 
-
 import React, { useState, createContext, useContext, useMemo, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { UserProfile, CheckInData } from './types';
@@ -17,6 +16,7 @@ import ProtocolsPage from './pages/ProtocolsPage';
 interface AppContextType {
   isAuthenticated: boolean;
   userProfile: UserProfile | null;
+  isLoading: boolean;
   login: () => boolean;
   logout: () => void;
   completeOnboarding: (profile: UserProfile) => void;
@@ -37,52 +37,55 @@ export const useApp = () => {
 };
 
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // New loading state
+
+  // Effect to load user from localStorage on initial mount
+  useEffect(() => {
     try {
       const storedProfile = localStorage.getItem('fit28_userProfile');
-      // If a profile exists in storage, the user is considered logged in.
-      // This acts as our automatic login on app load.
-      return storedProfile ? JSON.parse(storedProfile) : null;
-    } catch {
-      // If data is corrupted, treat as logged out.
-      return null;
-    }
-  });
-  
-  const [checkIns, setCheckIns] = useState<CheckInData[]>(() => {
-    try {
-      // Only load check-ins if a profile is also present.
-      if (localStorage.getItem('fit28_userProfile')) {
+      if (storedProfile) {
+        const profile = JSON.parse(storedProfile);
+        setUserProfile(profile);
         const storedCheckIns = localStorage.getItem('fit28_checkIns');
-        return storedCheckIns ? JSON.parse(storedCheckIns) : [];
+        if (storedCheckIns) {
+          setCheckIns(JSON.parse(storedCheckIns));
+        }
       }
-      return [];
     } catch {
-      return [];
+      // If data is corrupt, treat as logged out and clean storage.
+      localStorage.removeItem('fit28_userProfile');
+      localStorage.removeItem('fit28_checkIns');
+    } finally {
+      setIsLoading(false); // Finished loading attempt
     }
-  });
+  }, []); // Empty dependency array ensures this runs only once on mount
 
-  // Authentication status is now derived directly from the userProfile state.
   const isAuthenticated = useMemo(() => userProfile !== null, [userProfile]);
   const planDuration = 28;
 
 
+  // This effect persists the user's profile to localStorage whenever it changes.
   useEffect(() => {
-    // This effect persists the user's session.
-    if (userProfile) {
-      localStorage.setItem('fit28_userProfile', JSON.stringify(userProfile));
-    } else {
-      // This case is primarily handled by the logout function.
-      localStorage.removeItem('fit28_userProfile');
+    // Only save after the initial load is complete to avoid race conditions.
+    if (!isLoading) {
+        if (userProfile) {
+          localStorage.setItem('fit28_userProfile', JSON.stringify(userProfile));
+        } else {
+          localStorage.removeItem('fit28_userProfile');
+        }
     }
-  }, [userProfile]);
-
+  }, [userProfile, isLoading]);
+  
+  // This effect persists the check-in data.
   useEffect(() => {
-    localStorage.setItem('fit28_checkIns', JSON.stringify(checkIns));
-  }, [checkIns]);
+    if (!isLoading) {
+      localStorage.setItem('fit28_checkIns', JSON.stringify(checkIns));
+    }
+  }, [checkIns, isLoading]);
 
   const login = () => {
-    // This function is for the manual login button on the landing page.
     const storedProfile = localStorage.getItem('fit28_userProfile');
     
     if (storedProfile) {
@@ -96,7 +99,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             }
             return true;
         } catch (e) {
-            // If the stored profile is corrupt, perform a full logout to clean up.
             logout();
             return false;
         }
@@ -107,7 +109,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const logout = () => {
     setUserProfile(null);
     setCheckIns([]);
-    localStorage.removeItem('fit28_isAuthenticated'); // Keep for legacy cleanup
+    localStorage.removeItem('fit28_isAuthenticated');
     localStorage.removeItem('fit28_userProfile');
     localStorage.removeItem('fit28_checkIns');
   };
@@ -127,7 +129,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const addCheckIn = (data: Omit<CheckInData, 'day'>) => {
-    // Plan days are 1-28. With day 0, length can go to 29.
     if (checkIns.length > planDuration) return;
 
     const newCheckIn: CheckInData = {
@@ -136,7 +137,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     };
     setCheckIns(prev => [...prev, newCheckIn]);
     
-    // Also update the user's current weight in their profile
     setUserProfile(prev => prev ? { ...prev, weight: data.weight } : null);
   };
 
@@ -144,6 +144,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const value = useMemo(() => ({
     isAuthenticated,
     userProfile,
+    isLoading,
     login,
     logout,
     completeOnboarding,
@@ -151,7 +152,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     checkIns,
     addCheckIn,
     planDuration,
-  }), [isAuthenticated, userProfile, checkIns]);
+  }), [isAuthenticated, userProfile, isLoading, checkIns]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -165,8 +166,18 @@ const App: React.FC = () => {
   );
 };
 
+const LoadingSpinner: React.FC = () => (
+    <div className="flex items-center justify-center min-h-screen bg-neutral-100">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+    </div>
+);
+
 const Main: React.FC = () => {
-    const { isAuthenticated, userProfile } = useApp();
+    const { isAuthenticated, isLoading } = useApp();
+
+    if (isLoading) {
+        return <LoadingSpinner />;
+    }
 
     return (
         <div className="bg-neutral-100 min-h-screen">
