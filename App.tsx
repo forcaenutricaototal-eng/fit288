@@ -27,6 +27,9 @@ interface AppContextType {
   checkIns: CheckInData[];
   addCheckIn: (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => Promise<void>;
   planDuration: number;
+  completedItemsByDay: { [day: number]: { [itemId: string]: boolean } };
+  toggleItemCompletion: (day: number, itemId: string) => Promise<void>;
+  resetDayCompletion: (day: number) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -59,10 +62,19 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setIsLoading(true);
       try {
         let profile = await getProfile(currentUser.id);
-        if (!profile) {
+
+        if (profile && !profile.completed_items_by_day) {
+          // Data patch for existing users: if completed_items_by_day is null or undefined, fix it.
+          const updatedProfile = await updateProfile(currentUser.id, { completed_items_by_day: {} });
+          profile = updatedProfile;
+        } else if (!profile) {
+          // New user: create a complete profile.
           const name = currentUser.user_metadata.name || 'Novo Usuário';
           profile = await createProfile(currentUser.id, name);
-          if (!profile) throw new Error("Falha ao criar e recuperar o perfil do usuário.");
+        }
+
+        if (!profile) {
+            throw new Error("Falha ao carregar ou criar o perfil do usuário.");
         }
         
         const checkInsData = await getCheckIns(currentUser.id);
@@ -129,6 +141,28 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setCheckIns(prev => [...prev, newCheckInData]);
   };
 
+ const toggleItemCompletion = async (day: number, itemId: string) => {
+    if (!user || !userProfile) return;
+    const currentCompleted = userProfile.completed_items_by_day || {};
+    const dayItems = currentCompleted[day] || {};
+    const isCompleted = dayItems[itemId];
+
+    const newDayItems = { ...dayItems, [itemId]: !isCompleted };
+    const newCompletedState = { ...currentCompleted, [day]: newDayItems };
+    
+    await updateUserProfile({ completed_items_by_day: newCompletedState });
+  };
+
+  const resetDayCompletion = async (day: number) => {
+    if (!user || !userProfile) return;
+    const currentCompleted = userProfile.completed_items_by_day || {};
+    const newCompletedState = { ...currentCompleted };
+    delete newCompletedState[day];
+    await updateUserProfile({ completed_items_by_day: newCompletedState });
+  };
+  
+  const completedItemsByDay = useMemo(() => userProfile?.completed_items_by_day || {}, [userProfile]);
+
   const value = useMemo(() => ({
     isAuthenticated: !!user,
     userProfile,
@@ -142,7 +176,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     checkIns,
     addCheckIn,
     planDuration: 28,
-  }), [user, userProfile, isLoading, checkIns]);
+    completedItemsByDay,
+    toggleItemCompletion,
+    resetDayCompletion,
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -171,6 +208,7 @@ const LoadingSpinner: React.FC = () => {
                         <ul className="list-disc list-inside text-sm space-y-1">
                             <li><code>VITE_SUPABASE_URL</code></li>
                             <li><code>VITE_SUPABASE_ANON_KEY</code></li>
+                            <li><code>VITE_GEMINI_API_KEY</code> (ou <code>CHAVE_API_VITE</code>)</li>
                         </ul>
                          <p className="font-bold mt-4 mb-2">2. Faça o Redeploy:</p>
                          <p className="text-sm">Vá até o painel do seu projeto na Vercel, clique na aba "Deployments", encontre o deploy mais recente e clique em "Redeploy" para aplicar as variáveis.</p>
@@ -205,6 +243,10 @@ const Main: React.FC = () => {
                         <Route path="/" element={<Layout />}>
                             <Route index element={<Navigate to="/dashboard" />} />
                             <Route path="dashboard" element={<DashboardPage />} />
+                            <Route path="chat" element={<ChatPage />} />
+                            <Route path="meal-plan" element={<PlanPage />} />
+                            <Route path="meal-plan/day/:day" element={<PlanPage />} />
+                            <Route path="protocols" element={<ProtocolsPage />} />
                             <Route path="profile" element={<ProfilePage />} />
                             <Route path="*" element={<Navigate to="/dashboard" />} />
                         </Route>

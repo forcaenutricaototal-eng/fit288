@@ -15,7 +15,7 @@ export const getProfile = async (userId: string): Promise<UserProfile | null> =>
 export const createProfile = async (userId: string, name: string): Promise<UserProfile> => {
   const { data, error } = await supabase
     .from('profiles')
-    .insert({ id: userId, name: name, dietary_restrictions: [] })
+    .insert({ id: userId, name: name, dietary_restrictions: [], completed_items_by_day: {} })
     .select()
     .single();
   if (error) throw error;
