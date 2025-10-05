@@ -6,26 +6,30 @@ import type { UserProfile, DailyPlan } from '../types';
 
 let ai: GoogleGenAI | null = null;
 
-// The official Gemini API guidelines require using `process.env.API_KEY`.
-// The user should set an environment variable named `API_KEY` in their project settings.
-const apiKey = process.env.API_KEY;
-
-
-if (apiKey) {
-  try {
-    ai = new GoogleGenAI({ apiKey });
-  } catch (error) {
-    console.error("Erro ao inicializar o GoogleGenAI:", error);
-  }
-} else {
-  console.warn("A variável de ambiente API_KEY não está definida. As funcionalidades de IA estarão desativadas. Certifique-se de configurá-la nas configurações do seu ambiente.");
-}
-
 const getAi = () => {
-    if (!ai) {
-        throw new Error("O cliente Gemini AI não foi inicializado. Verifique se a variável de ambiente API_KEY está configurada corretamente.");
+    // If the instance already exists, return it.
+    if (ai) {
+        return ai;
     }
-    return ai;
+
+    // The official Gemini API guidelines require using `process.env.API_KEY`.
+    const apiKey = process.env.API_KEY;
+    
+    if (!apiKey) {
+      console.warn("A variável de ambiente API_KEY não está definida. As funcionalidades de IA estarão desativadas. Certifique-se de configurá-la nas configurações do seu ambiente.");
+      throw new Error("O cliente Gemini AI não foi inicializado. Verifique se a variável de ambiente API_KEY está configurada corretamente.");
+    }
+    
+    try {
+        // Create and cache the instance.
+        ai = new GoogleGenAI({ apiKey });
+        return ai;
+    } catch (error) {
+        console.error("Erro ao inicializar o GoogleGenAI:", error);
+        // Ensure `ai` is null if initialization fails, so we can retry.
+        ai = null; 
+        throw new Error("Falha ao inicializar o cliente Gemini AI. Verifique o console para mais detalhes.");
+    }
 }
 
 export const getGeminiResponse = async (
@@ -34,7 +38,7 @@ export const getGeminiResponse = async (
   userProfile: UserProfile | null
 ) => {
   try {
-    const ai = getAi();
+    const aiClient = getAi();
     const systemInstruction = `Você é a IA do Fit28, um nutricionista especialista do programa de mesmo nome. Este programa é um plano Low-Carb de 28 dias para ajudar usuários que buscam estimular naturalmente GIP/GLP-1, reduzir retenção hídrica e emagrecer de forma saudável. Seu objetivo é dar conselhos práticos, motivadores e com base científica. Você pode sugerir substituições de refeições (sempre low-carb), dar dicas para controlar vontades, motivar e responder dúvidas sobre o plano. Mantenha um tom amigável, encorajador e profissional. Responda sempre em português.
     Dados do usuário:
     - Nome: ${userProfile?.name || 'Não informado'}
@@ -47,7 +51,7 @@ export const getGeminiResponse = async (
     
     const contents = [...history, { role: 'user' as const, parts: [{ text: newMessage }] }];
 
-    const response = await ai.models.generateContent({
+    const response = await aiClient.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: contents,
         config: {
@@ -84,7 +88,7 @@ const recipeSchema = {
 
 export const generateMealPlan = async (userProfile: UserProfile, day: number): Promise<DailyPlan> => {
     try {
-        const ai = getAi();
+        const aiClient = getAi();
         const systemInstruction = `Você é um nutricionista expert para o app Fit28. Sua tarefa é criar um plano alimentar Low-Carb detalhado para um usuário, focado em estimular GIP/GLP-1 e promover saciedade e emagrecimento saudável. Retorne APENAS o objeto JSON, sem nenhum texto adicional ou formatação markdown.`;
         
         let daySpecificInstructions = '';
@@ -139,7 +143,7 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number): P
         - Carne vermelha (apenas Patinho) pode ser indicada no máximo DUAS VEZES por semana, com porções de 150g cada.
         - NÃO indique carne vermelha nos 10 primeiros dias (protocolo Detox), conforme já especificado nas restrições diárias.`;
         
-        const response = await ai.models.generateContent({
+        const response = await aiClient.models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
@@ -183,7 +187,7 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number): P
 
 export const generateShoppingList = async (plan: DailyPlan): Promise<string> => {
     try {
-        const ai = getAi();
+        const aiClient = getAi();
         const ingredients = [
             ...plan.meals.breakfast.ingredients,
             ...plan.meals.lunch.ingredients,
@@ -193,7 +197,7 @@ export const generateShoppingList = async (plan: DailyPlan): Promise<string> => 
         
         const prompt = `A partir da seguinte lista de ingredientes para um dia de refeições, crie uma lista de compras organizada por categorias (ex: Hortifrúti, Açougue, Mercearia). Agrupe itens semelhantes e remova duplicatas. A lista é: \n${ingredients}`;
         
-         const response = await ai.models.generateContent({
+         const response = await aiClient.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
