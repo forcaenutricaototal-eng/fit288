@@ -73,25 +73,34 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       try {
         let profile = await getProfile(currentUser.id);
 
+        // Step 1: Create profile if it doesn't exist.
         if (!profile) {
           const name = currentUser.user_metadata.name || 'Novo Usuário';
           profile = await createProfile(currentUser.id, name);
-        } else if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
-          profile = await updateProfile(currentUser.id, { completed_items_by_day: {} });
+          if (!profile) {
+            throw new Error("Falha crítica ao CRIAR o perfil do usuário.");
+          }
         }
-
-        if (!profile) {
-            throw new Error("Não foi possível carregar ou criar o perfil do usuário.");
+        
+        // Step 2: Patch profile if it's missing necessary fields.
+        // This handles both newly created profiles and old profiles from before a schema change.
+        if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
+          const updatedProfile = await updateProfile(currentUser.id, { completed_items_by_day: {} });
+           if (!updatedProfile) {
+            throw new Error("Falha crítica ao ATUALIZAR o perfil do usuário.");
+          }
+          profile = updatedProfile;
         }
         
         setUserProfile(profile);
 
       } catch (error) {
-        console.error("Erro ao carregar o perfil:", error);
-        addToast("Ocorreu um erro ao carregar seu perfil. Por favor, recarregue.", 'info');
+        console.error("Erro no processo de autenticação e perfil:", error);
+        addToast("Ocorreu um erro ao carregar seus dados. Por favor, tente novamente.", 'info');
         setUserProfile(null);
         setCheckIns([]);
-        setUser(null); // Log out user on critical profile failure
+        // Avoid logging out here to prevent potential auth loops.
+        // The UI will show a stuck state, but the toast and console provide info.
       } finally {
         setIsLoading(false);
         isProcessingAuthRef.current = false;
