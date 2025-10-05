@@ -9,12 +9,12 @@ const OnboardingPage: React.FC = () => {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<UserProfile, 'id' | 'created_at'>>({
     name: '',
-    age: undefined,
-    weight: undefined,
-    height: undefined,
-    weight_goal: undefined,
+    age: 0,
+    weight: 0,
+    height: 0,
+    weight_goal: 0,
     dietary_restrictions: [],
   });
   
@@ -28,7 +28,7 @@ const OnboardingPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: numericFields.includes(name) ? (value === '' ? undefined : Number(value)) : value }));
+    setFormData((prev) => ({ ...prev, [name]: numericFields.includes(name) ? (value === '' ? 0 : Number(value)) : value }));
   };
 
   const totalSteps = 2;
@@ -37,15 +37,15 @@ const OnboardingPage: React.FC = () => {
     setError(null);
     const isDataValid =
       formData.name && formData.name.trim() !== '' &&
-      typeof formData.age === 'number' && !isNaN(formData.age) && formData.age > 0 &&
-      typeof formData.weight === 'number' && !isNaN(formData.weight) && formData.weight > 0 &&
-      typeof formData.height === 'number' && !isNaN(formData.height) && formData.height > 0 &&
-      typeof formData.weight_goal === 'number' && !isNaN(formData.weight_goal) && formData.weight_goal > 0;
+      formData.age > 0 &&
+      formData.weight > 0 &&
+      formData.height > 0 &&
+      formData.weight_goal > 0;
 
     if (isDataValid && user) {
         setIsLoading(true);
         try {
-            await completeOnboarding(formData as Omit<UserProfile, 'id' | 'created_at'>);
+            await completeOnboarding(formData);
             // App.tsx will handle redirection
         } catch (e: any) {
             console.error("Erro ao completar onboarding:", e);
@@ -88,7 +88,7 @@ const OnboardingPage: React.FC = () => {
                   <h3 className="font-semibold text-neutral-900 mb-2">Qual a sua idade?</h3>
                   <div className="flex items-center bg-neutral-100 rounded-md p-3">
                       <User className="text-gray-400 mr-3" size={20} />
-                      <input type="number" name="age" placeholder="Sua idade" className="w-full bg-transparent focus:outline-none" value={formData.age === undefined ? '' : formData.age} onChange={handleChange} />
+                      <input type="number" name="age" placeholder="Sua idade" className="w-full bg-transparent focus:outline-none" value={formData.age === 0 ? '' : formData.age} onChange={handleChange} />
                   </div>
                </div>
             </div>
@@ -105,11 +105,11 @@ const OnboardingPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                   <div className="flex items-center bg-neutral-100 rounded-md p-3">
                     <Scale className="text-gray-400 mr-2" size={20} />
-                    <input type="number" name="weight" placeholder="Peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weight === undefined ? '' : formData.weight} onChange={handleChange} />
+                    <input type="number" name="weight" placeholder="Peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weight === 0 ? '' : formData.weight} onChange={handleChange} />
                   </div>
                   <div className="flex items-center bg-neutral-100 rounded-md p-3">
                     <Ruler className="text-gray-400 mr-2" size={20} />
-                    <input type="number" name="height" placeholder="Altura (cm)" className="w-full bg-transparent focus:outline-none" value={formData.height === undefined ? '' : formData.height} onChange={handleChange} />
+                    <input type="number" name="height" placeholder="Altura (cm)" className="w-full bg-transparent focus:outline-none" value={formData.height === 0 ? '' : formData.height} onChange={handleChange} />
                   </div>
                 </div>
               </div>
@@ -117,7 +117,7 @@ const OnboardingPage: React.FC = () => {
                 <h3 className="font-semibold text-neutral-900">Qual sua meta de peso para 28 dias?</h3>
                  <div className="flex items-center bg-neutral-100 rounded-md p-3 mt-2">
                     <Target className="text-gray-400 mr-2" size={20} />
-                    <input type="number" name="weight_goal" placeholder="Meta de peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weight_goal === undefined ? '' : formData.weight_goal} onChange={handleChange} />
+                    <input type="number" name="weight_goal" placeholder="Meta de peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weight_goal === 0 ? '' : formData.weight_goal} onChange={handleChange} />
                 </div>
               </div>
             </div>
@@ -160,7 +160,7 @@ const OnboardingPage: React.FC = () => {
             disabled={isLoading}
             className="flex-1 bg-primary text-white font-bold py-4 rounded-lg hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md flex items-center justify-center disabled:bg-green-300 disabled:scale-100"
           >
-            {isLoading ? <Loader className="animate-spin" size={20}/> : (step < totalSteps ? 'Continuar' : 'Concluir')} 
+            {isLoading ? <><Loader className="animate-spin mr-2" size={20}/> Salvando...</> : (step < totalSteps ? 'Continuar' : 'Concluir')} 
             {!isLoading && <ChevronRight className="ml-2 h-5 w-5"/>}
           </button>
       </div>

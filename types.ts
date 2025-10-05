@@ -33,7 +33,6 @@ export interface UserProfile {
   height: number;
   dietary_restrictions: string[];
   weight_goal: number;
-  gender?: string;
   created_at: string;
 }
 

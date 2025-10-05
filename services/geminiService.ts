@@ -122,7 +122,6 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number, fe
         const prompt = `Gere o plano alimentar para o Dia ${day} do programa de 28 dias para o seguinte usuário:
         - Nome: ${userProfile.name}
         - Idade: ${userProfile.age}
-        - Gênero: ${userProfile.gender || 'Não informado'}
         - Peso: ${userProfile.weight} kg
         - Altura: ${userProfile.height} cm
         - Nível de Atividade: Moderado (para fins de cálculo calórico)
