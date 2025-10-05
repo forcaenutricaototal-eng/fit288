@@ -1,8 +1,8 @@
-import React, { useState, createContext, useContext, useMemo, useEffect } from 'react';
+import React, { useState, createContext, useContext, useMemo, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
 import type { UserProfile, CheckInData } from './types';
-import { supabase } from './components/supabaseClient';
+import { supabase, isSupabaseConfigured } from './components/supabaseClient';
 import { getProfile, getCheckIns, createProfile, updateProfile, addCheckInData } from './services/supabaseService';
 
 import Layout from './components/Layout';
@@ -46,13 +46,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
-  const [isProcessingAuth, setIsProcessingAuth] = useState(false); // New state to prevent race conditions
+  const isProcessingAuthRef = useRef(false); // Use ref to prevent re-renders and effect re-runs
 
   useEffect(() => {
+    // If Supabase is not configured, don't attempt to set up auth listener.
+    if (!isSupabaseConfigured) {
+        setIsLoading(false);
+        return;
+    }
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       // Prevent re-entry if an auth event is already being processed.
-      if (isProcessingAuth) return;
-      setIsProcessingAuth(true);
+      if (isProcessingAuthRef.current) return;
+      isProcessingAuthRef.current = true;
+
+      // Always set loading to true at the beginning of an auth change
+      setIsLoading(true);
 
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -61,12 +70,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setUserProfile(null);
         setCheckIns([]);
         setIsLoading(false);
-        setIsProcessingAuth(false); // Release the lock
+        isProcessingAuthRef.current = false; // Release the lock
         return;
       }
 
-      // Keep isLoading true until all data is fetched or an error occurs
-      setIsLoading(true);
       try {
         let profile = await getProfile(currentUser.id);
 
@@ -75,7 +82,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           const name = currentUser.user_metadata.name || 'Novo Usuário';
           profile = await createProfile(currentUser.id, name);
         } else if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
-          // Safer check for null, undefined, or non-object values
           const updatedProfileData = await updateProfile(currentUser.id, { completed_items_by_day: {} });
           profile = updatedProfileData;
         }
@@ -85,11 +91,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             throw new Error("Não foi possível carregar ou criar o perfil do usuário.");
         }
 
-        // Set profile first, so UI can start rendering.
-        setUserProfile(profile);
-        
-        // Then, fetch dependent data.
+        // Fetch dependent data and then set state to avoid partial renders.
         const checkInsData = await getCheckIns(currentUser.id);
+        setUserProfile(profile);
         setCheckIns(checkInsData);
 
       } catch (error) {
@@ -100,12 +104,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setCheckIns([]);
       } finally {
         setIsLoading(false);
-        setIsProcessingAuth(false); // Always release the lock
+        isProcessingAuthRef.current = false; // Always release the lock
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [addToast, isProcessingAuth]);
+  }, [addToast]);
 
   const login = async (email: string, pass: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -206,31 +210,6 @@ const App: React.FC = () => (
 );
 
 const LoadingSpinner: React.FC = () => {
-    const isSupabaseConfigured = process.env.SUPABASE_URL && process.env.SUPABASE_KEY;
-
-    if (!isSupabaseConfigured) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-neutral-100 p-4 font-sans">
-                <div className="text-center bg-white p-8 rounded-lg shadow-soft max-w-lg border-t-4 border-red-500">
-                    <h2 className="text-2xl font-bold text-red-600 mb-4">Erro de Configuração</h2>
-                    <p className="text-neutral-800 mb-2">As chaves do Supabase não foram encontradas no aplicativo.</p>
-                    <p className="text-neutral-800 mb-6">Isso geralmente acontece quando as variáveis de ambiente não foram aplicadas ao último deploy.</p>
-                    <h3 className="font-semibold text-neutral-900 mb-3">Ação Necessária:</h3>
-                    <div className="bg-green-50 p-4 rounded-md text-left text-green-900">
-                        <p className="font-bold mb-2">1. Verifique as Variáveis de Ambiente na Vercel:</p>
-                        <ul className="list-disc list-inside text-sm space-y-1">
-                            <li><code>VITE_SUPABASE_URL</code></li>
-                            <li><code>VITE_SUPABASE_ANON_KEY</code></li>
-                            <li><code>VITE_GEMINI_API_KEY</code> (ou <code>CHAVE_API_VITE</code>)</li>
-                        </ul>
-                         <p className="font-bold mt-4 mb-2">2. Faça o Redeploy:</p>
-                         <p className="text-sm">Vá até o painel do seu projeto na Vercel, clique na aba "Deployments", encontre o deploy mais recente e clique em "Redeploy" para aplicar as variáveis.</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="flex items-center justify-center min-h-screen bg-neutral-100">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -238,8 +217,34 @@ const LoadingSpinner: React.FC = () => {
     );
 };
 
+const ConfigErrorMessage: React.FC = () => (
+    <div className="flex items-center justify-center min-h-screen bg-neutral-100 p-4 font-sans">
+        <div className="text-center bg-white p-8 rounded-lg shadow-soft max-w-lg border-t-4 border-red-500">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Erro de Configuração</h2>
+            <p className="text-neutral-800 mb-2">As chaves do Supabase não foram encontradas no aplicativo.</p>
+            <p className="text-neutral-800 mb-6">Isso geralmente acontece quando as variáveis de ambiente não foram aplicadas ao último deploy.</p>
+            <h3 className="font-semibold text-neutral-900 mb-3">Ação Necessária:</h3>
+            <div className="bg-green-50 p-4 rounded-md text-left text-green-900">
+                <p className="font-bold mb-2">1. Verifique as Variáveis de Ambiente na Vercel:</p>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                    <li><code>VITE_SUPABASE_URL</code></li>
+                    <li><code>VITE_SUPABASE_ANON_KEY</code></li>
+                    <li><code>VITE_GEMINI_API_KEY</code> (ou <code>CHAVE_API_VITE</code>)</li>
+                </ul>
+                 <p className="font-bold mt-4 mb-2">2. Faça o Redeploy:</p>
+                 <p className="text-sm">Vá até o painel do seu projeto na Vercel, clique na aba "Deployments", encontre o deploy mais recente e clique em "Redeploy" para aplicar as variáveis.</p>
+            </div>
+        </div>
+    </div>
+);
+
 const Main: React.FC = () => {
     const { isAuthenticated, isLoading } = useApp();
+    
+    // The primary check for configuration. If this fails, nothing else can run.
+    if (!isSupabaseConfigured) {
+        return <ConfigErrorMessage />;
+    }
 
     if (isLoading) return <LoadingSpinner />;
 

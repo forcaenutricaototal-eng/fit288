@@ -1,15 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Environment variables are exposed via Vite's `define` config.
-// This approach is used for consistency with how the Gemini API key is handled
-// and to avoid potential runtime issues with `import.meta.env`.
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  const errorMessage = "As credenciais do Supabase não foram encontradas. Verifique se as variáveis de ambiente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` estão configuradas corretamente nas configurações do seu projeto e faça um novo deploy.";
-  console.error(errorMessage);
-  throw new Error(errorMessage);
-}
+// This flag allows the React components to check if the configuration is present
+// before attempting to make any API calls.
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create the client with credentials or empty strings.
+// The Supabase client library does not throw an error on initialization with invalid credentials.
+// Errors will occur on the first API call, which will be handled within the app's UI.
+export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
