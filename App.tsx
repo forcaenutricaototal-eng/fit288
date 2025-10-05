@@ -17,7 +17,7 @@ import ProtocolsPage from './pages/ProtocolsPage';
 interface AppContextType {
   isAuthenticated: boolean;
   userProfile: UserProfile | null;
-  login: () => void;
+  login: () => boolean;
   logout: () => void;
   completeOnboarding: (profile: UserProfile) => void;
   updateUserProfile: (updatedProfile: Partial<UserProfile>) => void;
@@ -82,7 +82,30 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     localStorage.setItem('fit28_checkIns', JSON.stringify(checkIns));
   }, [checkIns]);
 
-  const login = () => setIsAuthenticated(true);
+  const login = () => {
+    const storedProfile = localStorage.getItem('fit28_userProfile');
+    setIsAuthenticated(true);
+    
+    if (storedProfile) {
+        try {
+            const profile = JSON.parse(storedProfile);
+            setUserProfile(profile);
+            
+            const storedCheckIns = localStorage.getItem('fit28_checkIns');
+            if (storedCheckIns) {
+                setCheckIns(JSON.parse(storedCheckIns));
+            }
+            return true;
+        } catch (e) {
+            localStorage.removeItem('fit28_userProfile');
+            localStorage.removeItem('fit28_checkIns');
+            setUserProfile(null);
+            setCheckIns([]);
+            return false;
+        }
+    }
+    return false;
+  };
   
   const logout = () => {
     setIsAuthenticated(false);

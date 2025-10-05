@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
@@ -10,9 +11,12 @@ const LandingPage: React.FC = () => {
 
     const handleAuth = (e: React.FormEvent) => {
         e.preventDefault();
-        // In a real app, you'd have actual auth logic.
-        login();
-        navigate('/onboarding');
+        const profileExists = login();
+        if (profileExists) {
+            navigate('/dashboard');
+        } else {
+            navigate('/onboarding');
+        }
     };
 
     const toggleAuthMode = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -107,7 +111,7 @@ const LandingPage: React.FC = () => {
                             type="submit"
                             className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md"
                         >
-                            Iniciar minha transformação
+                            {authMode === 'signup' ? 'Iniciar minha transformação' : 'Fazer Login'}
                         </button>
                     </form>
 
