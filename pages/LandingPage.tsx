@@ -18,11 +18,10 @@ const LandingPage: React.FC = () => {
         e.preventDefault();
         if (authMode === 'login') {
             const successfulLogin = login();
-            if (successfulLogin) {
-                navigate('/dashboard');
-            } else {
+            if (!successfulLogin) {
                 alert('Nenhum perfil encontrado neste navegador. Por favor, crie uma conta.');
             }
+            // O redirecionamento será tratado automaticamente pelo App.tsx quando o estado de autenticação mudar.
         } else { // signup
             // For signup, we just proceed to onboarding. The user profile will be created there.
             // We do not set any authentication state here.

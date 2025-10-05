@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { UserProfile } from '../types';
@@ -57,7 +58,7 @@ const OnboardingPage: React.FC = () => {
     if (isDataValid) {
       const { retainsLiquids, ...profile } = formData;
       completeOnboarding(profile as UserProfile);
-      navigate('/dashboard');
+      // O redirecionamento será tratado automaticamente pelo App.tsx quando o estado de autenticação mudar.
     } else {
       alert("Ops! Parece que alguns dados obrigatórios não foram preenchidos ou são inválidos. Por favor, verifique os passos e tente novamente.");
     }
