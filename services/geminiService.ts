@@ -12,12 +12,11 @@ const getAi = () => {
         return ai;
     }
 
-    // IMPORTANT: The `vite.config.ts` file is configured to replace `process.env.API_KEY`
-    // with the value of the `VITE_API_KEY` environment variable at build time.
+    // Fix: Per Gemini API guidelines, the API key must be obtained from process.env.API_KEY. This also resolves the TypeScript error on `import.meta.env`.
     const apiKey = process.env.API_KEY;
     
     if (!apiKey) {
-      const errorMessage = "A chave da API Gemini não foi encontrada. Para corrigir, adicione a variável de ambiente `VITE_API_KEY` com sua chave nas configurações do projeto no seu provedor de hospedagem (ex: Vercel) e, em seguida, faça um novo deploy da aplicação.";
+      const errorMessage = "A chave da API Gemini não foi encontrada. Para corrigir, adicione a variável de ambiente `API_KEY` com sua chave nas configurações do projeto no seu provedor de hospedagem (ex: Vercel) e, em seguida, faça um novo deploy da aplicação.";
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
