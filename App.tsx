@@ -52,98 +52,81 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [gamification, setGamification] = useState<GamificationData | null>(null);
   const [completedItemsByDay, setCompletedItemsByDay] = useState<{ [day: number]: { [itemId: string]: boolean }}>({});
   const { addToast } = useToast();
-
-  const loadUserData = useCallback(async (userId: string) => {
-    try {
-      const [profile, checkInsData, gamificationData] = await Promise.all([
-        getProfile(userId),
-        getCheckIns(userId),
-        getGamification(userId)
-      ]);
-      setUserProfile(profile);
-      setCheckIns(checkInsData);
-      setGamification(gamificationData);
-      setCompletedItemsByDay(gamificationData?.completed_items_by_day || {});
-    } catch (error) {
-      console.error("Error loading user data:", error);
-      addToast("Erro ao carregar seus dados.", "info");
-      setUserProfile(null);
-    }
-  }, [addToast]);
   
   useEffect(() => {
-    const checkInitialSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          await loadUserData(currentUser.id);
-        }
-      } catch (error) {
-        console.error("Error checking initial session:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    checkInitialSession();
-  
+    // This single listener handles initial session, login, signup, and logout.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-  
-      if (currentUser) {
-        setIsLoading(true);
-        try {
-          let profile = await getProfile(currentUser.id);
-  
-          if (!profile && currentUser.user_metadata.name) {
-            try {
-              // Create both profile and gamification data. Both must succeed.
-              const newProfile = await createProfile(currentUser.id, currentUser.user_metadata.name);
-              await createGamificationData(currentUser.id);
-              profile = newProfile; // Only assign to profile variable after both creations are successful
-              addToast(`Bem-vindo, ${currentUser.user_metadata.name}!`, 'success');
-            } catch (error) {
-              console.error("Failed to create profile/gamification:", error);
-              addToast("Erro ao criar seu perfil. Por favor, tente recarregar a página.", "info");
-              // If creation fails, profile remains null, and the logic below will handle it.
-            }
-          }
-          
-          if (profile) {
-            await loadUserData(currentUser.id);
-          } else {
-            setUserProfile(null);
-            setCheckIns([]);
-            setGamification(null);
-            setCompletedItemsByDay({});
-            if (_event !== 'SIGNED_IN') {
-              addToast("Não foi possível carregar seu perfil. Tente fazer login novamente.", "info");
-            }
-          }
-        } catch (error) {
-          console.error("An error occurred during auth state change:", error);
-          addToast("Ocorreu um erro. Por favor, recarregue a página.", "info");
-          setUserProfile(null);
-          setCheckIns([]);
-          setGamification(null);
-          setCompletedItemsByDay({});
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
+
+      if (!currentUser) {
+        // User is not logged in or has logged out.
         setUserProfile(null);
         setCheckIns([]);
         setGamification(null);
         setCompletedItemsByDay({});
+        setIsLoading(false); // Finished loading (or unloading) user data.
+        return;
+      }
+
+      // A user is logged in, start loading their data.
+      setIsLoading(true);
+      try {
+        let profile = await getProfile(currentUser.id);
+        let gamificationData = await getGamification(currentUser.id);
+
+        // Scenario: A new user has just signed up.
+        if (!profile && currentUser.user_metadata.name) {
+          try {
+            // Create profile and gamification data in parallel for efficiency.
+            const [newProfile, newGamificationData] = await Promise.all([
+              createProfile(currentUser.id, currentUser.user_metadata.name),
+              createGamificationData(currentUser.id)
+            ]);
+            profile = newProfile;
+            gamificationData = newGamificationData;
+            addToast(`Bem-vindo, ${currentUser.user_metadata.name}!`, 'success');
+          } catch (creationError) {
+            console.error("Failed to create profile/gamification for new user:", creationError);
+            addToast("Erro ao finalizar seu cadastro. Tente recarregar a página.", "info");
+            // Ensure we don't proceed with inconsistent data.
+            setUserProfile(null);
+            setGamification(null);
+            setCheckIns([]);
+            setIsLoading(false); // Stop loading on critical error.
+            return; // Exit the function.
+          }
+        }
+        
+        // At this point, any logged-in user should have a profile and gamification data.
+        if (profile && gamificationData) {
+          const checkInsData = await getCheckIns(currentUser.id);
+          setUserProfile(profile);
+          setGamification(gamificationData);
+          setCheckIns(checkInsData);
+          setCompletedItemsByDay(gamificationData.completed_items_by_day || {});
+        } else {
+          // Handle an inconsistent state (e.g., user in auth but missing DB records).
+          console.error("Inconsistent user state: Auth user exists but profile or gamification data is missing.", { userId: currentUser.id });
+          addToast("Não foi possível carregar seus dados. Tente fazer login novamente.", "info");
+          setUserProfile(null);
+          setGamification(null);
+          setCheckIns([]);
+        }
+      } catch (error) {
+        console.error("An error occurred during auth state change processing:", error);
+        addToast("Ocorreu um erro ao carregar seus dados. Por favor, recarregue.", "info");
+        setUserProfile(null);
+        setGamification(null);
+        setCheckIns([]);
+      } finally {
+        // This ALWAYS runs, ensuring the loading spinner is removed.
         setIsLoading(false);
       }
     });
-  
+
     return () => subscription.unsubscribe();
-  }, [loadUserData, addToast]);
+  }, [addToast]);
 
 
   useEffect(() => {
