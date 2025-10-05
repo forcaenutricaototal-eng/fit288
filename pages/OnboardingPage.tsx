@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { ChevronRight, Scale, Ruler, User, ChevronLeft, PersonStanding, Target } from 'lucide-react';
+import { ChevronRight, Scale, Ruler, User, ChevronLeft, PersonStanding, Target, Loader } from 'lucide-react';
 import type { UserProfile } from '../types';
 
 
 const OnboardingPage: React.FC = () => {
   const { completeOnboarding, user } = useApp();
   const [step, setStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     age: undefined,
@@ -31,17 +33,9 @@ const OnboardingPage: React.FC = () => {
   };
 
   const totalSteps = 2;
-
-  const nextStep = () => {
-    if (step < totalSteps) setStep((prev) => prev + 1);
-    else handleSubmit();
-  };
   
-  const prevStep = () => {
-    if (step > 1) setStep(prev => prev - 1);
-  };
-
   const handleSubmit = async () => {
+    setError(null);
     const isDataValid =
       formData.name && formData.name.trim() !== '' &&
       typeof formData.age === 'number' && !isNaN(formData.age) && formData.age > 0 &&
@@ -51,11 +45,28 @@ const OnboardingPage: React.FC = () => {
       formData.gender;
 
     if (isDataValid && user) {
-      await completeOnboarding(formData as Omit<UserProfile, 'user_id' | 'created_at'>);
-      // App.tsx will handle redirection
+        setIsLoading(true);
+        try {
+            await completeOnboarding(formData as Omit<UserProfile, 'user_id' | 'created_at'>);
+            // App.tsx will handle redirection
+        } catch (e: any) {
+            console.error("Erro ao completar onboarding:", e);
+            setError(e.message || "Ocorreu um erro ao salvar seu perfil. Tente novamente.");
+        } finally {
+            setIsLoading(false);
+        }
     } else {
-      alert("Ops! Parece que alguns dados obrigatórios não foram preenchidos ou são inválidos. Por favor, verifique os passos e tente novamente.");
+      setError("Ops! Parece que alguns dados obrigatórios não foram preenchidos ou são inválidos. Por favor, verifique os passos e tente novamente.");
     }
+  };
+
+  const nextStep = () => {
+    if (step < totalSteps) setStep((prev) => prev + 1);
+    else handleSubmit();
+  };
+  
+  const prevStep = () => {
+    if (step > 1) setStep(prev => prev - 1);
   };
   
   const progress = (step / totalSteps) * 100;
@@ -143,6 +154,7 @@ const OnboardingPage: React.FC = () => {
         
         <div className="text-center">
             {renderStepContent()}
+            {error && <p className="text-center text-red-500 font-semibold mt-4 bg-red-50 p-3 rounded-md">{error}</p>}
         </div>
       </div>
 
@@ -150,7 +162,8 @@ const OnboardingPage: React.FC = () => {
           {step > 1 && (
             <button
                 onClick={prevStep}
-                className="bg-white text-primary font-bold py-4 px-6 rounded-lg hover:bg-neutral-200 transition-colors shadow-soft flex items-center justify-center"
+                disabled={isLoading}
+                className="bg-white text-primary font-bold py-4 px-6 rounded-lg hover:bg-neutral-200 transition-colors shadow-soft flex items-center justify-center disabled:opacity-50"
                 aria-label="Voltar para o passo anterior"
             >
                 <ChevronLeft className="h-5 w-5" />
@@ -158,9 +171,11 @@ const OnboardingPage: React.FC = () => {
           )}
           <button 
             onClick={nextStep} 
-            className="flex-1 bg-primary text-white font-bold py-4 rounded-lg hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md flex items-center justify-center"
+            disabled={isLoading}
+            className="flex-1 bg-primary text-white font-bold py-4 rounded-lg hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md flex items-center justify-center disabled:bg-green-300 disabled:scale-100"
           >
-            {step < totalSteps ? 'Continuar' : 'Concluir'} <ChevronRight className="ml-2 h-5 w-5"/>
+            {isLoading ? <Loader className="animate-spin" size={20}/> : (step < totalSteps ? 'Continuar' : 'Concluir')} 
+            {!isLoading && <ChevronRight className="ml-2 h-5 w-5"/>}
           </button>
       </div>
     </div>
