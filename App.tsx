@@ -55,73 +55,70 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addToast } = useToast();
   
   useEffect(() => {
-    // This single listener handles initial session, login, signup, and logout.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
       if (!currentUser) {
-        // User is not logged in or has logged out.
         setUserProfile(null);
         setCheckIns([]);
         setGamification(null);
         setCompletedItemsByDay({});
-        setIsLoading(false); // Finished loading (or unloading) user data.
+        setIsLoading(false);
         return;
       }
 
-      // A user is logged in, start loading their data.
       setIsLoading(true);
       try {
         let profile = await getProfile(currentUser.id);
         let gamificationData = await getGamification(currentUser.id);
 
-        // Scenario: A new user has just signed up.
-        if (!profile && currentUser.user_metadata.name) {
+        if (!profile) {
+          const name = currentUser.user_metadata.name || 'Novo Usuário';
           try {
-            // Create profile and gamification data in parallel for efficiency.
-            const [newProfile, newGamificationData] = await Promise.all([
-              createProfile(currentUser.id, currentUser.user_metadata.name),
-              createGamificationData(currentUser.id)
-            ]);
-            profile = newProfile;
-            gamificationData = newGamificationData;
-            addToast(`Bem-vindo, ${currentUser.user_metadata.name}!`, 'success');
+            profile = await createProfile(currentUser.id, name);
+            if (!profile) throw new Error("Falha ao criar e recuperar o perfil do usuário.");
+            
+            if (currentUser.user_metadata.name) {
+              addToast(`Bem-vindo, ${name}!`, 'success');
+            }
           } catch (creationError) {
-            console.error("Failed to create profile/gamification for new user:", creationError);
-            addToast("Erro ao finalizar seu cadastro. Tente recarregar a página.", "info");
-            // Ensure we don't proceed with inconsistent data.
+            console.error("Critical error: Failed to create profile for user:", creationError);
+            addToast("Erro crítico ao criar seu perfil. Tente recarregar a página.", 'info');
             setUserProfile(null);
             setGamification(null);
-            setCheckIns([]);
-            setIsLoading(false); // Stop loading on critical error.
-            return; // Exit the function.
+            setIsLoading(false);
+            return;
           }
         }
         
-        // At this point, any logged-in user should have a profile and gamification data.
-        if (profile && gamificationData) {
-          const checkInsData = await getCheckIns(currentUser.id);
-          setUserProfile(profile);
-          setGamification(gamificationData);
-          setCheckIns(checkInsData);
-          setCompletedItemsByDay(gamificationData.completed_items_by_day || {});
-        } else {
-          // Handle an inconsistent state (e.g., user in auth but missing DB records).
-          console.error("Inconsistent user state: Auth user exists but profile or gamification data is missing.", { userId: currentUser.id });
-          addToast("Não foi possível carregar seus dados. Tente fazer login novamente.", "info");
-          setUserProfile(null);
-          setGamification(null);
-          setCheckIns([]);
+        if (!gamificationData) {
+            try {
+                gamificationData = await createGamificationData(currentUser.id);
+                if (!gamificationData) throw new Error("Falha ao criar e recuperar os dados de gamificação.");
+            } catch (creationError) {
+                console.error("Critical error: Failed to create gamification data for user:", creationError);
+                addToast("Erro crítico ao inicializar seus dados de progresso. Tente recarregar.", 'info');
+                setUserProfile(profile);
+                setGamification(null);
+                setIsLoading(false);
+                return;
+            }
         }
+        
+        const checkInsData = await getCheckIns(currentUser.id);
+        setUserProfile(profile);
+        setGamification(gamificationData);
+        setCheckIns(checkInsData);
+        setCompletedItemsByDay(gamificationData.completed_items_by_day || {});
+
       } catch (error) {
         console.error("An error occurred during auth state change processing:", error);
-        addToast("Ocorreu um erro ao carregar seus dados. Por favor, recarregue.", "info");
+        addToast("Ocorreu um erro ao carregar seus dados. Por favor, recarregue.", 'info');
         setUserProfile(null);
         setGamification(null);
         setCheckIns([]);
       } finally {
-        // This ALWAYS runs, ensuring the loading spinner is removed.
         setIsLoading(false);
       }
     });
@@ -133,7 +130,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
     if (!userProfile || !gamification || isLoading) return;
 
-    // FIX: Gracefully handle if gamification.badges is null
     const currentBadges = gamification.badges || [];
     const potentialNewBadges = checkAndAwardBadges(gamification, userProfile, checkIns);
     const newBadges = potentialNewBadges.filter(
@@ -244,7 +240,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (plan && !isCompleted) {
         const allItemIds = ['breakfast', 'lunch', 'dinner', 'snack', ...plan.tasks.map((_, i) => `task-${i}`)];
         if (allItemIds.every(id => newDayItems[id])) {
-            // FIX: Gracefully handle if gamification.badges is null
             const currentBadges = gamification.badges || [];
             const hasBadge = currentBadges.some(b => b.id === 'perfectDay');
             if (!hasBadge) {

@@ -11,7 +11,8 @@ export const checkAndAwardBadges = (
 
     if (!userProfile) return [];
 
-    const hasBadge = (id: string) => gamificationData.badges.some(b => b.id === id);
+    const currentBadges = gamificationData.badges || [];
+    const hasBadge = (id: string) => currentBadges.some(b => b.id === id);
 
     // First Check-in Badge (after onboarding check-in)
     if (checkIns.length > 0 && !hasBadge('firstCheckIn')) {

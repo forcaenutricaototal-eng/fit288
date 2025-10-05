@@ -47,7 +47,7 @@ export const getGeminiResponse = async (
     - Peso: ${userProfile?.weight || 'Não informado'} kg
     - Altura: ${userProfile?.height || 'Não informado'} cm
     - Objetivo: Emagrecimento saudável e melhora metabólica
-    - Restrições: ${userProfile?.dietary_restrictions.join(', ') || 'Nenhuma'}
+    - Restrições: ${userProfile?.dietary_restrictions?.join(', ') || 'Nenhuma'}
     `;
     
     const contents = [...history, { role: 'user' as const, parts: [{ text: newMessage }] }];
@@ -127,7 +127,7 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number, fe
         - Nível de Atividade: Moderado (para fins de cálculo calórico)
         - Objetivo Principal: Perda de peso e melhora da saúde metabólica
         - Meta de Peso: ${userProfile.weight_goal} kg
-        - Restrições Alimentares: ${userProfile.dietary_restrictions.join(', ') || 'Nenhuma'}
+        - Restrições Alimentares: ${userProfile.dietary_restrictions?.join(', ') || 'Nenhuma'}
 
         ${feedbackInstruction}
         ${daySpecificInstructions}
