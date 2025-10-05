@@ -46,21 +46,17 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
-  const isProcessingAuthRef = useRef(false); // Use ref to prevent re-renders and effect re-runs
+  const isProcessingAuthRef = useRef(false);
 
   useEffect(() => {
-    // If Supabase is not configured, don't attempt to set up auth listener.
     if (!isSupabaseConfigured) {
         setIsLoading(false);
         return;
     }
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      // Prevent re-entry if an auth event is already being processed.
       if (isProcessingAuthRef.current) return;
       isProcessingAuthRef.current = true;
-
-      // Always set loading to true at the beginning of an auth change
       setIsLoading(true);
 
       const currentUser = session?.user ?? null;
@@ -70,46 +66,64 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setUserProfile(null);
         setCheckIns([]);
         setIsLoading(false);
-        isProcessingAuthRef.current = false; // Release the lock
+        isProcessingAuthRef.current = false;
         return;
       }
 
       try {
         let profile = await getProfile(currentUser.id);
 
-        // Handle new user creation and patch existing user profiles in one block
         if (!profile) {
           const name = currentUser.user_metadata.name || 'Novo Usuário';
           profile = await createProfile(currentUser.id, name);
         } else if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
-          const updatedProfileData = await updateProfile(currentUser.id, { completed_items_by_day: {} });
-          profile = updatedProfileData;
+          profile = await updateProfile(currentUser.id, { completed_items_by_day: {} });
         }
 
-        // If after all attempts profile is still null, it's a critical failure.
         if (!profile) {
             throw new Error("Não foi possível carregar ou criar o perfil do usuário.");
         }
-
-        // Fetch dependent data and then set state to avoid partial renders.
-        const checkInsData = await getCheckIns(currentUser.id);
+        
         setUserProfile(profile);
-        setCheckIns(checkInsData);
 
       } catch (error) {
-        console.error("Erro ao processar o estado de autenticação:", error);
-        addToast("Ocorreu um erro ao carregar seus dados. Por favor, recarregue.", 'info');
-        // Clear state on critical error to go back to a safe state
+        console.error("Erro ao carregar o perfil:", error);
+        addToast("Ocorreu um erro ao carregar seu perfil. Por favor, recarregue.", 'info');
         setUserProfile(null);
         setCheckIns([]);
+        setUser(null); // Log out user on critical profile failure
       } finally {
         setIsLoading(false);
-        isProcessingAuthRef.current = false; // Always release the lock
+        isProcessingAuthRef.current = false;
       }
     });
 
     return () => subscription.unsubscribe();
   }, [addToast]);
+
+  // Separate effect for loading non-critical data like check-ins
+  useEffect(() => {
+    if (userProfile && user) {
+        let isMounted = true;
+        const fetchCheckIns = async () => {
+            try {
+                const checkInsData = await getCheckIns(user.id);
+                if (isMounted) {
+                    setCheckIns(checkInsData);
+                }
+            } catch (error) {
+                console.error("Erro ao carregar check-ins:", error);
+                addToast("Não foi possível carregar seu histórico de evolução.", 'info');
+                 if (isMounted) {
+                    setCheckIns([]);
+                }
+            }
+        };
+        fetchCheckIns();
+        return () => { isMounted = false; };
+    }
+  }, [userProfile, user, addToast]);
+
 
   const login = async (email: string, pass: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -241,7 +255,6 @@ const ConfigErrorMessage: React.FC = () => (
 const Main: React.FC = () => {
     const { isAuthenticated, isLoading } = useApp();
     
-    // The primary check for configuration. If this fails, nothing else can run.
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
     }
