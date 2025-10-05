@@ -1,6 +1,3 @@
-
-
-
 import React, { useState } from 'react';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
@@ -39,10 +36,14 @@ const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'weight' | 'measurements'>('weight');
 
+    if (!userProfile || !gamification) {
+        return <div>Carregando...</div>
+    }
+
     const currentDayOfPlan = Math.max(0, checkIns.length - 1);
     const startWeight = checkIns.length > 0 ? checkIns[0].weight : userProfile?.weight;
     const currentWeight = userProfile?.weight;
-    const goalWeight = userProfile?.weightGoal;
+    const goalWeight = userProfile?.weight_goal;
 
     let weightProgressPercentage = 0;
     if (startWeight && currentWeight && goalWeight) {
@@ -65,7 +66,7 @@ const DashboardPage: React.FC = () => {
         : [{ name: 'Início', peso: userProfile?.weight ?? 0 }];
     
     const measurementsWithData = checkIns.filter(
-        checkIn => checkIn.waist || checkIn.hips || checkIn.neck || checkIn.rightArm || checkIn.leftArm || checkIn.rightThigh || checkIn.leftThigh
+        checkIn => checkIn.waist || checkIn.hips || checkIn.neck || checkIn.right_arm || checkIn.left_arm || checkIn.right_thigh || checkIn.left_thigh
     );
 
     const allValues = measurementsWithData.flatMap(checkIn => 
@@ -73,10 +74,10 @@ const DashboardPage: React.FC = () => {
             checkIn.waist, 
             checkIn.hips, 
             checkIn.neck, 
-            checkIn.rightArm, 
-            checkIn.leftArm, 
-            checkIn.rightThigh, 
-            checkIn.leftThigh
+            checkIn.right_arm, 
+            checkIn.left_arm, 
+            checkIn.right_thigh, 
+            checkIn.left_thigh
         ].filter((value): value is number => typeof value === 'number' && value > 0)
     );
 
@@ -96,10 +97,10 @@ const DashboardPage: React.FC = () => {
         Cintura: checkIn.waist,
         Quadril: checkIn.hips,
         Pescoço: checkIn.neck,
-        'Braço D.': checkIn.rightArm,
-        'Braço E.': checkIn.leftArm,
-        'Coxa D.': checkIn.rightThigh,
-        'Coxa E.': checkIn.leftThigh,
+        'Braço D.': checkIn.right_arm,
+        'Braço E.': checkIn.left_arm,
+        'Coxa D.': checkIn.right_thigh,
+        'Coxa E.': checkIn.left_thigh,
     }));
 
 

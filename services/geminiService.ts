@@ -12,11 +12,11 @@ const getAi = () => {
         return ai;
     }
 
-    // The API key is injected during the build process by Vite from the CHAVE_API_VITE environment variable.
+    // The API key is injected during the build process by Vite from environment variables.
     const apiKey = process.env.API_KEY;
     
     if (!apiKey) {
-      const errorMessage = "A chave da API Gemini não foi encontrada. Para corrigir, adicione a variável de ambiente `CHAVE_API_VITE` com sua chave nas configurações do projeto no seu provedor de hospedagem (ex: Vercel) e, em seguida, faça um novo deploy da aplicação.";
+      const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `VITE_GEMINI_API_KEY` (ou a antiga `CHAVE_API_VITE`) está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
@@ -47,7 +47,7 @@ export const getGeminiResponse = async (
     - Peso: ${userProfile?.weight || 'Não informado'} kg
     - Altura: ${userProfile?.height || 'Não informado'} cm
     - Objetivo: Emagrecimento saudável e melhora metabólica
-    - Restrições: ${userProfile?.dietaryRestrictions.join(', ') || 'Nenhuma'}
+    - Restrições: ${userProfile?.dietary_restrictions.join(', ') || 'Nenhuma'}
     `;
     
     const contents = [...history, { role: 'user' as const, parts: [{ text: newMessage }] }];
@@ -98,7 +98,7 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number, fe
             ATENÇÃO: Este é o Dia ${day}, que faz parte dos 10 primeiros dias do protocolo Detox. Siga RIGOROSAMENTE as seguintes restrições. NÃO inclua NENHUM dos seguintes alimentos:
             - Todos os alimentos que contém Glúten.
             - Soja ou molho de soja.
-            - Queijos (são permitidos APENAS Cream cheese light e creme cottage). Queijo muçarela, prato, etc., são PROIBIDOS.
+            - Queijos (são permitidos APENAS Cream cheese light e creme cottage). Queijo muçarala, prato, etc., são PROIBIDOS.
             - Açúcar refinado.
             - Adoçantes (são permitidos APENAS estévia, xilitol e eritritol).
             - Leite de origem animal (Iogurte grego ou natural desnatado sem açúcar SÃO PERMITIDOS).
@@ -127,8 +127,8 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number, fe
         - Altura: ${userProfile.height} cm
         - Nível de Atividade: Moderado (para fins de cálculo calórico)
         - Objetivo Principal: Perda de peso e melhora da saúde metabólica
-        - Meta de Peso: ${userProfile.weightGoal} kg
-        - Restrições Alimentares: ${userProfile.dietaryRestrictions.join(', ') || 'Nenhuma'}
+        - Meta de Peso: ${userProfile.weight_goal} kg
+        - Restrições Alimentares: ${userProfile.dietary_restrictions.join(', ') || 'Nenhuma'}
 
         ${feedbackInstruction}
         ${daySpecificInstructions}

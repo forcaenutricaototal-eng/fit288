@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import { User, Calendar, Edit, LogOut, PlusCircle, Save, X } from 'lucide-react';
@@ -36,10 +34,10 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         waist: lastCheckIn?.waist ?? undefined,
         hips: lastCheckIn?.hips ?? undefined,
         neck: lastCheckIn?.neck ?? undefined,
-        rightArm: lastCheckIn?.rightArm ?? undefined,
-        leftArm: lastCheckIn?.leftArm ?? undefined,
-        rightThigh: lastCheckIn?.rightThigh ?? undefined,
-        leftThigh: lastCheckIn?.leftThigh ?? undefined,
+        right_arm: lastCheckIn?.right_arm ?? undefined,
+        left_arm: lastCheckIn?.left_arm ?? undefined,
+        right_thigh: lastCheckIn?.right_thigh ?? undefined,
+        left_thigh: lastCheckIn?.left_thigh ?? undefined,
         observations: lastCheckIn?.observations ?? '',
     });
 
@@ -55,14 +53,14 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!measurements.weight || measurements.weight <= 0) {
             alert("O peso é obrigatório e deve ser maior que zero.");
             return;
         }
 
         if (measurements.height && measurements.height !== userProfile?.height) {
-            updateUserProfile({ height: measurements.height });
+            await updateUserProfile({ height: measurements.height });
         }
 
         const { height, ...restOfMeasurements } = measurements;
@@ -70,11 +68,11 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         const checkInData = {
             ...restOfMeasurements,
             weight: measurements.weight,
-            waterIntake: 0, 
-            fluidRetention: 1,
+            water_intake: 0, 
+            fluid_retention: 1,
         };
 
-        addCheckIn(checkInData);
+        await addCheckIn(checkInData);
         onClose();
     };
     
@@ -107,19 +105,19 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                         </div>
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Braço Esq. (cm)</label>
-                            <input type="number" name="leftArm" value={measurements.leftArm ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                            <input type="number" name="left_arm" value={measurements.left_arm ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                         </div>
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Braço Dir. (cm)</label>
-                            <input type="number" name="rightArm" value={measurements.rightArm ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                            <input type="number" name="right_arm" value={measurements.right_arm ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                         </div>
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Coxa Esq. (cm)</label>
-                            <input type="number" name="leftThigh" value={measurements.leftThigh ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                            <input type="number" name="left_thigh" value={measurements.left_thigh ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                         </div>
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Coxa Dir. (cm)</label>
-                            <input type="number" name="rightThigh" value={measurements.rightThigh ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                            <input type="number" name="right_thigh" value={measurements.right_thigh ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                         </div>
                     </div>
                     <div>
@@ -170,7 +168,7 @@ const ProfilePage: React.FC = () => {
 
     const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        const isNumeric = ['age', 'height', 'weight', 'weightGoal'].includes(name);
+        const isNumeric = ['age', 'height', 'weight', 'weight_goal'].includes(name);
         setEditableProfile(prev => prev ? { ...prev, [name]: isNumeric ? Number(value) : value } : null);
     };
 
@@ -247,7 +245,11 @@ const ProfilePage: React.FC = () => {
                                     <label className="text-sm text-neutral-800 block mb-1">Idade</label>
                                     <input type="number" name="age" value={editableProfile.age} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
-                                <div className="col-span-2">
+                                <div>
+                                    <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
+                                    <input type="number" name="weight_goal" value={editableProfile.weight_goal} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                </div>
+                                <div>
                                     <label className="text-sm text-neutral-800 block mb-1">Gênero</label>
                                     <select name="gender" value={editableProfile.gender} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white">
                                         <option>Feminino</option>
@@ -299,9 +301,8 @@ const ProfilePage: React.FC = () => {
                                 const checkInBmi = calculateBmi(checkIn.weight, userProfile.height);
                                 const isCurrent = checkIn.day === (lastCheckIn?.day ?? -1);
                                 
-                                const baseDate = new Date();
-                                baseDate.setDate(baseDate.getDate() - ((lastCheckIn?.day ?? 0) - checkIn.day));
-                                const formattedDate = baseDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                const date = checkIn.created_at ? new Date(checkIn.created_at) : new Date();
+                                const formattedDate = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
                                 return (
                                 <div key={checkIn.day} className={`p-3 rounded-md flex flex-wrap justify-between items-center ${isCurrent ? 'bg-green-50 border border-green-200' : 'bg-neutral-100'}`}>

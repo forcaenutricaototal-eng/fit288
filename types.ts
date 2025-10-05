@@ -1,5 +1,3 @@
-
-
 export type BadgeId = 
   | 'firstCheckIn'
   | 'perfectDay'
@@ -8,7 +6,6 @@ export type BadgeId =
   | 'pointCollector100'
   | 'pointCollector500'
   | 'goalReached';
-
 
 export interface Badge {
   id: BadgeId;
@@ -19,21 +16,25 @@ export interface Badge {
 }
 
 export interface GamificationData {
+  user_id: string;
   points: number;
   streak: number;
-  longestStreak: number;
-  lastCheckInDate: string | null;
+  longest_streak: number;
+  last_check_in_date: string | null;
   badges: Badge[];
+  completed_items_by_day: { [day: number]: { [itemId: string]: boolean } };
 }
 
 export interface UserProfile {
+  user_id: string;
   name: string;
   age: number;
   weight: number;
   height: number;
-  dietaryRestrictions: string[];
-  weightGoal: number;
+  dietary_restrictions: string[];
+  weight_goal: number;
   gender: string;
+  created_at: string;
 }
 
 export interface ChatMessage {
@@ -65,18 +66,20 @@ export interface DailyPlan {
     tasks: string[];
 }
 
-
 export interface CheckInData {
+  id?: number;
+  user_id: string;
   day: number;
   weight: number;
-  waterIntake: number;
-  fluidRetention: number; // 1 to 3
+  water_intake: number;
+  fluid_retention: number; // 1 to 3
   waist?: number;
   hips?: number;
   neck?: number;
-  rightArm?: number;
-  leftArm?: number;
-  rightThigh?: number;
-  leftThigh?: number;
+  right_arm?: number;
+  left_arm?: number;
+  right_thigh?: number;
+  left_thigh?: number;
   observations?: string;
+  created_at?: string;
 }

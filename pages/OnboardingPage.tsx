@@ -1,27 +1,23 @@
-
-
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import type { UserProfile } from '../types';
 import { useApp } from '../App';
 import { ChevronRight, Scale, Ruler, User, ChevronLeft, PersonStanding, Target } from 'lucide-react';
+import type { UserProfile } from '../types';
+
 
 const OnboardingPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { completeOnboarding } = useApp();
-  const location = useLocation();
+  const { completeOnboarding, user } = useApp();
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<UserProfile>>({
-    name: location.state?.name || '',
+  const [formData, setFormData] = useState({
+    name: '',
     age: undefined,
     weight: undefined,
     height: undefined,
-    weightGoal: undefined,
+    weight_goal: undefined,
     gender: 'Feminino',
-    dietaryRestrictions: [],
+    dietary_restrictions: [],
   });
   
-  const numericFields = ['age', 'weight', 'height', 'weightGoal'];
+  const numericFields = ['age', 'weight', 'height', 'weight_goal'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -39,18 +35,18 @@ const OnboardingPage: React.FC = () => {
     if (step > 1) setStep(prev => prev - 1);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const isDataValid =
       formData.name && formData.name.trim() !== '' &&
       typeof formData.age === 'number' && !isNaN(formData.age) && formData.age > 0 &&
       typeof formData.weight === 'number' && !isNaN(formData.weight) && formData.weight > 0 &&
       typeof formData.height === 'number' && !isNaN(formData.height) && formData.height > 0 &&
-      typeof formData.weightGoal === 'number' && !isNaN(formData.weightGoal) && formData.weightGoal > 0 &&
+      typeof formData.weight_goal === 'number' && !isNaN(formData.weight_goal) && formData.weight_goal > 0 &&
       formData.gender;
 
-    if (isDataValid) {
-      completeOnboarding(formData as UserProfile);
-      // O redirecionamento será tratado automaticamente pelo App.tsx quando o estado de autenticação mudar.
+    if (isDataValid && user) {
+      await completeOnboarding(formData as Omit<UserProfile, 'user_id' | 'created_at'>);
+      // App.tsx will handle redirection
     } else {
       alert("Ops! Parece que alguns dados obrigatórios não foram preenchidos ou são inválidos. Por favor, verifique os passos e tente novamente.");
     }
@@ -66,6 +62,13 @@ const OnboardingPage: React.FC = () => {
             <h2 className="text-3xl font-bold text-neutral-900 mb-2">Seu perfil!</h2>
             <p className="text-neutral-800 mb-8">Informações básicas para personalizar seu plano.</p>
             <div className="bg-white p-6 rounded-lg shadow-soft space-y-6">
+               <div>
+                  <h3 className="font-semibold text-neutral-900 mb-2">Seu nome</h3>
+                  <div className="flex items-center bg-neutral-100 rounded-md p-3">
+                      <User className="text-gray-400 mr-3" size={20} />
+                      <input type="text" name="name" placeholder="Nome completo" className="w-full bg-transparent focus:outline-none" value={formData.name} onChange={handleChange} />
+                  </div>
+               </div>
                <div>
                   <h3 className="font-semibold text-neutral-900 mb-2">Qual a sua idade?</h3>
                   <div className="flex items-center bg-neutral-100 rounded-md p-3">
@@ -111,7 +114,7 @@ const OnboardingPage: React.FC = () => {
                 <h3 className="font-semibold text-neutral-900">Qual sua meta de peso para 28 dias?</h3>
                  <div className="flex items-center bg-neutral-100 rounded-md p-3 mt-2">
                     <Target className="text-gray-400 mr-2" size={20} />
-                    <input type="number" name="weightGoal" placeholder="Meta de peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weightGoal === undefined ? '' : formData.weightGoal} onChange={handleChange} />
+                    <input type="number" name="weight_goal" placeholder="Meta de peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weight_goal === undefined ? '' : formData.weight_goal} onChange={handleChange} />
                 </div>
               </div>
             </div>
