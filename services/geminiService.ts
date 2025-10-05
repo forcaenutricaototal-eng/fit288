@@ -1,3 +1,4 @@
+
 // Per Gemini API guidelines, the API key must be accessed via `process.env.API_KEY`.
 // The execution environment is expected to provide this variable.
 
@@ -46,7 +47,7 @@ export const getGeminiResponse = async (
     - Idade: ${userProfile?.age || 'Não informado'}
     - Peso: ${userProfile?.weight || 'Não informado'} kg
     - Altura: ${userProfile?.height || 'Não informado'} cm
-    - Objetivo: ${userProfile?.goal || 'Não informado'}
+    - Objetivo: Emagrecimento saudável e melhora metabólica
     - Restrições: ${userProfile?.dietaryRestrictions.join(', ') || 'Nenhuma'}
     `;
     
@@ -117,8 +118,8 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number): P
         - Gênero: ${userProfile.gender}
         - Peso: ${userProfile.weight} kg
         - Altura: ${userProfile.height} cm
-        - Nível de Atividade: ${userProfile.activityLevel}
-        - Objetivo Principal: ${userProfile.goal}
+        - Nível de Atividade: Moderado (para fins de cálculo calórico)
+        - Objetivo Principal: Perda de peso e melhora da saúde metabólica
         - Meta de Peso: ${userProfile.weightGoal} kg
         - Restrições Alimentares: ${userProfile.dietaryRestrictions.join(', ') || 'Nenhuma'}
 

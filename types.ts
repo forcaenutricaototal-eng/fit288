@@ -1,14 +1,13 @@
 
+
 export interface UserProfile {
   name: string;
   age: number;
   weight: number;
   height: number;
-  goal: string;
   dietaryRestrictions: string[];
   weightGoal: number;
   gender: string;
-  activityLevel: string;
 }
 
 export interface ChatMessage {

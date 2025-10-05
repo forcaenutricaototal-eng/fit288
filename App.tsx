@@ -1,5 +1,6 @@
 
-import React, { useState, createContext, useContext, useMemo, useEffect } from 'react';
+
+import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { UserProfile, CheckInData } from './types';
 
@@ -39,9 +40,8 @@ export const useApp = () => {
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // New loading state
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Effect to load user from localStorage on initial mount
   useEffect(() => {
     try {
       const storedProfile = localStorage.getItem('fit28_userProfile');
@@ -54,38 +54,24 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
       }
     } catch {
-      // If data is corrupt, treat as logged out and clean storage.
       localStorage.removeItem('fit28_userProfile');
       localStorage.removeItem('fit28_checkIns');
     } finally {
-      setIsLoading(false); // Finished loading attempt
+      setIsLoading(false);
     }
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []);
 
   const isAuthenticated = useMemo(() => userProfile !== null, [userProfile]);
   const planDuration = 28;
-
-
-  // This effect persists the user's profile to localStorage whenever it changes.
-  useEffect(() => {
-    // Only save after the initial load is complete to avoid race conditions.
-    if (!isLoading) {
-        if (userProfile) {
-          localStorage.setItem('fit28_userProfile', JSON.stringify(userProfile));
-        } else {
-          localStorage.removeItem('fit28_userProfile');
-        }
-    }
-  }, [userProfile, isLoading]);
   
-  // This effect persists the check-in data.
-  useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem('fit28_checkIns', JSON.stringify(checkIns));
-    }
-  }, [checkIns, isLoading]);
+  const logout = useCallback(() => {
+    setUserProfile(null);
+    setCheckIns([]);
+    localStorage.removeItem('fit28_userProfile');
+    localStorage.removeItem('fit28_checkIns');
+  }, []);
 
-  const login = () => {
+  const login = useCallback(() => {
     const storedProfile = localStorage.getItem('fit28_userProfile');
     
     if (storedProfile) {
@@ -104,41 +90,53 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
     }
     return false;
-  };
+  }, [logout]);
   
-  const logout = () => {
-    setUserProfile(null);
-    setCheckIns([]);
-    localStorage.removeItem('fit28_isAuthenticated');
-    localStorage.removeItem('fit28_userProfile');
-    localStorage.removeItem('fit28_checkIns');
-  };
-  
-  const completeOnboarding = (profile: UserProfile) => {
-    setUserProfile(profile);
-    setCheckIns([{ 
+  const completeOnboarding = useCallback((profile: UserProfile) => {
+    const initialCheckin = { 
       day: 0, 
       weight: profile.weight, 
       waterIntake: 0, 
       fluidRetention: 1,
-    }]);
-  };
-
-  const updateUserProfile = (updatedProfile: Partial<UserProfile>) => {
-    setUserProfile(prev => prev ? { ...prev, ...updatedProfile } : null);
-  };
-
-  const addCheckIn = (data: Omit<CheckInData, 'day'>) => {
-    if (checkIns.length > planDuration) return;
-
-    const newCheckIn: CheckInData = {
-      day: checkIns.length,
-      ...data,
     };
-    setCheckIns(prev => [...prev, newCheckIn]);
+    setUserProfile(profile);
+    setCheckIns([initialCheckin]);
+    localStorage.setItem('fit28_userProfile', JSON.stringify(profile));
+    localStorage.setItem('fit28_checkIns', JSON.stringify([initialCheckin]));
+  }, []);
+
+  const updateUserProfile = useCallback((updatedProfile: Partial<UserProfile>) => {
+    setUserProfile(prev => {
+      if (prev) {
+        const newProfile = { ...prev, ...updatedProfile };
+        localStorage.setItem('fit28_userProfile', JSON.stringify(newProfile));
+        return newProfile;
+      }
+      return null;
+    });
+  }, []);
+
+  const addCheckIn = useCallback((data: Omit<CheckInData, 'day'>) => {
+    setCheckIns(prev => {
+        if (prev.length >= planDuration) return prev;
+        const newCheckIn: CheckInData = {
+          day: prev.length,
+          ...data,
+        };
+        const newCheckIns = [...prev, newCheckIn];
+        localStorage.setItem('fit28_checkIns', JSON.stringify(newCheckIns));
+        return newCheckIns;
+    });
     
-    setUserProfile(prev => prev ? { ...prev, weight: data.weight } : null);
-  };
+    setUserProfile(prev => {
+      if (prev) {
+        const newProfile = { ...prev, weight: data.weight };
+        localStorage.setItem('fit28_userProfile', JSON.stringify(newProfile));
+        return newProfile;
+      }
+      return null;
+    });
+  }, [planDuration]);
 
 
   const value = useMemo(() => ({
@@ -152,7 +150,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     checkIns,
     addCheckIn,
     planDuration,
-  }), [isAuthenticated, userProfile, isLoading, checkIns]);
+  }), [isAuthenticated, userProfile, isLoading, checkIns, login, logout, completeOnboarding, updateUserProfile, addCheckIn]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

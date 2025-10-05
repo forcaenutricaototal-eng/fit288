@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { User, Calendar, Target, BarChart, Edit, LogOut, PlusCircle, Save, X } from 'lucide-react';
+import { User, Calendar, Edit, LogOut, PlusCircle, Save, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { UserProfile } from '../types';
 
@@ -247,7 +247,7 @@ const ProfilePage: React.FC = () => {
                                     <label className="text-sm text-neutral-800 block mb-1">Idade</label>
                                     <input type="number" name="age" value={editableProfile.age} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
-                                <div>
+                                <div className="col-span-2">
                                     <label className="text-sm text-neutral-800 block mb-1">Gênero</label>
                                     <select name="gender" value={editableProfile.gender} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white">
                                         <option>Feminino</option>
@@ -255,32 +255,12 @@ const ProfilePage: React.FC = () => {
                                         <option>Outro</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="text-sm text-neutral-800 block mb-1">Objetivo</label>
-                                    <select name="goal" value={editableProfile.goal} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white">
-                                        <option>Perda de peso</option>
-                                        <option>Reduzir retenção hídrica</option>
-                                        <option>Melhorar sensibilidade metabólica</option>
-                                        <option>Mais energia e disposição</option>
-                                    </select>
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="text-sm text-neutral-800 block mb-1">Nível de Atividade</label>
-                                     <select name="activityLevel" value={editableProfile.activityLevel} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white">
-                                        <option>Sedentário (pouco ou nenhum exercício)</option>
-                                        <option>Levemente Ativo (exercício leve 1-3 dias/semana)</option>
-                                        <option>Moderadamente Ativo (exercício moderado 3-5 dias/semana)</option>
-                                        <option>Muito Ativo (exercício intenso 6-7 dias/semana)</option>
-                                     </select>
-                                </div>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <InfoItem icon={User} label="Nome" value={userProfile.name} />
                                 <InfoItem icon={Calendar} label="Idade" value={`${userProfile.age} anos`} />
                                 <InfoItem icon={User} label="Gênero" value={userProfile.gender} />
-                                <InfoItem icon={Target} label="Objetivo" value={userProfile.goal} />
-                                <InfoItem icon={BarChart} label="Nível de Atividade" value={userProfile.activityLevel.split(' ')[0]} />
                             </div>
                         )}
                     </div>

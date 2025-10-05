@@ -4,23 +4,20 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { UserProfile } from '../types';
 import { useApp } from '../App';
-import { ChevronRight, Scale, Ruler, User, ChevronLeft, PersonStanding, Dumbbell, Target } from 'lucide-react';
+import { ChevronRight, Scale, Ruler, User, ChevronLeft, PersonStanding, Target } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { completeOnboarding } = useApp();
   const location = useLocation();
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<UserProfile & { retainsLiquids: boolean; }>>({
+  const [formData, setFormData] = useState<Partial<UserProfile>>({
     name: location.state?.name || '',
     age: undefined,
     weight: undefined,
     height: undefined,
     weightGoal: undefined,
     gender: 'Feminino',
-    activityLevel: 'Sedentário',
-    retainsLiquids: false,
-    goal: 'Perda de peso',
     dietaryRestrictions: [],
   });
   
@@ -30,12 +27,8 @@ const OnboardingPage: React.FC = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: numericFields.includes(name) ? (value === '' ? undefined : Number(value)) : value }));
   };
-  
-  const handleToggle = (name: string, value: boolean) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
 
-  const totalSteps = 3;
+  const totalSteps = 2;
 
   const nextStep = () => {
     if (step < totalSteps) setStep((prev) => prev + 1);
@@ -53,11 +46,10 @@ const OnboardingPage: React.FC = () => {
       typeof formData.weight === 'number' && !isNaN(formData.weight) && formData.weight > 0 &&
       typeof formData.height === 'number' && !isNaN(formData.height) && formData.height > 0 &&
       typeof formData.weightGoal === 'number' && !isNaN(formData.weightGoal) && formData.weightGoal > 0 &&
-      formData.goal && formData.gender && formData.activityLevel;
+      formData.gender;
 
     if (isDataValid) {
-      const { retainsLiquids, ...profile } = formData;
-      completeOnboarding(profile as UserProfile);
+      completeOnboarding(formData as UserProfile);
       // O redirecionamento será tratado automaticamente pelo App.tsx quando o estado de autenticação mudar.
     } else {
       alert("Ops! Parece que alguns dados obrigatórios não foram preenchidos ou são inválidos. Por favor, verifique os passos e tente novamente.");
@@ -71,7 +63,7 @@ const OnboardingPage: React.FC = () => {
       case 1:
         return (
           <>
-            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Seu ponto de partida!</h2>
+            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Seu perfil!</h2>
             <p className="text-neutral-800 mb-8">Informações básicas para personalizar seu plano.</p>
             <div className="bg-white p-6 rounded-lg shadow-soft space-y-6">
                <div>
@@ -93,73 +85,35 @@ const OnboardingPage: React.FC = () => {
                      </select>
                   </div>
                </div>
-               <div>
-                  <h3 className="font-semibold text-neutral-900 mb-2">Nível de Atividade Física</h3>
-                  <div className="flex items-center bg-neutral-100 rounded-md p-3">
-                     <Dumbbell className="text-gray-400 mr-3" size={20} />
-                     <select name="activityLevel" value={formData.activityLevel} onChange={handleChange} className="w-full bg-transparent focus:outline-none">
-                        <option>Sedentário (pouco ou nenhum exercício)</option>
-                        <option>Levemente Ativo (exercício leve 1-3 dias/semana)</option>
-                        <option>Moderadamente Ativo (exercício moderado 3-5 dias/semana)</option>
-                        <option>Muito Ativo (exercício intenso 6-7 dias/semana)</option>
-                     </select>
-                  </div>
-               </div>
             </div>
           </>
         );
       case 2:
         return (
           <>
-            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Suas medidas atuais</h2>
+            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Suas medidas e metas</h2>
             <p className="text-neutral-800 mb-8">Esses dados nos ajudam a acompanhar sua evolução.</p>
-            <div className="bg-white p-6 rounded-lg shadow-soft space-y-4">
-              <h3 className="font-semibold text-neutral-900">Qual seu peso e altura?</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center bg-neutral-100 rounded-md p-3">
-                  <Scale className="text-gray-400 mr-2" size={20} />
-                  <input type="number" name="weight" placeholder="Peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weight === undefined ? '' : formData.weight} onChange={handleChange} />
-                </div>
-                <div className="flex items-center bg-neutral-100 rounded-md p-3">
-                  <Ruler className="text-gray-400 mr-2" size={20} />
-                  <input type="number" name="height" placeholder="Altura (cm)" className="w-full bg-transparent focus:outline-none" value={formData.height === undefined ? '' : formData.height} onChange={handleChange} />
-                </div>
-              </div>
-            </div>
-          </>
-        );
-      case 3:
-         return (
-          <>
-            <h2 className="text-3xl font-bold text-neutral-900 mb-2">Definindo suas metas</h2>
-            <p className="text-neutral-800 mb-8">Onde você quer chegar?</p>
             <div className="bg-white p-6 rounded-lg shadow-soft space-y-6">
-                <div>
-                    <h3 className="font-semibold text-neutral-900 mb-2">Qual sua meta de peso para 28 dias?</h3>
-                     <div className="flex items-center bg-neutral-100 rounded-md p-3">
-                        <Scale className="text-gray-400 mr-2" size={20} />
-                        <input type="number" name="weightGoal" placeholder="Meta de peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weightGoal === undefined ? '' : formData.weightGoal} onChange={handleChange} />
-                    </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-neutral-900">Qual seu principal objetivo?</h3>
+              <div>
+                <h3 className="font-semibold text-neutral-900">Qual seu peso e altura?</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                   <div className="flex items-center bg-neutral-100 rounded-md p-3">
-                    <Target className="text-gray-400 mr-3" size={20} />
-                    <select name="goal" id="goal" value={formData.goal} onChange={handleChange} className="w-full bg-transparent focus:outline-none">
-                      <option>Perda de peso</option>
-                      <option>Reduzir retenção hídrica</option>
-                      <option>Melhorar sensibilidade metabólica</option>
-                      <option>Mais energia e disposição</option>
-                    </select>
+                    <Scale className="text-gray-400 mr-2" size={20} />
+                    <input type="number" name="weight" placeholder="Peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weight === undefined ? '' : formData.weight} onChange={handleChange} />
+                  </div>
+                  <div className="flex items-center bg-neutral-100 rounded-md p-3">
+                    <Ruler className="text-gray-400 mr-2" size={20} />
+                    <input type="number" name="height" placeholder="Altura (cm)" className="w-full bg-transparent focus:outline-none" value={formData.height === undefined ? '' : formData.height} onChange={handleChange} />
                   </div>
                 </div>
-                 <div>
-                    <h3 className="font-semibold text-neutral-900 mb-3">Você costuma reter líquidos?</h3>
-                     <div className="flex bg-neutral-200 rounded-full p-1">
-                        <button onClick={() => handleToggle('retainsLiquids', true)} className={`w-1/2 py-2 rounded-full font-semibold transition-colors ${formData.retainsLiquids ? 'bg-white shadow' : 'text-neutral-800'}`}>Sim</button>
-                        <button onClick={() => handleToggle('retainsLiquids', false)} className={`w-1/2 py-2 rounded-full font-semibold transition-colors ${!formData.retainsLiquids ? 'bg-white shadow' : 'text-neutral-800'}`}>Não</button>
-                    </div>
+              </div>
+              <div>
+                <h3 className="font-semibold text-neutral-900">Qual sua meta de peso para 28 dias?</h3>
+                 <div className="flex items-center bg-neutral-100 rounded-md p-3 mt-2">
+                    <Target className="text-gray-400 mr-2" size={20} />
+                    <input type="number" name="weightGoal" placeholder="Meta de peso (kg)" className="w-full bg-transparent focus:outline-none" value={formData.weightGoal === undefined ? '' : formData.weightGoal} onChange={handleChange} />
                 </div>
+              </div>
             </div>
           </>
         );
