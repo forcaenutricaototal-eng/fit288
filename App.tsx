@@ -3,7 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
 import type { UserProfile, CheckInData, GamificationData, Badge, DailyPlan } from './types';
 import { supabase } from './components/supabaseClient';
-import { getProfile, getCheckIns, getGamification, createProfile, updateProfile, addCheckInData, updateGamificationData, updateCompletedItems } from './services/supabaseService';
+import { getProfile, getCheckIns, getGamification, createProfile, updateProfile, addCheckInData, updateGamificationData, updateCompletedItems, createGamificationData } from './services/supabaseService';
 import { checkAndAwardBadges } from './services/gamificationService';
 import { ALL_BADGES } from './data/badges';
 
@@ -72,13 +72,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   
   useEffect(() => {
     const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await loadUserData(currentUser.id);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await loadUserData(currentUser.id);
+        }
+      } catch (error) {
+        console.error("Error checking initial session:", error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
   
     checkInitialSession();
@@ -89,34 +94,45 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   
       if (currentUser) {
         setIsLoading(true);
-        let profile = await getProfile(currentUser.id);
+        try {
+          let profile = await getProfile(currentUser.id);
   
-        if (!profile && currentUser.user_metadata.name) {
-          try {
-            profile = await createProfile(currentUser.id, currentUser.user_metadata.name);
-            addToast(`Bem-vindo, ${currentUser.user_metadata.name}!`, 'success');
-          } catch (error) {
-            console.error("Failed to create profile:", error);
-            addToast("Erro ao criar seu perfil.", "info");
+          if (!profile && currentUser.user_metadata.name) {
+            try {
+              profile = await createProfile(currentUser.id, currentUser.user_metadata.name);
+              await createGamificationData(currentUser.id);
+              addToast(`Bem-vindo, ${currentUser.user_metadata.name}!`, 'success');
+            } catch (error) {
+              console.error("Failed to create profile/gamification:", error);
+              addToast("Erro ao criar seu perfil.", "info");
+            }
           }
-        }
-        
-        setUserProfile(profile);
-
-        if (profile) {
-          await loadUserData(currentUser.id);
-        } else {
+          
+          if (profile) {
+            await loadUserData(currentUser.id);
+          } else {
+            setUserProfile(null);
+            setCheckIns([]);
+            setGamification(null);
+            setCompletedItemsByDay({});
+            addToast("Não foi possível carregar seu perfil. Tente fazer login novamente.", "info");
+          }
+        } catch (error) {
+          console.error("An error occurred during auth state change:", error);
+          addToast("Ocorreu um erro. Por favor, recarregue a página.", "info");
+          setUserProfile(null);
           setCheckIns([]);
           setGamification(null);
           setCompletedItemsByDay({});
+        } finally {
+          setIsLoading(false);
         }
-
-        setIsLoading(false);
       } else {
         setUserProfile(null);
         setCheckIns([]);
         setGamification(null);
         setCompletedItemsByDay({});
+        setIsLoading(false);
       }
     });
   
