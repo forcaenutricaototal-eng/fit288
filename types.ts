@@ -28,11 +28,11 @@ export interface GamificationData {
 export interface UserProfile {
   id: string;
   name: string;
-  age: number;
-  weight: number;
-  height: number;
-  dietary_restrictions: string[];
-  weight_goal: number;
+  age?: number;
+  weight?: number;
+  height?: number;
+  dietary_restrictions?: string[];
+  weight_goal?: number;
   created_at: string;
 }
 

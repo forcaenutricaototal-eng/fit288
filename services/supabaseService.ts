@@ -12,10 +12,10 @@ export const getProfile = async (userId: string): Promise<UserProfile | null> =>
   return data;
 };
 
-export const createProfile = async (userId: string, profileData: Omit<UserProfile, 'id' | 'created_at'>): Promise<UserProfile> => {
+export const createProfile = async (userId: string, name: string): Promise<UserProfile> => {
   const { data, error } = await supabase
     .from('profiles')
-    .insert({ id: userId, ...profileData })
+    .insert({ id: userId, name: name, dietary_restrictions: [] })
     .select()
     .single();
   if (error) throw error;

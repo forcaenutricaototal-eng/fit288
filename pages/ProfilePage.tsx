@@ -5,13 +5,13 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } f
 import type { UserProfile } from '../types';
 
 
-const InfoItem: React.FC<{ icon: React.ElementType, label: string, value: string | number }> = ({ icon: Icon, label, value }) => (
+const InfoItem: React.FC<{ icon: React.ElementType, label: string, value?: string | number }> = ({ icon: Icon, label, value }) => (
     <div>
         <div className="text-sm text-neutral-800 flex items-center">
             <Icon size={14} className="mr-2" />
             {label}
         </div>
-        <p className="font-semibold text-neutral-900">{value}</p>
+        <p className="font-semibold text-neutral-900">{value || 'Não informado'}</p>
     </div>
 );
 
@@ -144,7 +144,7 @@ const ProfilePage: React.FC = () => {
     const { userProfile, checkIns, logout, updateUserProfile } = useApp();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [editableProfile, setEditableProfile] = useState<UserProfile | null>(userProfile);
+    const [editableProfile, setEditableProfile] = useState<Partial<UserProfile> | null>(userProfile);
 
     useEffect(() => {
         setEditableProfile(userProfile);
@@ -169,7 +169,7 @@ const ProfilePage: React.FC = () => {
     const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         const isNumeric = ['age', 'height', 'weight', 'weight_goal'].includes(name);
-        setEditableProfile(prev => prev ? { ...prev, [name]: isNumeric ? Number(value) : value } : null);
+        setEditableProfile(prev => prev ? { ...prev, [name]: isNumeric && value ? Number(value) : (isNumeric ? undefined : value) } : null);
     };
 
     const lastCheckIn = checkIns.length > 0 ? checkIns[checkIns.length - 1] : null;
@@ -177,8 +177,8 @@ const ProfilePage: React.FC = () => {
     const currentWaist = lastCheckIn?.waist ?? (checkIns.length > 0 ? checkIns[0].waist : undefined);
     const currentHips = lastCheckIn?.hips ?? (checkIns.length > 0 ? checkIns[0].hips : undefined);
     
-    const calculateBmi = (weight: number, height: number) => {
-        if (height > 0) {
+    const calculateBmi = (weight?: number, height?: number) => {
+        if (weight && height && height > 0) {
             return (weight / Math.pow(height / 100, 2));
         }
         return 0;
@@ -236,24 +236,31 @@ const ProfilePage: React.FC = () => {
                             )}
                         </div>
                         {isEditing ? (
-                            <div className="grid grid-cols-2 gap-4 animate-fade-in">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
                                 <div>
                                     <label className="text-sm text-neutral-800 block mb-1">Nome</label>
-                                    <input type="text" name="name" value={editableProfile.name} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    <input type="text" name="name" value={editableProfile.name || ''} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
                                 <div>
                                     <label className="text-sm text-neutral-800 block mb-1">Idade</label>
-                                    <input type="number" name="age" value={editableProfile.age} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    <input type="number" name="age" value={editableProfile.age || ''} onChange={handleProfileChange} placeholder="Sua idade" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                </div>
+                                 <div>
+                                    <label className="text-sm text-neutral-800 block mb-1">Altura (cm)</label>
+                                    <input type="number" name="height" value={editableProfile.height || ''} onChange={handleProfileChange} placeholder="Sua altura" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
                                 <div>
                                     <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
-                                    <input type="number" name="weight_goal" value={editableProfile.weight_goal} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    <input type="number" name="weight_goal" value={editableProfile.weight_goal || ''} onChange={handleProfileChange} placeholder="Seu objetivo" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <InfoItem icon={User} label="Nome" value={userProfile.name} />
-                                <InfoItem icon={Calendar} label="Idade" value={`${userProfile.age} anos`} />
+                                <InfoItem icon={Calendar} label="Idade" value={userProfile.age ? `${userProfile.age} anos` : undefined} />
+                                <InfoItem icon={Calendar} label="Altura" value={userProfile.height ? `${userProfile.height} cm` : undefined} />
+                                {/* Fix: Changed user.weight_goal to userProfile.weight_goal */}
+                                <InfoItem icon={Calendar} label="Meta de Peso" value={userProfile.weight_goal ? `${userProfile.weight_goal} kg` : undefined} />
                             </div>
                         )}
                     </div>
@@ -261,28 +268,32 @@ const ProfilePage: React.FC = () => {
                     {/* Estatísticas Atuais */}
                     <div className="bg-white p-6 rounded-lg shadow-soft">
                         <h2 className="text-xl font-semibold text-neutral-900 mb-4">Estatísticas Atuais</h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
-                            <div>
-                                <p className="text-3xl font-bold text-neutral-900">{currentWeight.toFixed(1)}<span className="text-lg text-gray-500">kg</span></p>
-                                <p className="text-sm text-neutral-800">Peso</p>
-                            </div>
-                             <div>
-                                <p className="text-3xl font-bold text-neutral-900">{currentBmi.toFixed(1)}</p>
-                                <p className={`text-sm font-semibold ${bmiInfo.color}`}>{bmiInfo.category}</p>
-                            </div>
-                             {currentWaist && (
+                         {currentWeight ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
                                 <div>
-                                    <p className="text-3xl font-bold text-neutral-900">{currentWaist}<span className="text-lg text-gray-500">cm</span></p>
-                                    <p className="text-sm text-neutral-800">Cintura</p>
+                                    <p className="text-3xl font-bold text-neutral-900">{currentWeight.toFixed(1)}<span className="text-lg text-gray-500">kg</span></p>
+                                    <p className="text-sm text-neutral-800">Peso</p>
                                 </div>
-                            )}
-                             {currentHips && (
-                                <div>
-                                    <p className="text-3xl font-bold text-neutral-900">{currentHips}<span className="text-lg text-gray-500">cm</span></p>
-                                    <p className="text-sm text-neutral-800">Quadril</p>
+                                 <div>
+                                    <p className="text-3xl font-bold text-neutral-900">{currentBmi.toFixed(1)}</p>
+                                    <p className={`text-sm font-semibold ${bmiInfo.color}`}>{bmiInfo.category}</p>
                                 </div>
-                            )}
-                        </div>
+                                 {currentWaist && (
+                                    <div>
+                                        <p className="text-3xl font-bold text-neutral-900">{currentWaist}<span className="text-lg text-gray-500">cm</span></p>
+                                        <p className="text-sm text-neutral-800">Cintura</p>
+                                    </div>
+                                )}
+                                 {currentHips && (
+                                    <div>
+                                        <p className="text-3xl font-bold text-neutral-900">{currentHips}<span className="text-lg text-gray-500">cm</span></p>
+                                        <p className="text-sm text-neutral-800">Quadril</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <p className="text-center text-neutral-800">Faça seu primeiro check-in para ver suas estatísticas.</p>
+                        )}
                     </div>
                      {/* Histórico de Medidas */}
                     <div className="bg-white p-6 rounded-lg shadow-soft">
@@ -302,7 +313,7 @@ const ProfilePage: React.FC = () => {
                                         <span>Peso: <strong>{checkIn.weight.toFixed(1)}kg</strong></span>
                                         {checkIn.waist && <span>Cintura: <strong>{checkIn.waist}cm</strong></span>}
                                         {checkIn.hips && <span>Quadril: <strong>{checkIn.hips}cm</strong></span>}
-                                        <span>IMC: <strong>{checkInBmi.toFixed(1)}</strong></span>
+                                        {checkInBmi > 0 && <span>IMC: <strong>{checkInBmi.toFixed(1)}</strong></span>}
                                     </div>
                                     {isCurrent && <span className="text-xs font-bold text-primary-dark bg-green-200 px-2 py-1 rounded-full">Atual</span>}
                                 </div>

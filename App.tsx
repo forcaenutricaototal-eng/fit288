@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -13,7 +9,6 @@ import { ALL_BADGES } from './data/badges';
 
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
-import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
 import PlanPage from './pages/PlanPage';
 import ProfilePage from './pages/ProfilePage';
@@ -30,7 +25,6 @@ interface AppContextType {
   signup: (email: string, pass: string, name: string) => Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }>;
   logout: () => void;
   resetPassword: (email: string) => Promise<{ error: AuthError | null; }>;
-  completeOnboarding: (profile: Omit<UserProfile, 'id' | 'created_at'>) => Promise<void>;
   updateUserProfile: (updatedProfile: Partial<UserProfile>) => Promise<void>;
   checkIns: CheckInData[];
   addCheckIn: (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => Promise<void>;
@@ -58,79 +52,77 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [completedItemsByDay, setCompletedItemsByDay] = useState<{ [day: number]: { [itemId: string]: boolean }}>({});
   const { addToast } = useToast();
 
+  const loadUserData = useCallback(async (userId: string) => {
+    try {
+      const [profile, checkInsData, gamificationData] = await Promise.all([
+        getProfile(userId),
+        getCheckIns(userId),
+        getGamification(userId)
+      ]);
+      setUserProfile(profile);
+      setCheckIns(checkInsData);
+      setGamification(gamificationData);
+      setCompletedItemsByDay(gamificationData?.completed_items_by_day || {});
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      addToast("Erro ao carregar seus dados.", "info");
+      setUserProfile(null);
+    }
+  }, [addToast]);
+  
   useEffect(() => {
-    // This robust authentication flow ensures we handle the initial session check
-    // and subsequent auth changes correctly, preventing race conditions.
     const checkInitialSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-
-        if (currentUser) {
-            try {
-                const profile = await getProfile(currentUser.id);
-                setUserProfile(profile);
-                if (profile) {
-                    const [checkInsData, gamificationData] = await Promise.all([
-                        getCheckIns(currentUser.id),
-                        getGamification(currentUser.id)
-                    ]);
-                    setCheckIns(checkInsData);
-                    setGamification(gamificationData);
-                    setCompletedItemsByDay(gamificationData?.completed_items_by_day || {});
-                }
-            } catch (error) {
-                console.error("Error loading initial user data:", error);
-                setUserProfile(null);
-            }
-        }
-        setIsLoading(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        await loadUserData(currentUser.id);
+      }
+      setIsLoading(false);
     };
-
+  
     checkInitialSession();
-
+  
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        
-        if (currentUser) {
-            // User has logged in or session was refreshed
-            setIsLoading(true);
-            try {
-                const profile = await getProfile(currentUser.id);
-                setUserProfile(profile);
-                if (profile) {
-                    const [checkInsData, gamificationData] = await Promise.all([
-                        getCheckIns(currentUser.id),
-                        getGamification(currentUser.id)
-                    ]);
-                    setCheckIns(checkInsData);
-                    setGamification(gamificationData);
-                    setCompletedItemsByDay(gamificationData?.completed_items_by_day || {});
-                } else {
-                    // New user, no profile yet. Clear any potential old data.
-                    setUserProfile(null);
-                    setCheckIns([]);
-                    setGamification(null);
-                    setCompletedItemsByDay({});
-                }
-            } catch (error) {
-                console.error("Error loading user data on auth state change:", error);
-                setUserProfile(null); // Reset on error
-            } finally {
-                setIsLoading(false);
-            }
-        } else {
-            // User has logged out. Clear all user-specific data.
-            setUserProfile(null);
-            setCheckIns([]);
-            setGamification(null);
-            setCompletedItemsByDay({});
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+  
+      if (currentUser) {
+        setIsLoading(true);
+        let profile = await getProfile(currentUser.id);
+  
+        if (!profile && currentUser.user_metadata.name) {
+          try {
+            profile = await createProfile(currentUser.id, currentUser.user_metadata.name);
+            addToast(`Bem-vindo, ${currentUser.user_metadata.name}!`, 'success');
+          } catch (error) {
+            console.error("Failed to create profile:", error);
+            addToast("Erro ao criar seu perfil.", "info");
+          }
         }
-    });
+        
+        setUserProfile(profile);
 
+        if (profile) {
+          await loadUserData(currentUser.id);
+        } else {
+          setCheckIns([]);
+          setGamification(null);
+          setCompletedItemsByDay({});
+        }
+
+        setIsLoading(false);
+      } else {
+        setUserProfile(null);
+        setCheckIns([]);
+        setGamification(null);
+        setCompletedItemsByDay({});
+      }
+    });
+  
     return () => subscription.unsubscribe();
-}, []);
+  }, [loadUserData, addToast]);
+
 
   useEffect(() => {
     if (!userProfile || !gamification || isLoading) return;
@@ -182,23 +174,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin, // Redirect to the app's root URL
+      redirectTo: window.location.origin, 
     });
     return { error };
-  };
-
-  const completeOnboarding = async (profileData: Omit<UserProfile, 'id' | 'created_at'>) => {
-    if (!user) throw new Error("Usuário não autenticado.");
-    const newProfile = await createProfile(user.id, profileData);
-    setUserProfile(newProfile);
-    // Initial check-in and gamification data will be created by database triggers/defaults.
-    // Fetch them to update the state.
-    const [checkInsData, gamificationData] = await Promise.all([
-        getCheckIns(user.id),
-        getGamification(user.id)
-    ]);
-    setCheckIns(checkInsData);
-    setGamification(gamificationData);
   };
 
   const updateUserProfile = async (updatedData: Partial<UserProfile>) => {
@@ -287,7 +265,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     signup,
     logout,
     resetPassword,
-    completeOnboarding,
     updateUserProfile,
     checkIns,
     addCheckIn,
@@ -296,7 +273,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, gamification, completedItemsByDay, addPoints, toggleItemCompletion, resetDayCompletion, completeOnboarding, updateUserProfile, addCheckIn, login, signup, logout, resetPassword]);
+  }), [user, userProfile, isLoading, checkIns, gamification, completedItemsByDay, addPoints, toggleItemCompletion, resetDayCompletion, updateUserProfile, addCheckIn, login, signup, logout, resetPassword]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -310,9 +287,6 @@ const App: React.FC = () => (
 );
 
 const LoadingSpinner: React.FC = () => {
-    // This component now acts as a "Configuration Health Check".
-    // It verifies that the environment variables needed for Supabase were correctly
-    // injected into the client-side bundle during the build process.
     const isSupabaseConfigured = process.env.SUPABASE_URL && process.env.SUPABASE_KEY;
 
     if (!isSupabaseConfigured) {
@@ -346,11 +320,9 @@ const LoadingSpinner: React.FC = () => {
 };
 
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading, userProfile } = useApp();
+    const { isAuthenticated, isLoading } = useApp();
 
     if (isLoading) return <LoadingSpinner />;
-
-    const needsOnboarding = isAuthenticated && !userProfile;
 
     return (
         <div className="bg-neutral-100 min-h-screen">
@@ -362,23 +334,16 @@ const Main: React.FC = () => {
                             <Route path="*" element={<Navigate to="/" />} />
                         </>
                     ) : (
-                        needsOnboarding ? (
-                            <>
-                                <Route path="/onboarding" element={<OnboardingPage />} />
-                                <Route path="*" element={<Navigate to="/onboarding" />} />
-                            </>
-                        ) : (
-                            <Route path="/" element={<Layout />}>
-                                <Route index element={<Navigate to="/dashboard" />} />
-                                <Route path="dashboard" element={<DashboardPage />} />
-                                <Route path="chat" element={<ChatPage />} />
-                                <Route path="meal-plan" element={<PlanPage />} />
-                                <Route path="meal-plan/day/:day" element={<PlanPage />} />
-                                <Route path="protocols" element={<ProtocolsPage />} />
-                                <Route path="profile" element={<ProfilePage />} />
-                                <Route path="*" element={<Navigate to="/dashboard" />} />
-                            </Route>
-                        )
+                        <Route path="/" element={<Layout />}>
+                            <Route index element={<Navigate to="/dashboard" />} />
+                            <Route path="dashboard" element={<DashboardPage />} />
+                            <Route path="chat" element={<ChatPage />} />
+                            <Route path="meal-plan" element={<PlanPage />} />
+                            <Route path="meal-plan/day/:day" element={<PlanPage />} />
+                            <Route path="protocols" element={<ProtocolsPage />} />
+                            <Route path="profile" element={<ProfilePage />} />
+                            <Route path="*" element={<Navigate to="/dashboard" />} />
+                        </Route>
                     )}
                 </Routes>
             </HashRouter>

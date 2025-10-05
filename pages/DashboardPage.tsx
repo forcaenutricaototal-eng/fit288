@@ -46,7 +46,7 @@ const DashboardPage: React.FC = () => {
     const goalWeight = userProfile?.weight_goal;
 
     let weightProgressPercentage = 0;
-    if (startWeight && currentWeight && goalWeight) {
+    if (startWeight && currentWeight && goalWeight && goalWeight > 0) {
         const totalWeightChangeNeeded = startWeight - goalWeight;
         const weightChangeSoFar = startWeight - currentWeight;
 

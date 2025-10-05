@@ -34,9 +34,8 @@ export const checkAndAwardBadges = (
         newlyEarned.push({ ...ALL_BADGES.pointCollector500, earnedOn: now });
     }
     
-    // Goal Reached Badge
-    // FIX: Corrected property name from weightGoal to weight_goal to match the UserProfile type.
-    if (userProfile.weight <= userProfile.weight_goal && !hasBadge('goalReached')) {
+    // Goal Reached Badge - now with safety checks for optional properties
+    if (userProfile.weight && userProfile.weight_goal && userProfile.weight <= userProfile.weight_goal && !hasBadge('goalReached')) {
          newlyEarned.push({ ...ALL_BADGES.goalReached, earnedOn: now });
     }
 
