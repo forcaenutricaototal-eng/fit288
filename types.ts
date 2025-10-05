@@ -7,36 +7,6 @@ export interface UserProfile {
   dietary_restrictions?: string[];
   weight_goal?: number;
   created_at: string;
-  completed_items_by_day: { [day: number]: { [itemId: string]: boolean } };
-}
-
-export interface ChatMessage {
-  id: string;
-  text: string;
-  sender: 'user' | 'ai';
-  isLoading?: boolean;
-}
-
-export interface Recipe {
-    name: string;
-    type: 'Café da Manhã' | 'Almoço' | 'Jantar' | 'Lanche';
-    ingredients: string[];
-    preparation: string;
-    calories: number;
-    carbohydrates: number;
-    proteins: number;
-    fats: number;
-}
-
-export interface DailyPlan {
-    day: number;
-    meals: {
-        breakfast: Recipe;
-        lunch: Recipe;
-        dinner: Recipe;
-        snack: Recipe;
-    };
-    tasks: string[];
 }
 
 export interface CheckInData {

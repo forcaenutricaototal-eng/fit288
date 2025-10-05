@@ -1,13 +1,10 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { BarChart2, MessageSquare, Utensils, User, BookOpen, Gem } from 'lucide-react';
+import { BarChart2, User } from 'lucide-react';
 import { useApp } from '../App';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: BarChart2 },
-  { name: 'Meu Plano', path: '/meal-plan', icon: Utensils },
-  { name: 'Protocolos', path: '/protocols', icon: BookOpen },
-  { name: 'Chat', path: '/chat', icon: MessageSquare },
   { name: 'Perfil', path: '/profile', icon: User },
 ];
 

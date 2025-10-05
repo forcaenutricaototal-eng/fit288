@@ -22,7 +22,7 @@ const DashboardPage: React.FC = () => {
         return <div>Carregando...</div>
     }
 
-    const currentDayOfPlan = Math.max(0, checkIns.length - 1);
+    const currentDayOfPlan = Math.max(0, checkIns.length);
     const startWeight = checkIns.length > 0 ? checkIns[0].weight : userProfile?.weight;
     const currentWeight = userProfile?.weight;
     const goalWeight = userProfile?.weight_goal;
@@ -41,8 +41,8 @@ const DashboardPage: React.FC = () => {
     }
     
     const weightChartData = checkIns.length > 1 
-        ? checkIns.slice(1).map(checkIn => ({
-            name: `Dia ${checkIn.day}`,
+        ? checkIns.map(checkIn => ({
+            name: checkIn.day === 0 ? 'Início' : `Dia ${checkIn.day}`,
             peso: checkIn.weight,
         }))
         : [{ name: 'Início', peso: userProfile?.weight ?? 0 }];
@@ -130,7 +130,7 @@ const DashboardPage: React.FC = () => {
         <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold text-neutral-900">Dashboard</h1>
-                <p className="text-neutral-800">Olá, {userProfile?.name}!</p>
+                <p className="text-neutral-800">Olá, {userProfile?.name}! Acompanhe seu progresso.</p>
             </div>
 
             <div className="bg-white p-4 sm:p-6 rounded-lg shadow-soft">
@@ -145,7 +145,7 @@ const DashboardPage: React.FC = () => {
                 {renderChart()}
             </div>
             
-            <div className="grid grid-cols-3 gap-4 items-start justify-items-center">
+            <div className="grid grid-cols-2 gap-4 items-start justify-items-center">
                  <InfoCircle label="Progresso da Meta">
                     <div className="relative w-20 h-20">
                          <svg className="w-full h-full" viewBox="0 0 100 100">
@@ -167,23 +167,9 @@ const DashboardPage: React.FC = () => {
                          <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-neutral-900">{weightProgressPercentage}%</span>
                      </div>
                  </InfoCircle>
-                 <InfoCircle label="Dias Concluídos">
+                 <InfoCircle label="Check-ins Feitos">
                     <p className="text-3xl font-bold text-neutral-900">{currentDayOfPlan}<span className="text-gray-400 text-2xl">/{planDuration}</span></p>
                  </InfoCircle>
-                 <InfoCircle label="Plano Ativo">
-                     <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center">
-                        <Check className="text-primary-dark" size={32}/>
-                     </div>
-                 </InfoCircle>
-            </div>
-            
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                <button onClick={() => navigate('/meal-plan')} className="bg-primary text-white font-semibold py-4 rounded-md shadow-md hover:bg-primary-dark transition-colors">
-                    Meu Plano Diário
-                </button>
-                 <button onClick={() => navigate('/chat')} className="bg-white text-neutral-900 font-semibold py-4 rounded-md shadow-md hover:bg-neutral-100 transition-colors border border-neutral-200">
-                    Falar com a IA
-                </button>
             </div>
         </div>
     );
