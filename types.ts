@@ -1,8 +1,3 @@
-export interface GamificationData {
-  user_id: string;
-  completed_items_by_day: { [day: number]: { [itemId: string]: boolean } };
-}
-
 export interface UserProfile {
   id: string;
   name: string;
@@ -12,6 +7,7 @@ export interface UserProfile {
   dietary_restrictions?: string[];
   weight_goal?: number;
   created_at: string;
+  completed_items_by_day: { [day: number]: { [itemId: string]: boolean } };
 }
 
 export interface ChatMessage {

@@ -1,9 +1,9 @@
 import React, { useState, createContext, useContext, useMemo, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
-import type { UserProfile, CheckInData, GamificationData } from './types';
+import type { UserProfile, CheckInData } from './types';
 import { supabase } from './components/supabaseClient';
-import { getProfile, getCheckIns, getGamification, createProfile, updateProfile, addCheckInData, updateCompletedItems, createGamificationData } from './services/supabaseService';
+import { getProfile, getCheckIns, createProfile, updateProfile, addCheckInData } from './services/supabaseService';
 
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
@@ -27,7 +27,6 @@ interface AppContextType {
   checkIns: CheckInData[];
   addCheckIn: (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => Promise<void>;
   planDuration: number;
-  gamification: GamificationData | null;
   completedItemsByDay: { [day: number]: { [itemId: string]: boolean } };
   toggleItemCompletion: (day: number, itemId: string) => Promise<void>;
   resetDayCompletion: (day: number) => Promise<void>;
@@ -46,8 +45,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [gamification, setGamification] = useState<GamificationData | null>(null);
-  const [completedItemsByDay, setCompletedItemsByDay] = useState<{ [day: number]: { [itemId: string]: boolean }}>({});
   const { addToast } = useToast();
   
   useEffect(() => {
@@ -58,8 +55,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (!currentUser) {
         setUserProfile(null);
         setCheckIns([]);
-        setGamification(null);
-        setCompletedItemsByDay({});
         setIsLoading(false);
         return;
       }
@@ -73,23 +68,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           if (!profile) throw new Error("Falha ao criar e recuperar o perfil do usuário.");
         }
         
-        let gamificationData = await getGamification(currentUser.id);
-        if (!gamificationData) {
-            gamificationData = await createGamificationData(currentUser.id);
-            if (!gamificationData) throw new Error("Falha ao criar e recuperar os dados de progresso.");
-        }
-        
         const checkInsData = await getCheckIns(currentUser.id);
         setUserProfile(profile);
-        setGamification(gamificationData);
         setCheckIns(checkInsData);
-        setCompletedItemsByDay(gamificationData.completed_items_by_day || {});
 
       } catch (error) {
         console.error("An error occurred during auth state change processing:", error);
         addToast("Ocorreu um erro ao carregar seus dados. Por favor, recarregue.", 'info');
         setUserProfile(null);
-        setGamification(null);
         setCheckIns([]);
       } finally {
         setIsLoading(false);
@@ -147,24 +133,26 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
  const toggleItemCompletion = async (day: number, itemId: string) => {
-    if (!user) return;
-    const dayItems = completedItemsByDay[day] || {};
+    if (!user || !userProfile) return;
+    const currentCompleted = userProfile.completed_items_by_day || {};
+    const dayItems = currentCompleted[day] || {};
     const isCompleted = dayItems[itemId];
 
     const newDayItems = { ...dayItems, [itemId]: !isCompleted };
-    const newCompletedState = { ...completedItemsByDay, [day]: newDayItems };
+    const newCompletedState = { ...currentCompleted, [day]: newDayItems };
     
-    await updateCompletedItems(user.id, newCompletedState);
-    setCompletedItemsByDay(newCompletedState);
+    await updateUserProfile({ completed_items_by_day: newCompletedState });
   };
 
   const resetDayCompletion = async (day: number) => {
-    if (!user) return;
-    const newCompletedState = { ...completedItemsByDay };
+    if (!user || !userProfile) return;
+    const currentCompleted = userProfile.completed_items_by_day || {};
+    const newCompletedState = { ...currentCompleted };
     delete newCompletedState[day];
-    await updateCompletedItems(user.id, newCompletedState);
-    setCompletedItemsByDay(newCompletedState);
+    await updateUserProfile({ completed_items_by_day: newCompletedState });
   };
+  
+  const completedItemsByDay = useMemo(() => userProfile?.completed_items_by_day || {}, [userProfile]);
 
   const value = useMemo(() => ({
     isAuthenticated: !!user,
@@ -179,11 +167,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     checkIns,
     addCheckIn,
     planDuration: 28,
-    gamification,
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, gamification, completedItemsByDay]);
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

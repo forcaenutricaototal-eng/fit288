@@ -14,11 +14,11 @@ const InfoCircle: React.FC<{ children: React.ReactNode, label?: string }> = ({ c
 )
 
 const DashboardPage: React.FC = () => {
-    const { userProfile, checkIns, planDuration, gamification } = useApp();
+    const { userProfile, checkIns, planDuration } = useApp();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<'weight' | 'measurements'>('weight');
 
-    if (!userProfile || !gamification) {
+    if (!userProfile) {
         return <div>Carregando...</div>
     }
 
