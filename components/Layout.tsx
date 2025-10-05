@@ -1,7 +1,8 @@
 
+
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { BarChart2, MessageSquare, Utensils, User, BookOpen } from 'lucide-react';
+import { BarChart2, MessageSquare, Utensils, User, BookOpen, Gem } from 'lucide-react';
 import { useApp } from '../App';
 
 const navItems = [
@@ -13,7 +14,7 @@ const navItems = [
 ];
 
 const Layout: React.FC = () => {
-  const { userProfile } = useApp();
+  const { userProfile, gamification } = useApp();
     
    const mobileNavLinkClasses = ({ isActive }: { isActive: boolean }) =>
     `flex flex-col items-center justify-center p-2 rounded-lg transition-colors text-xs flex-1 ${
@@ -36,7 +37,10 @@ const Layout: React.FC = () => {
         </div>
         <div className="p-4">
             <p className="text-neutral-900 font-semibold">{userProfile?.name}</p>
-            <p className="text-sm text-neutral-800">Seu plano de 28 dias</p>
+            <div className="flex items-center text-sm text-gold">
+                <Gem size={14} className="mr-1.5" />
+                <span>{gamification.points} Pontos</span>
+            </div>
         </div>
         <nav className="flex-1 px-4">
             {navItems.map((item) => (

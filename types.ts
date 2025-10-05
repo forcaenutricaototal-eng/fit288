@@ -1,5 +1,31 @@
 
 
+export type BadgeId = 
+  | 'firstCheckIn'
+  | 'perfectDay'
+  | 'streak3'
+  | 'streak7'
+  | 'pointCollector100'
+  | 'pointCollector500'
+  | 'goalReached';
+
+
+export interface Badge {
+  id: BadgeId;
+  name: string;
+  description: string;
+  icon: string;
+  earnedOn: string;
+}
+
+export interface GamificationData {
+  points: number;
+  streak: number;
+  longestStreak: number;
+  lastCheckInDate: string | null;
+  badges: Badge[];
+}
+
 export interface UserProfile {
   name: string;
   age: number;

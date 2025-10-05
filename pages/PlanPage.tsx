@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { DailyPlan, Recipe, UserProfile } from '../types';
+import type { DailyPlan, Recipe } from '../types';
 import { generateMealPlan, generateShoppingList } from '../services/geminiService';
 import { useApp } from '../App';
 import { CheckCircle, Circle, Soup, Beef, Fish, Apple, Loader, ClipboardList, X } from 'lucide-react';
@@ -16,17 +16,17 @@ const MealCard: React.FC<{ recipe: Recipe, onToggle: () => void, completed: bool
     };
 
     return (
-        <div className="bg-white p-4 rounded-lg shadow-soft border border-neutral-200">
+        <div className={`bg-white p-4 rounded-lg shadow-soft border transition-all ${completed ? 'border-primary' : 'border-neutral-200'}`}>
             <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-4">
                     <div className="text-primary">{icons[recipe.type] || <Soup size={24}/>}</div>
                     <div>
-                        <h4 className="font-semibold text-neutral-900">{recipe.name}</h4>
+                        <h4 className={`font-semibold transition-colors ${completed ? 'text-neutral-800' : 'text-neutral-900'}`}>{recipe.name}</h4>
                         <p className="text-sm text-neutral-800">{recipe.calories} kcal</p>
                     </div>
                 </div>
-                <button onClick={onToggle}>
-                    {completed ? <CheckCircle className="text-primary" /> : <Circle className="text-neutral-200" />}
+                <button onClick={onToggle} aria-label={completed ? `Marcar ${recipe.name} como não concluído` : `Marcar ${recipe.name} como concluído`}>
+                    {completed ? <CheckCircle className="text-primary" size={24} /> : <Circle className="text-neutral-200" size={24} />}
                 </button>
             </div>
             <div className="mt-4">
@@ -108,18 +108,15 @@ const ShoppingListModal: React.FC<{ plan: DailyPlan | null, onClose: () => void 
 const PlanPage: React.FC = () => {
     const { day } = useParams();
     const navigate = useNavigate();
-    const { userProfile } = useApp();
+    const { userProfile, completedItemsByDay, toggleItemCompletion } = useApp();
     const dayId = day ? parseInt(day, 10) : 1;
 
     const [plan, setPlan] = useState<DailyPlan | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [completedItems, setCompletedItems] = useState<{ [key: string]: boolean }>({});
     const [showShoppingList, setShowShoppingList] = useState(false);
     
-    const toggleItem = (id: string) => {
-        setCompletedItems(prev => ({ ...prev, [id]: !prev[id] }));
-    };
+    const completedItemsForDay = completedItemsByDay[dayId] || {};
 
     const fetchPlan = useCallback(async (currentDay: number) => {
         if (!userProfile) return;
@@ -178,6 +175,7 @@ const PlanPage: React.FC = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-neutral-900">Meu Plano - Dia {plan.day}</h1>
                     <p className="text-neutral-800">Siga as refeições e complete as tarefas para um dia de sucesso!</p>
+                    <p className="text-sm text-primary-dark mt-1 font-medium">Clique em uma refeição ou tarefa para marcar como concluída e ganhar pontos!</p>
                 </div>
                 <button onClick={() => setShowShoppingList(true)} className="flex items-center gap-2 bg-white px-4 py-2 rounded-md shadow-soft border border-neutral-200 font-semibold text-primary-dark hover:bg-neutral-100">
                     <ClipboardList size={18} />
@@ -187,17 +185,17 @@ const PlanPage: React.FC = () => {
             
             <div className="space-y-4">
                 <h3 className="font-semibold text-lg text-neutral-900">Refeições do Dia</h3>
-                <MealCard recipe={plan.meals.breakfast} onToggle={() => toggleItem('breakfast')} completed={!!completedItems['breakfast']} />
-                <MealCard recipe={plan.meals.lunch} onToggle={() => toggleItem('lunch')} completed={!!completedItems['lunch']} />
-                <MealCard recipe={plan.meals.dinner} onToggle={() => toggleItem('dinner')} completed={!!completedItems['dinner']} />
-                {plan.meals.snack && <MealCard recipe={plan.meals.snack} onToggle={() => toggleItem('snack')} completed={!!completedItems['snack']} />}
+                <MealCard recipe={plan.meals.breakfast} onToggle={() => toggleItemCompletion(dayId, 'breakfast', 'meal', plan)} completed={!!completedItemsForDay['breakfast']} />
+                <MealCard recipe={plan.meals.lunch} onToggle={() => toggleItemCompletion(dayId, 'lunch', 'meal', plan)} completed={!!completedItemsForDay['lunch']} />
+                <MealCard recipe={plan.meals.dinner} onToggle={() => toggleItemCompletion(dayId, 'dinner', 'meal', plan)} completed={!!completedItemsForDay['dinner']} />
+                {plan.meals.snack && <MealCard recipe={plan.meals.snack} onToggle={() => toggleItemCompletion(dayId, 'snack', 'meal', plan)} completed={!!completedItemsForDay['snack']} />}
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow-soft">
                 <h3 className="font-semibold text-lg text-neutral-900 mb-4">Checklist de Hábitos</h3>
                 <ul className="space-y-2">
                     {plan.tasks.map((task, index) => (
-                        <TaskItem key={index} task={task} onToggle={() => toggleItem(`task-${index}`)} completed={!!completedItems[`task-${index}`]} />
+                        <TaskItem key={index} task={task} onToggle={() => toggleItemCompletion(dayId, `task-${index}`, 'task', plan)} completed={!!completedItemsForDay[`task-${index}`]} />
                     ))}
                 </ul>
             </div>
