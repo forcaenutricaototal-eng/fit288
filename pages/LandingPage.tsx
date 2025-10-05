@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Lock, Leaf, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles } from 'lucide-react';
 import { useApp } from '../App';
 
 const LandingPage: React.FC = () => {
     const { login, signup } = useApp();
-    const navigate = useNavigate();
     
-    const [isLogin, setIsLogin] = useState(true);
+    const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -19,7 +16,7 @@ const LandingPage: React.FC = () => {
         setError('');
         setLoading(true);
 
-        if (isLogin) {
+        if (authMode === 'login') {
             const { error: loginError } = await login(email, password);
             if (loginError) setError(loginError.message);
             // On successful login, App.tsx will handle navigation
@@ -43,6 +40,13 @@ const LandingPage: React.FC = () => {
         { icon: Sparkles, text: "Ajuda a combater sintomas de depressão e ansiedade" },
         { icon: TrendingUp, text: "Resultados duradouros e reeducativos" },
     ];
+    
+    const tabClasses = (mode: 'signup' | 'login') => 
+        `w-full text-center py-3 font-semibold rounded-t-md transition-colors ${
+            authMode === mode 
+            ? 'bg-white text-primary-dark border-b-2 border-primary'
+            : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'
+        }`;
 
     return (
         <div className="min-h-screen bg-primary-light flex items-center justify-center p-4 lg:p-8 font-sans">
@@ -73,56 +77,46 @@ const LandingPage: React.FC = () => {
                 </div>
 
                 {/* Right Column: Auth Card */}
-                <div className="w-full max-w-md mx-auto bg-white p-8 rounded-lg shadow-soft animate-fade-in-left">
-                    <h2 className="text-2xl font-bold text-center text-neutral-900 mb-2">
-                        {isLogin ? 'Bem-vindo de volta' : 'Inicie sua transformação'}
-                    </h2>
-                    <p className="text-center text-neutral-800 mb-6">{isLogin ? 'Acesse sua conta para continuar.' : 'Crie sua conta para começar.'}</p>
-                    
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        {!isLogin && (
+                <div className="w-full max-w-md mx-auto animate-fade-in-left">
+                    <div className="flex">
+                         <button onClick={() => setAuthMode('signup')} className={tabClasses('signup')}>Criar Conta</button>
+                         <button onClick={() => setAuthMode('login')} className={tabClasses('login')}>Fazer Login</button>
+                    </div>
+                    <div className="bg-white p-8 rounded-b-lg shadow-soft">
+                        <h2 className="text-2xl font-bold text-center text-neutral-900 mb-2">
+                            {authMode === 'login' ? 'Bem-vindo de volta' : 'Inicie sua transformação'}
+                        </h2>
+                        <p className="text-center text-neutral-800 mb-6">{authMode === 'login' ? 'Acesse sua conta para continuar.' : 'Crie sua conta para começar.'}</p>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-5">
                             <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                 <input
-                                    type="text" placeholder="Nome Completo" required value={name} onChange={(e) => setName(e.target.value)}
+                                    type="email" placeholder="Seu melhor e-mail" required value={email} onChange={(e) => setEmail(e.target.value)}
                                     className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                                 />
                             </div>
-                        )}
-                        <div className="relative">
-                            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="email" placeholder="Seu melhor e-mail" required value={email} onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
-                            />
-                        </div>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="password" placeholder={isLogin ? "Sua senha" : "Crie uma senha"} required value={password} onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
-                            />
-                        </div>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                <input
+                                    type="password" placeholder={authMode === 'login' ? "Sua senha" : "Crie uma senha"} required value={password} onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                                />
+                            </div>
+                            
+                            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                            
+                            <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-green-300 disabled:scale-100">
+                                {loading ? 'Carregando...' : (authMode === 'login' ? 'Fazer Login' : 'Iniciar minha transformação')}
+                            </button>
+                        </form>
                         
-                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                        
-                        <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-green-300 disabled:scale-100">
-                            {loading ? 'Carregando...' : (isLogin ? 'Fazer Login' : 'Iniciar minha transformação')}
-                        </button>
-                    </form>
-                    
-                    <p className="text-center text-sm text-neutral-800 mt-6">
-                        {isLogin ? 'Primeira vez aqui?' : 'Já tem uma conta?'}
-                        <button onClick={() => { setIsLogin(!isLogin); setError(''); }} className="font-semibold text-primary-dark hover:underline ml-1">
-                            {isLogin ? 'Criar conta aqui' : 'Faça login aqui'}
-                        </button>
-                    </p>
-
-                    <div className="border-t border-neutral-200 mt-6 pt-6 text-center">
-                        <div className="flex justify-center text-yellow-400 mb-2">
-                            {[...Array(5)].map((_, i) => <Star key={i} size={20} fill="currentColor" />)}
+                        <div className="border-t border-neutral-200 mt-6 pt-6 text-center">
+                            <div className="flex justify-center text-yellow-400 mb-2">
+                                {[...Array(5)].map((_, i) => <Star key={i} size={20} fill="currentColor" />)}
+                            </div>
+                            <p className="text-sm text-neutral-800 italic">"Resultados incríveis! Uma abordagem que realmente funciona."</p>
                         </div>
-                        <p className="text-sm text-neutral-800 italic">"Resultados incríveis! Uma abordagem que realmente funciona."</p>
                     </div>
                 </div>
             </div>
