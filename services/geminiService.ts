@@ -12,12 +12,14 @@ const getAi = () => {
         return ai;
     }
 
-    // The official Gemini API guidelines require using `process.env.API_KEY`.
+    // IMPORTANT: The `vite.config.ts` file is configured to replace `process.env.API_KEY`
+    // with the value of the `VITE_API_KEY` environment variable at build time.
     const apiKey = process.env.API_KEY;
     
     if (!apiKey) {
-      console.warn("A variável de ambiente API_KEY não está definida. As funcionalidades de IA estarão desativadas. Certifique-se de configurá-la nas configurações do seu ambiente.");
-      throw new Error("O cliente Gemini AI não foi inicializado. Verifique se a variável de ambiente API_KEY está configurada corretamente.");
+      const errorMessage = "A chave da API Gemini não foi encontrada. Para corrigir, adicione a variável de ambiente `VITE_API_KEY` com sua chave nas configurações do projeto no seu provedor de hospedagem (ex: Vercel) e, em seguida, faça um novo deploy da aplicação.";
+      console.error(errorMessage);
+      throw new Error(errorMessage);
     }
     
     try {

@@ -1,5 +1,6 @@
 
-import React, { useState, createContext, useContext, useMemo } from 'react';
+
+import React, { useState, createContext, useContext, useMemo, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { UserProfile, CheckInData } from './types';
 
@@ -36,16 +37,60 @@ export const useApp = () => {
 };
 
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
-  const planDuration = 28;
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      const storedAuth = localStorage.getItem('fit28_isAuthenticated');
+      return storedAuth ? JSON.parse(storedAuth) : false;
+    } catch {
+      return false;
+    }
+  });
   
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    try {
+      const storedProfile = localStorage.getItem('fit28_userProfile');
+      return storedProfile ? JSON.parse(storedProfile) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [checkIns, setCheckIns] = useState<CheckInData[]>(() => {
+    try {
+      const storedCheckIns = localStorage.getItem('fit28_checkIns');
+      return storedCheckIns ? JSON.parse(storedCheckIns) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const planDuration = 28;
+
+  useEffect(() => {
+    localStorage.setItem('fit28_isAuthenticated', JSON.stringify(isAuthenticated));
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (userProfile) {
+      localStorage.setItem('fit28_userProfile', JSON.stringify(userProfile));
+    } else {
+      localStorage.removeItem('fit28_userProfile');
+    }
+  }, [userProfile]);
+
+  useEffect(() => {
+    localStorage.setItem('fit28_checkIns', JSON.stringify(checkIns));
+  }, [checkIns]);
+
   const login = () => setIsAuthenticated(true);
+  
   const logout = () => {
     setIsAuthenticated(false);
     setUserProfile(null);
     setCheckIns([]); // Reset progress on logout
+    localStorage.removeItem('fit28_isAuthenticated');
+    localStorage.removeItem('fit28_userProfile');
+    localStorage.removeItem('fit28_checkIns');
   };
   
   const completeOnboarding = (profile: UserProfile) => {
