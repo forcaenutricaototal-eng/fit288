@@ -63,14 +63,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       try {
         let profile = await getProfile(currentUser.id);
 
-        if (profile && !profile.completed_items_by_day) {
-          // Data patch for existing users: if completed_items_by_day is null or undefined, fix it.
-          const updatedProfile = await updateProfile(currentUser.id, { completed_items_by_day: {} });
-          profile = updatedProfile;
-        } else if (!profile) {
+        if (!profile) {
           // New user: create a complete profile.
           const name = currentUser.user_metadata.name || 'Novo Usuário';
           profile = await createProfile(currentUser.id, name);
+        } else if (profile.completed_items_by_day === null || typeof profile.completed_items_by_day !== 'object') {
+          // Data patch for existing users: if completed_items_by_day is null, undefined or not an object, fix it.
+          const updatedProfile = await updateProfile(currentUser.id, { completed_items_by_day: {} });
+          profile = updatedProfile;
         }
 
         if (!profile) {
