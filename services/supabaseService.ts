@@ -68,11 +68,6 @@ export const getGamification = async (userId: string): Promise<GamificationData 
 export const createGamificationData = async (userId: string): Promise<GamificationData> => {
   const initialData = {
     user_id: userId,
-    points: 0,
-    streak: 0,
-    longest_streak: 0,
-    last_check_in_date: null,
-    badges: [],
     completed_items_by_day: {},
   };
   const { data, error } = await supabase
