@@ -1,13 +1,9 @@
-
-
-import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, createContext, useContext, useMemo, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
-import type { UserProfile, CheckInData, GamificationData, Badge, DailyPlan } from './types';
+import type { UserProfile, CheckInData, GamificationData } from './types';
 import { supabase } from './components/supabaseClient';
-import { getProfile, getCheckIns, getGamification, createProfile, updateProfile, addCheckInData, updateGamificationData, updateCompletedItems, createGamificationData } from './services/supabaseService';
-import { checkAndAwardBadges } from './services/gamificationService';
-import { ALL_BADGES } from './data/badges';
+import { getProfile, getCheckIns, getGamification, createProfile, updateProfile, addCheckInData, updateCompletedItems, createGamificationData } from './services/supabaseService';
 
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
@@ -33,7 +29,7 @@ interface AppContextType {
   planDuration: number;
   gamification: GamificationData | null;
   completedItemsByDay: { [day: number]: { [itemId: string]: boolean } };
-  toggleItemCompletion: (day: number, itemId: string, itemType: 'meal' | 'task', plan: DailyPlan | null) => Promise<void>;
+  toggleItemCompletion: (day: number, itemId: string) => Promise<void>;
   resetDayCompletion: (day: number) => Promise<void>;
 }
 
@@ -71,39 +67,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setIsLoading(true);
       try {
         let profile = await getProfile(currentUser.id);
-        let gamificationData = await getGamification(currentUser.id);
-
         if (!profile) {
           const name = currentUser.user_metadata.name || 'Novo Usuário';
-          try {
-            profile = await createProfile(currentUser.id, name);
-            if (!profile) throw new Error("Falha ao criar e recuperar o perfil do usuário.");
-            
-            if (currentUser.user_metadata.name) {
-              addToast(`Bem-vindo, ${name}!`, 'success');
-            }
-          } catch (creationError) {
-            console.error("Critical error: Failed to create profile for user:", creationError);
-            addToast("Erro crítico ao criar seu perfil. Tente recarregar a página.", 'info');
-            setUserProfile(null);
-            setGamification(null);
-            setIsLoading(false);
-            return;
-          }
+          profile = await createProfile(currentUser.id, name);
+          if (!profile) throw new Error("Falha ao criar e recuperar o perfil do usuário.");
         }
         
+        let gamificationData = await getGamification(currentUser.id);
         if (!gamificationData) {
-            try {
-                gamificationData = await createGamificationData(currentUser.id);
-                if (!gamificationData) throw new Error("Falha ao criar e recuperar os dados de gamificação.");
-            } catch (creationError) {
-                console.error("Critical error: Failed to create gamification data for user:", creationError);
-                addToast("Erro crítico ao inicializar seus dados de progresso. Tente recarregar.", 'info');
-                setUserProfile(profile);
-                setGamification(null);
-                setIsLoading(false);
-                return;
-            }
+            gamificationData = await createGamificationData(currentUser.id);
+            if (!gamificationData) throw new Error("Falha ao criar e recuperar os dados de progresso.");
         }
         
         const checkInsData = await getCheckIns(currentUser.id);
@@ -125,34 +98,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     return () => subscription.unsubscribe();
   }, [addToast]);
-
-
-  useEffect(() => {
-    if (!userProfile || !gamification || isLoading) return;
-
-    const currentBadges = gamification.badges || [];
-    const potentialNewBadges = checkAndAwardBadges(gamification, userProfile, checkIns);
-    const newBadges = potentialNewBadges.filter(
-        (potentialBadge) => !currentBadges.some((b) => b.id === potentialBadge.id)
-    );
-    
-    if (newBadges.length > 0 && user) {
-        const updatedBadges = [...currentBadges, ...newBadges];
-        updateGamificationData(user.id, { badges: updatedBadges }).then(() => {
-             setGamification(prev => prev ? { ...prev, badges: updatedBadges } : null);
-             newBadges.forEach(badge => addToast(`Nova Conquista: ${badge.name}!`, 'success'));
-        });
-    }
-  }, [gamification, userProfile, checkIns, isLoading, user, addToast]);
-
-
-  const addPoints = useCallback(async (amount: number, message: string) => {
-    if (!user || !gamification) return;
-    addToast(message, 'info');
-    const newPoints = (gamification.points || 0) + amount;
-    await updateGamificationData(user.id, { points: newPoints });
-    setGamification(prev => prev ? { ...prev, points: newPoints } : null);
-  }, [user, gamification, addToast]);
 
   const login = async (email: string, pass: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
@@ -190,28 +135,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const addCheckIn = async (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => {
-    if (!user || !gamification) return;
+    if (!user) return;
     
-    const today = new Date().toISOString().split('T')[0];
-    let newStreak = gamification.streak;
-    let newLongestStreak = gamification.longest_streak;
-
-    if (gamification.last_check_in_date) {
-        const lastDate = new Date(gamification.last_check_in_date);
-        const currentDate = new Date(today);
-        const diffDays = Math.ceil((currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays === 1) newStreak += 1;
-        else if (diffDays > 1) newStreak = 1;
-    } else {
-        newStreak = 1;
-    }
-    if (newStreak > newLongestStreak) newLongestStreak = newStreak;
-
-    await updateGamificationData(user.id, { streak: newStreak, longest_streak: newLongestStreak, last_check_in_date: today });
-    setGamification(prev => prev ? { ...prev, streak: newStreak, longest_streak: newLongestStreak, last_check_in_date: today } : null);
-    
-    addPoints(20, "+20 Pontos pelo Check-in!");
-
     if (userProfile && data.weight) {
         await updateProfile(user.id, { weight: data.weight });
         setUserProfile(prev => prev ? { ...prev, weight: data.weight! } : null);
@@ -221,36 +146,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setCheckIns(prev => [...prev, newCheckInData]);
   };
 
- const toggleItemCompletion = async (day: number, itemId: string, itemType: 'meal' | 'task', plan: DailyPlan | null) => {
-    if (!user || !gamification) return;
+ const toggleItemCompletion = async (day: number, itemId: string) => {
+    if (!user) return;
     const dayItems = completedItemsByDay[day] || {};
     const isCompleted = dayItems[itemId];
-
-    if (!isCompleted) {
-        const points = itemType === 'meal' ? 10 : 5;
-        await addPoints(points, `+${points} Pontos!`);
-    }
 
     const newDayItems = { ...dayItems, [itemId]: !isCompleted };
     const newCompletedState = { ...completedItemsByDay, [day]: newDayItems };
     
     await updateCompletedItems(user.id, newCompletedState);
     setCompletedItemsByDay(newCompletedState);
-
-    if (plan && !isCompleted) {
-        const allItemIds = ['breakfast', 'lunch', 'dinner', 'snack', ...plan.tasks.map((_, i) => `task-${i}`)];
-        if (allItemIds.every(id => newDayItems[id])) {
-            const currentBadges = gamification.badges || [];
-            const hasBadge = currentBadges.some(b => b.id === 'perfectDay');
-            if (!hasBadge) {
-                const perfectDayBadge = { ...ALL_BADGES.perfectDay, earnedOn: new Date().toISOString() };
-                const updatedBadges = [...currentBadges, perfectDayBadge];
-                await updateGamificationData(user.id, { badges: updatedBadges });
-                setGamification(prev => prev ? { ...prev, badges: updatedBadges } : null);
-                addToast("Nova Conquista: Dia Perfeito!", 'success');
-            }
-        }
-    }
   };
 
   const resetDayCompletion = async (day: number) => {
@@ -278,7 +183,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, gamification, completedItemsByDay, addPoints, toggleItemCompletion, resetDayCompletion, updateUserProfile, addCheckIn, login, signup, logout, resetPassword]);
+  }), [user, userProfile, isLoading, checkIns, gamification, completedItemsByDay]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

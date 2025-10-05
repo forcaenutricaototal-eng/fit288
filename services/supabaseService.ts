@@ -58,7 +58,7 @@ export const addCheckInData = async (userId: string, checkInData: Omit<CheckInDa
 export const getGamification = async (userId: string): Promise<GamificationData | null> => {
   const { data, error } = await supabase
     .from('gamification')
-    .select('*')
+    .select('user_id, completed_items_by_day')
     .eq('user_id', userId)
     .single();
   if (error && error.code !== 'PGRST116') throw error;
@@ -78,24 +78,12 @@ export const createGamificationData = async (userId: string): Promise<Gamificati
   const { data, error } = await supabase
     .from('gamification')
     .insert(initialData)
-    .select()
+    .select('user_id, completed_items_by_day')
     .single();
   if (error) {
     console.error('Error creating gamification data:', error);
     throw error;
   }
-  return data;
-};
-
-
-export const updateGamificationData = async (userId: string, updatedData: Partial<GamificationData>): Promise<GamificationData> => {
-  const { data, error } = await supabase
-    .from('gamification')
-    .update(updatedData)
-    .eq('user_id', userId)
-    .select()
-    .single();
-  if (error) throw error;
   return data;
 };
 

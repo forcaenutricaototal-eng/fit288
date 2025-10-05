@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { Check, Flame, Star, Gem, Award, Zap, Target, CheckCircle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import type { Badge } from '../types';
 
 const InfoCircle: React.FC<{ children: React.ReactNode, label?: string }> = ({ children, label }) => (
     <div className="flex flex-col items-center text-center">
@@ -13,23 +12,6 @@ const InfoCircle: React.FC<{ children: React.ReactNode, label?: string }> = ({ c
         {label && <p className="mt-2 text-sm text-neutral-800 font-medium max-w-[80px]">{label}</p>}
     </div>
 )
-
-const BadgeIcon: React.FC<{ iconName: string }> = ({ iconName }) => {
-    const icons: { [key: string]: React.ElementType } = { Star, CheckCircle, Zap, Award, Gem, Target };
-    const Icon = icons[iconName] || Star;
-    return <Icon className="text-gold" size={32} />;
-};
-
-const BadgeCard: React.FC<{ badge: Badge }> = ({ badge }) => (
-    <div className="bg-primary-light p-4 rounded-lg flex items-center space-x-4 border border-green-200">
-        <BadgeIcon iconName={badge.icon} />
-        <div>
-            <p className="font-bold text-primary-dark">{badge.name}</p>
-            <p className="text-sm text-neutral-800">{badge.description}</p>
-        </div>
-    </div>
-);
-
 
 const DashboardPage: React.FC = () => {
     const { userProfile, checkIns, planDuration, gamification } = useApp();
@@ -149,35 +131,6 @@ const DashboardPage: React.FC = () => {
             <div>
                 <h1 className="text-3xl font-bold text-neutral-900">Dashboard</h1>
                 <p className="text-neutral-800">Olá, {userProfile?.name}!</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-soft">
-                 <h3 className="font-semibold text-lg text-neutral-900 mb-4">Minhas Conquistas</h3>
-                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
-                    <div className="bg-primary-light p-4 rounded-md">
-                        <Gem className="mx-auto text-gold" size={24} />
-                        <p className="text-2xl font-bold text-neutral-900">{gamification.points}</p>
-                        <p className="text-sm text-neutral-800">Pontos</p>
-                    </div>
-                     <div className="bg-primary-light p-4 rounded-md">
-                        <Flame className="mx-auto text-orange-500" size={24} />
-                        <p className="text-2xl font-bold text-neutral-900">{gamification.streak}</p>
-                        <p className="text-sm text-neutral-800">Dias seguidos</p>
-                    </div>
-                     <div className="bg-primary-light p-4 rounded-md col-span-2 md:col-span-1">
-                        <Award className="mx-auto text-yellow-600" size={24} />
-                        <p className="text-2xl font-bold text-neutral-900">{gamification.badges?.length ?? 0}</p>
-                        <p className="text-sm text-neutral-800">Conquistas</p>
-                    </div>
-                 </div>
-                 {gamification.badges && gamification.badges.length > 0 && (
-                    <div className="mt-6">
-                        <h4 className="font-semibold text-neutral-900 mb-3">Últimas Conquistas</h4>
-                        <div className="space-y-3">
-                           {gamification.badges.slice(-3).reverse().map(badge => <BadgeCard key={badge.id} badge={badge} />)}
-                        </div>
-                    </div>
-                 )}
             </div>
 
             <div className="bg-white p-4 sm:p-6 rounded-lg shadow-soft">

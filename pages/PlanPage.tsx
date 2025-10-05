@@ -230,7 +230,7 @@ const PlanPage: React.FC = () => {
                 <div>
                     <h1 className="text-3xl font-bold text-neutral-900">Meu Plano - Dia {plan.day}</h1>
                     <p className="text-neutral-800">Siga as refeições e complete as tarefas para um dia de sucesso!</p>
-                    <p className="text-sm text-primary-dark mt-1 font-medium">Clique em uma refeição ou tarefa para marcar como concluída e ganhar pontos!</p>
+                    <p className="text-sm text-primary-dark mt-1 font-medium">Clique em uma refeição ou tarefa para marcar como concluída!</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     <button onClick={() => setShowShoppingList(true)} className="flex items-center gap-2 bg-white px-4 py-2 rounded-md shadow-soft border border-neutral-200 font-semibold text-primary-dark hover:bg-neutral-100">
@@ -246,17 +246,17 @@ const PlanPage: React.FC = () => {
             
             <div className="space-y-4">
                 <h3 className="font-semibold text-lg text-neutral-900">Refeições do Dia</h3>
-                <MealCard recipe={plan.meals.breakfast} onToggle={() => toggleItemCompletion(dayId, 'breakfast', 'meal', plan)} completed={!!completedItemsForDay['breakfast']} />
-                <MealCard recipe={plan.meals.lunch} onToggle={() => toggleItemCompletion(dayId, 'lunch', 'meal', plan)} completed={!!completedItemsForDay['lunch']} />
-                <MealCard recipe={plan.meals.snack} onToggle={() => toggleItemCompletion(dayId, 'snack', 'meal', plan)} completed={!!completedItemsForDay['snack']} />
-                <MealCard recipe={plan.meals.dinner} onToggle={() => toggleItemCompletion(dayId, 'dinner', 'meal', plan)} completed={!!completedItemsForDay['dinner']} />
+                <MealCard recipe={plan.meals.breakfast} onToggle={() => toggleItemCompletion(dayId, 'breakfast')} completed={!!completedItemsForDay['breakfast']} />
+                <MealCard recipe={plan.meals.lunch} onToggle={() => toggleItemCompletion(dayId, 'lunch')} completed={!!completedItemsForDay['lunch']} />
+                <MealCard recipe={plan.meals.snack} onToggle={() => toggleItemCompletion(dayId, 'snack')} completed={!!completedItemsForDay['snack']} />
+                <MealCard recipe={plan.meals.dinner} onToggle={() => toggleItemCompletion(dayId, 'dinner')} completed={!!completedItemsForDay['dinner']} />
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow-soft">
                 <h3 className="font-semibold text-lg text-neutral-900 mb-4">Checklist de Hábitos</h3>
                 <ul className="space-y-2">
                     {plan.tasks.map((task, index) => (
-                        <TaskItem key={index} task={task} onToggle={() => toggleItemCompletion(dayId, `task-${index}`, 'task', plan)} completed={!!completedItemsForDay[`task-${index}`]} />
+                        <TaskItem key={index} task={task} onToggle={() => toggleItemCompletion(dayId, `task-${index}`)} completed={!!completedItemsForDay[`task-${index}`]} />
                     ))}
                 </ul>
             </div>

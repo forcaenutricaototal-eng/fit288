@@ -1,27 +1,5 @@
-export type BadgeId = 
-  | 'firstCheckIn'
-  | 'perfectDay'
-  | 'streak3'
-  | 'streak7'
-  | 'pointCollector100'
-  | 'pointCollector500'
-  | 'goalReached';
-
-export interface Badge {
-  id: BadgeId;
-  name: string;
-  description: string;
-  icon: string;
-  earnedOn: string;
-}
-
 export interface GamificationData {
   user_id: string;
-  points: number;
-  streak: number;
-  longest_streak: number;
-  last_check_in_date: string | null;
-  badges: Badge[];
   completed_items_by_day: { [day: number]: { [itemId: string]: boolean } };
 }
 
