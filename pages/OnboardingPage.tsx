@@ -72,7 +72,7 @@ const OnboardingPage: React.FC = () => {
             <h2 className="text-3xl font-bold text-neutral-900 mb-2">Seu ponto de partida!</h2>
             <p className="text-neutral-800 mb-8">Informações básicas</p>
             <div className="bg-white p-6 rounded-lg shadow-soft space-y-4">
-               <h3 className="font-semibold text-neutral-900">Qual o seu nome e idade?</h3>
+               <h3 className="font-semibold text-neutral-900 text-center">Qual o seu nome e idade?</h3>
                <div className="flex items-center bg-neutral-100 rounded-md p-3">
                   <User className="text-gray-400 mr-3" size={20} />
                   <input type="text" name="name" placeholder="Seu nome" className="w-full bg-transparent focus:outline-none" value={formData.name} onChange={handleChange} />
@@ -185,7 +185,7 @@ const OnboardingPage: React.FC = () => {
     <div className="min-h-screen bg-neutral-100 flex flex-col justify-between p-6">
       <div className="w-full max-w-md mx-auto">
         <div className="mb-8">
-            <p className="text-center text-primary-dark font-semibold mb-2">Passo {step} de {totalSteps}</p>
+            <p className="text-center text-primary font-semibold mb-2">Passo {step} de {totalSteps}</p>
             <div className="overflow-hidden h-2 text-xs flex rounded-full bg-neutral-200">
                 <div style={{ width: `${progress}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary transition-all duration-500"></div>
             </div>
