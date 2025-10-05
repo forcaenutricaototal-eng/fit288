@@ -1,3 +1,4 @@
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError } from '@supabase/supabase-js';
@@ -220,7 +221,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const value = useMemo(() => ({
-    isAuthenticated: !!user && !!userProfile,
+    isAuthenticated: !!user,
     userProfile,
     isLoading,
     user,
