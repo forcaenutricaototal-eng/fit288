@@ -298,11 +298,41 @@ const App: React.FC = () => (
   </ToastProvider>
 );
 
-const LoadingSpinner: React.FC = () => (
-    <div className="flex items-center justify-center min-h-screen bg-neutral-100">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-    </div>
-);
+const LoadingSpinner: React.FC = () => {
+    // This component now acts as a "Configuration Health Check".
+    // It verifies that the environment variables needed for Supabase were correctly
+    // injected into the client-side bundle during the build process.
+    const isSupabaseConfigured = process.env.SUPABASE_URL && process.env.SUPABASE_KEY;
+
+    if (!isSupabaseConfigured) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-neutral-100 p-4 font-sans">
+                <div className="text-center bg-white p-8 rounded-lg shadow-soft max-w-lg border-t-4 border-red-500">
+                    <h2 className="text-2xl font-bold text-red-600 mb-4">Erro de Configuração</h2>
+                    <p className="text-neutral-800 mb-2">As chaves do Supabase não foram encontradas no aplicativo.</p>
+                    <p className="text-neutral-800 mb-6">Isso geralmente acontece quando as variáveis de ambiente não foram aplicadas ao último deploy.</p>
+                    <h3 className="font-semibold text-neutral-900 mb-3">Ação Necessária:</h3>
+                    <div className="bg-green-50 p-4 rounded-md text-left text-green-900">
+                        <p className="font-bold mb-2">1. Verifique as Variáveis de Ambiente na Vercel:</p>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                            <li><code>VITE_SUPABASE_URL</code></li>
+                            <li><code>VITE_SUPABASE_ANON_KEY</code></li>
+                            <li><code>VITE_GEMINI_API_KEY</code> (ou <code>CHAVE_API_VITE</code>)</li>
+                        </ul>
+                         <p className="font-bold mt-4 mb-2">2. Faça o Redeploy:</p>
+                         <p className="text-sm">Vá até o painel do seu projeto na Vercel, clique na aba "Deployments", encontre o deploy mais recente e clique em "Redeploy" para aplicar as variáveis.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-neutral-100">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    );
+};
 
 const Main: React.FC = () => {
     const { isAuthenticated, isLoading, userProfile } = useApp();
