@@ -46,9 +46,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
-  
+  const [isProcessingAuth, setIsProcessingAuth] = useState(false); // New state to prevent race conditions
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      // Prevent re-entry if an auth event is already being processed.
+      if (isProcessingAuth) return;
+      setIsProcessingAuth(true);
+
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
@@ -56,43 +61,51 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setUserProfile(null);
         setCheckIns([]);
         setIsLoading(false);
+        setIsProcessingAuth(false); // Release the lock
         return;
       }
 
+      // Keep isLoading true until all data is fetched or an error occurs
       setIsLoading(true);
       try {
         let profile = await getProfile(currentUser.id);
 
+        // Handle new user creation and patch existing user profiles in one block
         if (!profile) {
-          // New user: create a complete profile.
           const name = currentUser.user_metadata.name || 'Novo Usuário';
           profile = await createProfile(currentUser.id, name);
-        } else if (profile.completed_items_by_day === null || typeof profile.completed_items_by_day !== 'object') {
-          // Data patch for existing users: if completed_items_by_day is null, undefined or not an object, fix it.
-          const updatedProfile = await updateProfile(currentUser.id, { completed_items_by_day: {} });
-          profile = updatedProfile;
+        } else if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
+          // Safer check for null, undefined, or non-object values
+          const updatedProfileData = await updateProfile(currentUser.id, { completed_items_by_day: {} });
+          profile = updatedProfileData;
         }
 
+        // If after all attempts profile is still null, it's a critical failure.
         if (!profile) {
-            throw new Error("Falha ao carregar ou criar o perfil do usuário.");
+            throw new Error("Não foi possível carregar ou criar o perfil do usuário.");
         }
-        
-        const checkInsData = await getCheckIns(currentUser.id);
+
+        // Set profile first, so UI can start rendering.
         setUserProfile(profile);
+        
+        // Then, fetch dependent data.
+        const checkInsData = await getCheckIns(currentUser.id);
         setCheckIns(checkInsData);
 
       } catch (error) {
-        console.error("An error occurred during auth state change processing:", error);
+        console.error("Erro ao processar o estado de autenticação:", error);
         addToast("Ocorreu um erro ao carregar seus dados. Por favor, recarregue.", 'info');
+        // Clear state on critical error to go back to a safe state
         setUserProfile(null);
         setCheckIns([]);
       } finally {
         setIsLoading(false);
+        setIsProcessingAuth(false); // Always release the lock
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [addToast]);
+  }, [addToast, isProcessingAuth]);
 
   const login = async (email: string, pass: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
