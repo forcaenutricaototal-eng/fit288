@@ -6,16 +6,16 @@ export const getProfile = async (userId: string): Promise<UserProfile | null> =>
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('user_id', userId)
+    .eq('id', userId)
     .single();
   if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows found
   return data;
 };
 
-export const createProfile = async (userId: string, profileData: Omit<UserProfile, 'user_id' | 'created_at'>): Promise<UserProfile> => {
+export const createProfile = async (userId: string, profileData: Omit<UserProfile, 'id' | 'created_at'>): Promise<UserProfile> => {
   const { data, error } = await supabase
     .from('profiles')
-    .insert({ user_id: userId, ...profileData })
+    .insert({ id: userId, ...profileData })
     .select()
     .single();
   if (error) throw error;
@@ -26,7 +26,7 @@ export const updateProfile = async (userId: string, updatedData: Partial<UserPro
   const { data, error } = await supabase
     .from('profiles')
     .update(updatedData)
-    .eq('user_id', userId)
+    .eq('id', userId)
     .select()
     .single();
   if (error) throw error;

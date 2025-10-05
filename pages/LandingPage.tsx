@@ -3,9 +3,9 @@ import { Lock, Leaf, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, Hear
 import { useApp } from '../App';
 
 const LandingPage: React.FC = () => {
-    const { login, signup } = useApp();
+    const { login, signup, resetPassword } = useApp();
     
-    const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
+    const [authMode, setAuthMode] = useState<'signup' | 'login' | 'recover'>('signup');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -17,30 +17,35 @@ const LandingPage: React.FC = () => {
         e.preventDefault();
         setError('');
         setSuccessMessage('');
-
-        if (authMode === 'signup' && password.length < 6) {
-            setError("A senha deve ter pelo menos 6 caracteres.");
-            return;
-        }
-
         setLoading(true);
 
         try {
-            if (authMode === 'login') {
+            if (authMode === 'recover') {
+                const { error: resetError } = await resetPassword(email);
+                if (resetError) {
+                    setError(resetError.message);
+                } else {
+                    setSuccessMessage("Link de recuperação enviado! Verifique seu e-mail.");
+                    setAuthMode('login'); // Switch back to login view after request
+                }
+            } else if (authMode === 'login') {
                 const { error: loginError } = await login(email, password);
                 if (loginError) setError(loginError.message);
-            } else {
+            } else { // signup
+                if (password.length < 6) {
+                    setError("A senha deve ter pelo menos 6 caracteres.");
+                    setLoading(false);
+                    return;
+                }
                 const result = await signup(email, password, name);
                 if (result.error) {
                     setError(result.error.message);
                 } else if (result.data.user && !result.data.session) {
-                    // Handle case where email confirmation is required
                     setSuccessMessage("Cadastro realizado! Verifique seu e-mail para confirmar sua conta e poder fazer o login.");
                     setAuthMode('login');
                     setName('');
                     setPassword('');
                 }
-                // On successful signup with session, App.tsx will navigate to onboarding
             }
         } catch (e: any) {
             setError("Ocorreu um erro inesperado. Por favor, tente novamente.");
@@ -60,7 +65,7 @@ const LandingPage: React.FC = () => {
         { icon: TrendingUp, text: "Resultados duradouros e reeducativos" },
     ];
     
-    const toggleAuthMode = (mode: 'login' | 'signup') => {
+    const toggleAuthMode = (mode: 'login' | 'signup' | 'recover') => {
         setAuthMode(mode);
         setError('');
         setSuccessMessage('');
@@ -99,9 +104,15 @@ const LandingPage: React.FC = () => {
                 <div className="w-full max-w-md mx-auto animate-fade-in-left">
                     <div className="bg-white p-8 rounded-lg shadow-soft">
                         <h2 className="text-2xl font-bold text-center text-neutral-900 mb-2">
-                            {authMode === 'login' ? 'Bem-vindo de volta' : 'Inicie sua transformação'}
+                            {authMode === 'login' && 'Bem-vindo de volta'}
+                            {authMode === 'signup' && 'Inicie sua transformação'}
+                            {authMode === 'recover' && 'Recuperar Senha'}
                         </h2>
-                        <p className="text-center text-neutral-800 mb-6">{authMode === 'login' ? 'Acesse sua conta para continuar.' : 'Crie sua conta para começar.'}</p>
+                        <p className="text-center text-neutral-800 mb-6">
+                            {authMode === 'login' && 'Acesse sua conta para continuar.'}
+                            {authMode === 'signup' && 'Crie sua conta para começar.'}
+                            {authMode === 'recover' && 'Insira seu e-mail para receber o link.'}
+                        </p>
                         
                         <form onSubmit={handleSubmit} className="space-y-5">
                             {authMode === 'signup' && (
@@ -120,19 +131,33 @@ const LandingPage: React.FC = () => {
                                     className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                                 />
                             </div>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                                <input
-                                    type="password" placeholder={authMode === 'login' ? "Sua senha" : "Crie uma senha (mín. 6 caracteres)"} required value={password} onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
-                                />
-                            </div>
+                            {authMode !== 'recover' && (
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                    <input
+                                        type="password" placeholder={authMode === 'login' ? "Sua senha" : "Crie uma senha (mín. 6 caracteres)"} required value={password} onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                                    />
+                                </div>
+                            )}
                             
+                            {authMode === 'login' && (
+                                <div className="text-right -mt-2">
+                                    <button type="button" onClick={() => toggleAuthMode('recover')} className="text-sm font-semibold text-primary-dark hover:underline">
+                                        Esqueceu a senha?
+                                    </button>
+                                </div>
+                            )}
+
                             {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-2 rounded-md">{error}</p>}
                             {successMessage && <p className="text-green-600 text-sm text-center font-semibold bg-green-50 p-2 rounded-md">{successMessage}</p>}
                             
                             <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-green-300 disabled:scale-100">
-                                {loading ? 'Carregando...' : (authMode === 'login' ? 'Fazer Login' : 'Iniciar minha transformação')}
+                                {loading ? 'Carregando...' : (
+                                    authMode === 'login' ? 'Fazer Login' :
+                                    authMode === 'signup' ? 'Iniciar minha transformação' :
+                                    'Enviar link de recuperação'
+                                )}
                             </button>
                         </form>
 
@@ -144,11 +169,18 @@ const LandingPage: React.FC = () => {
                                         Fazer Login
                                     </button>
                                 </>
-                            ) : (
+                            ) : authMode === 'login' ? (
                                 <>
                                     Não tem uma conta?{' '}
                                     <button onClick={() => toggleAuthMode('signup')} className="font-semibold text-primary-dark hover:underline">
                                         Crie uma agora
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    Lembrou a senha?{' '}
+                                    <button onClick={() => toggleAuthMode('login')} className="font-semibold text-primary-dark hover:underline">
+                                        Fazer Login
                                     </button>
                                 </>
                             )}

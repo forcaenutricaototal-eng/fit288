@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -27,7 +29,8 @@ interface AppContextType {
   login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
   signup: (email: string, pass: string, name: string) => Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }>;
   logout: () => void;
-  completeOnboarding: (profile: Omit<UserProfile, 'user_id' | 'created_at'>) => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null; }>;
+  completeOnboarding: (profile: Omit<UserProfile, 'id' | 'created_at'>) => Promise<void>;
   updateUserProfile: (updatedProfile: Partial<UserProfile>) => Promise<void>;
   checkIns: CheckInData[];
   addCheckIn: (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => Promise<void>;
@@ -177,7 +180,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     await supabase.auth.signOut();
   };
   
-  const completeOnboarding = async (profileData: Omit<UserProfile, 'user_id' | 'created_at'>) => {
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin, // Redirect to the app's root URL
+    });
+    return { error };
+  };
+
+  const completeOnboarding = async (profileData: Omit<UserProfile, 'id' | 'created_at'>) => {
     if (!user) throw new Error("Usuário não autenticado.");
     const newProfile = await createProfile(user.id, profileData);
     setUserProfile(newProfile);
@@ -276,6 +286,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     login,
     signup,
     logout,
+    resetPassword,
     completeOnboarding,
     updateUserProfile,
     checkIns,
@@ -285,7 +296,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, gamification, completedItemsByDay, addPoints, toggleItemCompletion, resetDayCompletion, completeOnboarding, updateUserProfile, addCheckIn, login, signup, logout]);
+  }), [user, userProfile, isLoading, checkIns, gamification, completedItemsByDay, addPoints, toggleItemCompletion, resetDayCompletion, completeOnboarding, updateUserProfile, addCheckIn, login, signup, logout, resetPassword]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

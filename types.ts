@@ -26,7 +26,7 @@ export interface GamificationData {
 }
 
 export interface UserProfile {
-  user_id: string;
+  id: string;
   name: string;
   age: number;
   weight: number;

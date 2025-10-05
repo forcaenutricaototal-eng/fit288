@@ -45,7 +45,7 @@ const OnboardingPage: React.FC = () => {
     if (isDataValid && user) {
         setIsLoading(true);
         try {
-            await completeOnboarding(formData as Omit<UserProfile, 'user_id' | 'created_at'>);
+            await completeOnboarding(formData as Omit<UserProfile, 'id' | 'created_at'>);
             // App.tsx will handle redirection
         } catch (e: any) {
             console.error("Erro ao completar onboarding:", e);
