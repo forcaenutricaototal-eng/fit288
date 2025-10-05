@@ -1,7 +1,8 @@
 
 
+
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { UserProfile } from '../types';
 import { useApp } from '../App';
 import { ChevronRight, Scale, Ruler, User, ChevronLeft, PersonStanding, Dumbbell } from 'lucide-react';
@@ -9,9 +10,10 @@ import { ChevronRight, Scale, Ruler, User, ChevronLeft, PersonStanding, Dumbbell
 const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { completeOnboarding } = useApp();
+  const location = useLocation();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<Partial<UserProfile & { retainsLiquids: boolean; }>>({
-    name: '',
+    name: location.state?.name || '',
     age: undefined,
     weight: undefined,
     height: undefined,

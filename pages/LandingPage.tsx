@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
@@ -8,6 +9,10 @@ const LandingPage: React.FC = () => {
     const navigate = useNavigate();
     const { login } = useApp();
     const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
 
     const handleAuth = (e: React.FormEvent) => {
         e.preventDefault();
@@ -15,7 +20,7 @@ const LandingPage: React.FC = () => {
         if (profileExists) {
             navigate('/dashboard');
         } else {
-            navigate('/onboarding');
+            navigate('/onboarding', { state: { name } });
         }
     };
 
@@ -84,6 +89,8 @@ const LandingPage: React.FC = () => {
                                     type="text"
                                     placeholder="Nome Completo"
                                     required
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
                                     className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                                 />
                             </div>
@@ -94,6 +101,8 @@ const LandingPage: React.FC = () => {
                                 type="email"
                                 placeholder="Seu melhor e-mail"
                                 required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                             />
                         </div>
@@ -103,6 +112,8 @@ const LandingPage: React.FC = () => {
                                 type="password"
                                 placeholder="Crie uma senha"
                                 required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                             />
                         </div>
