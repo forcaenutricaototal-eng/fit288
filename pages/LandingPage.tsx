@@ -6,6 +6,7 @@ const LandingPage: React.FC = () => {
     const { login, signup } = useApp();
     
     const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup');
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -21,7 +22,7 @@ const LandingPage: React.FC = () => {
             if (loginError) setError(loginError.message);
             // On successful login, App.tsx will handle navigation
         } else {
-            const { error: signupError } = await signup(email, password);
+            const { error: signupError } = await signup(email, password, name);
             if (signupError) {
                 setError(signupError.message);
             } else {
@@ -40,13 +41,6 @@ const LandingPage: React.FC = () => {
         { icon: Sparkles, text: "Ajuda a combater sintomas de depressão e ansiedade" },
         { icon: TrendingUp, text: "Resultados duradouros e reeducativos" },
     ];
-    
-    const tabClasses = (mode: 'signup' | 'login') => 
-        `w-full text-center py-3 font-semibold rounded-t-md transition-colors ${
-            authMode === mode 
-            ? 'bg-white text-primary-dark border-b-2 border-primary'
-            : 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200'
-        }`;
 
     return (
         <div className="min-h-screen bg-primary-light flex items-center justify-center p-4 lg:p-8 font-sans">
@@ -78,17 +72,22 @@ const LandingPage: React.FC = () => {
 
                 {/* Right Column: Auth Card */}
                 <div className="w-full max-w-md mx-auto animate-fade-in-left">
-                    <div className="flex">
-                         <button onClick={() => setAuthMode('signup')} className={tabClasses('signup')}>Criar Conta</button>
-                         <button onClick={() => setAuthMode('login')} className={tabClasses('login')}>Fazer Login</button>
-                    </div>
-                    <div className="bg-white p-8 rounded-b-lg shadow-soft">
+                    <div className="bg-white p-8 rounded-lg shadow-soft">
                         <h2 className="text-2xl font-bold text-center text-neutral-900 mb-2">
                             {authMode === 'login' ? 'Bem-vindo de volta' : 'Inicie sua transformação'}
                         </h2>
                         <p className="text-center text-neutral-800 mb-6">{authMode === 'login' ? 'Acesse sua conta para continuar.' : 'Crie sua conta para começar.'}</p>
                         
                         <form onSubmit={handleSubmit} className="space-y-5">
+                            {authMode === 'signup' && (
+                                <div className="relative">
+                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                    <input
+                                        type="text" placeholder="Nome Completo" required value={name} onChange={(e) => setName(e.target.value)}
+                                        className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                                    />
+                                </div>
+                            )}
                             <div className="relative">
                                 <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                 <input
@@ -110,6 +109,24 @@ const LandingPage: React.FC = () => {
                                 {loading ? 'Carregando...' : (authMode === 'login' ? 'Fazer Login' : 'Iniciar minha transformação')}
                             </button>
                         </form>
+
+                        <p className="text-center text-sm text-neutral-800 mt-6">
+                            {authMode === 'signup' ? (
+                                <>
+                                    Já tem uma conta?{' '}
+                                    <button onClick={() => setAuthMode('login')} className="font-semibold text-primary-dark hover:underline">
+                                        Fazer Login
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    Não tem uma conta?{' '}
+                                    <button onClick={() => setAuthMode('signup')} className="font-semibold text-primary-dark hover:underline">
+                                        Crie uma agora
+                                    </button>
+                                </>
+                            )}
+                        </p>
                         
                         <div className="border-t border-neutral-200 mt-6 pt-6 text-center">
                             <div className="flex justify-center text-yellow-400 mb-2">

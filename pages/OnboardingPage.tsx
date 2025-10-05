@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import { ChevronRight, Scale, Ruler, User, ChevronLeft, PersonStanding, Target } from 'lucide-react';
 import type { UserProfile } from '../types';
@@ -18,6 +18,12 @@ const OnboardingPage: React.FC = () => {
   });
   
   const numericFields = ['age', 'weight', 'height', 'weight_goal'];
+  
+  useEffect(() => {
+    if (user?.user_metadata?.name && !formData.name) {
+      setFormData(prev => ({ ...prev, name: user.user_metadata.name as string }));
+    }
+  }, [user, formData.name]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

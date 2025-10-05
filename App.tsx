@@ -1,4 +1,5 @@
 
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError } from '@supabase/supabase-js';
@@ -24,7 +25,7 @@ interface AppContextType {
   isLoading: boolean;
   user: User | null;
   login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
-  signup: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
+  signup: (email: string, pass: string, name: string) => Promise<{ error: AuthError | null }>;
   logout: () => void;
   completeOnboarding: (profile: Omit<UserProfile, 'user_id' | 'created_at'>) => Promise<void>;
   updateUserProfile: (updatedProfile: Partial<UserProfile>) => Promise<void>;
@@ -120,8 +121,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return { error };
   };
 
-  const signup = async (email: string, pass: string) => {
-    const { error } = await supabase.auth.signUp({ email, password: pass });
+  const signup = async (email: string, pass: string, name: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: {
+          name: name,
+        },
+      },
+    });
     return { error };
   };
 
