@@ -17,25 +17,37 @@ const LandingPage: React.FC = () => {
         e.preventDefault();
         setError('');
         setSuccessMessage('');
+
+        if (authMode === 'signup' && password.length < 6) {
+            setError("A senha deve ter pelo menos 6 caracteres.");
+            return;
+        }
+
         setLoading(true);
 
-        if (authMode === 'login') {
-            const { error: loginError } = await login(email, password);
-            if (loginError) setError(loginError.message);
-        } else {
-            const result = await signup(email, password, name);
-            if (result.error) {
-                setError(result.error.message);
-            } else if (result.data.user && !result.data.session) {
-                // Handle case where email confirmation is required
-                setSuccessMessage("Cadastro realizado! Verifique seu e-mail para confirmar sua conta e poder fazer o login.");
-                setAuthMode('login');
-                setName('');
-                setPassword('');
+        try {
+            if (authMode === 'login') {
+                const { error: loginError } = await login(email, password);
+                if (loginError) setError(loginError.message);
+            } else {
+                const result = await signup(email, password, name);
+                if (result.error) {
+                    setError(result.error.message);
+                } else if (result.data.user && !result.data.session) {
+                    // Handle case where email confirmation is required
+                    setSuccessMessage("Cadastro realizado! Verifique seu e-mail para confirmar sua conta e poder fazer o login.");
+                    setAuthMode('login');
+                    setName('');
+                    setPassword('');
+                }
+                // On successful signup with session, App.tsx will navigate to onboarding
             }
-            // On successful signup with session, App.tsx will navigate to onboarding
+        } catch (e: any) {
+            setError("Ocorreu um erro inesperado. Por favor, tente novamente.");
+            console.error("Auth error:", e);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const benefits = [
@@ -111,13 +123,13 @@ const LandingPage: React.FC = () => {
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                 <input
-                                    type="password" placeholder={authMode === 'login' ? "Sua senha" : "Crie uma senha"} required value={password} onChange={(e) => setPassword(e.target.value)}
+                                    type="password" placeholder={authMode === 'login' ? "Sua senha" : "Crie uma senha (mín. 6 caracteres)"} required value={password} onChange={(e) => setPassword(e.target.value)}
                                     className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                                 />
                             </div>
                             
-                            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                            {successMessage && <p className="text-green-600 text-sm text-center">{successMessage}</p>}
+                            {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-2 rounded-md">{error}</p>}
+                            {successMessage && <p className="text-green-600 text-sm text-center font-semibold bg-green-50 p-2 rounded-md">{successMessage}</p>}
                             
                             <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-green-300 disabled:scale-100">
                                 {loading ? 'Carregando...' : (authMode === 'login' ? 'Fazer Login' : 'Iniciar minha transformação')}

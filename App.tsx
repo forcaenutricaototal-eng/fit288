@@ -56,39 +56,78 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addToast } = useToast();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setIsLoading(true);
-      const currentUser = session?.user;
-      setUser(currentUser ?? null);
+    // This robust authentication flow ensures we handle the initial session check
+    // and subsequent auth changes correctly, preventing race conditions.
+    const checkInitialSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
 
-      if (currentUser) {
-        try {
-          const profile = await getProfile(currentUser.id);
-          setUserProfile(profile);
-          if (profile) {
-            const [checkInsData, gamificationData] = await Promise.all([
-              getCheckIns(currentUser.id),
-              getGamification(currentUser.id)
-            ]);
-            setCheckIns(checkInsData);
-            setGamification(gamificationData);
-            setCompletedItemsByDay(gamificationData?.completed_items_by_day || {});
-          }
-        } catch (error) {
-          console.error("Error loading user data:", error);
-          setUserProfile(null); // Reset on error
+        if (currentUser) {
+            try {
+                const profile = await getProfile(currentUser.id);
+                setUserProfile(profile);
+                if (profile) {
+                    const [checkInsData, gamificationData] = await Promise.all([
+                        getCheckIns(currentUser.id),
+                        getGamification(currentUser.id)
+                    ]);
+                    setCheckIns(checkInsData);
+                    setGamification(gamificationData);
+                    setCompletedItemsByDay(gamificationData?.completed_items_by_day || {});
+                }
+            } catch (error) {
+                console.error("Error loading initial user data:", error);
+                setUserProfile(null);
+            }
         }
-      } else {
-        setUserProfile(null);
-        setCheckIns([]);
-        setGamification(null);
-        setCompletedItemsByDay({});
-      }
-      setIsLoading(false);
+        setIsLoading(false);
+    };
+
+    checkInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        if (currentUser) {
+            // User has logged in or session was refreshed
+            setIsLoading(true);
+            try {
+                const profile = await getProfile(currentUser.id);
+                setUserProfile(profile);
+                if (profile) {
+                    const [checkInsData, gamificationData] = await Promise.all([
+                        getCheckIns(currentUser.id),
+                        getGamification(currentUser.id)
+                    ]);
+                    setCheckIns(checkInsData);
+                    setGamification(gamificationData);
+                    setCompletedItemsByDay(gamificationData?.completed_items_by_day || {});
+                } else {
+                    // New user, no profile yet. Clear any potential old data.
+                    setUserProfile(null);
+                    setCheckIns([]);
+                    setGamification(null);
+                    setCompletedItemsByDay({});
+                }
+            } catch (error) {
+                console.error("Error loading user data on auth state change:", error);
+                setUserProfile(null); // Reset on error
+            } finally {
+                setIsLoading(false);
+            }
+        } else {
+            // User has logged out. Clear all user-specific data.
+            setUserProfile(null);
+            setCheckIns([]);
+            setGamification(null);
+            setCompletedItemsByDay({});
+        }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+}, []);
 
   useEffect(() => {
     if (!userProfile || !gamification || isLoading) return;
@@ -246,7 +285,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, gamification, completedItemsByDay]);
+  }), [user, userProfile, isLoading, checkIns, gamification, completedItemsByDay, addPoints, toggleItemCompletion, resetDayCompletion, completeOnboarding, updateUserProfile, addCheckIn, login, signup, logout]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
