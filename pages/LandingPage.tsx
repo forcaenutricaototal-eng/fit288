@@ -16,10 +16,16 @@ const LandingPage: React.FC = () => {
 
     const handleAuth = (e: React.FormEvent) => {
         e.preventDefault();
-        const profileExists = login();
-        if (profileExists) {
-            navigate('/dashboard');
-        } else {
+        if (authMode === 'login') {
+            const successfulLogin = login();
+            if (successfulLogin) {
+                navigate('/dashboard');
+            } else {
+                alert('Nenhum perfil encontrado neste navegador. Por favor, crie uma conta.');
+            }
+        } else { // signup
+            // For signup, we just proceed to onboarding. The user profile will be created there.
+            // We do not set any authentication state here.
             navigate('/onboarding', { state: { name } });
         }
     };

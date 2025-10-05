@@ -84,7 +84,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const login = () => {
     const storedProfile = localStorage.getItem('fit28_userProfile');
-    setIsAuthenticated(true);
     
     if (storedProfile) {
         try {
@@ -95,15 +94,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             if (storedCheckIns) {
                 setCheckIns(JSON.parse(storedCheckIns));
             }
+            setIsAuthenticated(true);
             return true;
         } catch (e) {
             localStorage.removeItem('fit28_userProfile');
             localStorage.removeItem('fit28_checkIns');
             setUserProfile(null);
             setCheckIns([]);
+            setIsAuthenticated(false);
             return false;
         }
     }
+    setIsAuthenticated(false);
     return false;
   };
   
