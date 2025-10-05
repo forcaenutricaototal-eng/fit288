@@ -37,43 +37,42 @@ export const useApp = () => {
 };
 
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      const storedAuth = localStorage.getItem('fit28_isAuthenticated');
-      return storedAuth ? JSON.parse(storedAuth) : false;
-    } catch {
-      return false;
-    }
-  });
-  
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     try {
       const storedProfile = localStorage.getItem('fit28_userProfile');
+      // If a profile exists in storage, the user is considered logged in.
+      // This acts as our automatic login on app load.
       return storedProfile ? JSON.parse(storedProfile) : null;
     } catch {
+      // If data is corrupted, treat as logged out.
       return null;
     }
   });
-
+  
   const [checkIns, setCheckIns] = useState<CheckInData[]>(() => {
     try {
-      const storedCheckIns = localStorage.getItem('fit28_checkIns');
-      return storedCheckIns ? JSON.parse(storedCheckIns) : [];
+      // Only load check-ins if a profile is also present.
+      if (localStorage.getItem('fit28_userProfile')) {
+        const storedCheckIns = localStorage.getItem('fit28_checkIns');
+        return storedCheckIns ? JSON.parse(storedCheckIns) : [];
+      }
+      return [];
     } catch {
       return [];
     }
   });
 
+  // Authentication status is now derived directly from the userProfile state.
+  const isAuthenticated = useMemo(() => userProfile !== null, [userProfile]);
   const planDuration = 28;
 
-  useEffect(() => {
-    localStorage.setItem('fit28_isAuthenticated', JSON.stringify(isAuthenticated));
-  }, [isAuthenticated]);
 
   useEffect(() => {
+    // This effect persists the user's session.
     if (userProfile) {
       localStorage.setItem('fit28_userProfile', JSON.stringify(userProfile));
     } else {
+      // This case is primarily handled by the logout function.
       localStorage.removeItem('fit28_userProfile');
     }
   }, [userProfile]);
@@ -83,6 +82,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, [checkIns]);
 
   const login = () => {
+    // This function is for the manual login button on the landing page.
     const storedProfile = localStorage.getItem('fit28_userProfile');
     
     if (storedProfile) {
@@ -94,40 +94,32 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             if (storedCheckIns) {
                 setCheckIns(JSON.parse(storedCheckIns));
             }
-            setIsAuthenticated(true);
             return true;
         } catch (e) {
-            localStorage.removeItem('fit28_userProfile');
-            localStorage.removeItem('fit28_checkIns');
-            setUserProfile(null);
-            setCheckIns([]);
-            setIsAuthenticated(false);
+            // If the stored profile is corrupt, perform a full logout to clean up.
+            logout();
             return false;
         }
     }
-    setIsAuthenticated(false);
     return false;
   };
   
   const logout = () => {
-    setIsAuthenticated(false);
     setUserProfile(null);
-    setCheckIns([]); // Reset progress on logout
-    localStorage.removeItem('fit28_isAuthenticated');
+    setCheckIns([]);
+    localStorage.removeItem('fit28_isAuthenticated'); // Keep for legacy cleanup
     localStorage.removeItem('fit28_userProfile');
     localStorage.removeItem('fit28_checkIns');
   };
   
   const completeOnboarding = (profile: UserProfile) => {
     setUserProfile(profile);
-    // Add initial state as the starting point (Day 0)
     setCheckIns([{ 
       day: 0, 
       weight: profile.weight, 
       waterIntake: 0, 
       fluidRetention: 1,
     }]);
-    setIsAuthenticated(true);
   };
 
   const updateUserProfile = (updatedProfile: Partial<UserProfile>) => {
@@ -139,7 +131,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (checkIns.length > planDuration) return;
 
     const newCheckIn: CheckInData = {
-      day: checkIns.length, // Day 1 will be at index 1 and have length 2 (day 0 + day 1)
+      day: checkIns.length,
       ...data,
     };
     setCheckIns(prev => [...prev, newCheckIn]);
@@ -185,11 +177,6 @@ const Main: React.FC = () => {
                             <Route path="/onboarding" element={<OnboardingPage />} />
                             <Route path="/" element={<LandingPage />} />
                             <Route path="*" element={<Navigate to="/" />} />
-                        </>
-                    ) : !userProfile ? (
-                         <>
-                            <Route path="/onboarding" element={<OnboardingPage />} />
-                            <Route path="*" element={<Navigate to="/onboarding" />} />
                         </>
                     ) : (
                         <Route path="/" element={<Layout />}>
