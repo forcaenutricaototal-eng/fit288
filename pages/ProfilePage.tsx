@@ -249,20 +249,11 @@ const ProfilePage: React.FC = () => {
                                     <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
                                     <input type="number" name="weight_goal" value={editableProfile.weight_goal} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
-                                <div>
-                                    <label className="text-sm text-neutral-800 block mb-1">Gênero</label>
-                                    <select name="gender" value={editableProfile.gender} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-white">
-                                        <option>Feminino</option>
-                                        <option>Masculino</option>
-                                        <option>Outro</option>
-                                    </select>
-                                </div>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <InfoItem icon={User} label="Nome" value={userProfile.name} />
                                 <InfoItem icon={Calendar} label="Idade" value={`${userProfile.age} anos`} />
-                                <InfoItem icon={User} label="Gênero" value={userProfile.gender} />
                             </div>
                         )}
                     </div>

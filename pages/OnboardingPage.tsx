@@ -15,7 +15,6 @@ const OnboardingPage: React.FC = () => {
     weight: undefined,
     height: undefined,
     weight_goal: undefined,
-    gender: 'Feminino',
     dietary_restrictions: [],
   });
   
@@ -41,8 +40,7 @@ const OnboardingPage: React.FC = () => {
       typeof formData.age === 'number' && !isNaN(formData.age) && formData.age > 0 &&
       typeof formData.weight === 'number' && !isNaN(formData.weight) && formData.weight > 0 &&
       typeof formData.height === 'number' && !isNaN(formData.height) && formData.height > 0 &&
-      typeof formData.weight_goal === 'number' && !isNaN(formData.weight_goal) && formData.weight_goal > 0 &&
-      formData.gender;
+      typeof formData.weight_goal === 'number' && !isNaN(formData.weight_goal) && formData.weight_goal > 0;
 
     if (isDataValid && user) {
         setIsLoading(true);
@@ -91,18 +89,6 @@ const OnboardingPage: React.FC = () => {
                   <div className="flex items-center bg-neutral-100 rounded-md p-3">
                       <User className="text-gray-400 mr-3" size={20} />
                       <input type="number" name="age" placeholder="Sua idade" className="w-full bg-transparent focus:outline-none" value={formData.age === undefined ? '' : formData.age} onChange={handleChange} />
-                  </div>
-               </div>
-               <div>
-                  <h3 className="font-semibold text-neutral-900 mb-2">Gênero</h3>
-                  <div className="flex items-center bg-neutral-100 rounded-md p-3">
-                     <PersonStanding className="text-gray-400 mr-3" size={20} />
-                     <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-transparent focus:outline-none">
-                        <option>Feminino</option>
-                        <option>Masculino</option>
-                        <option>Outro</option>
-                        <option>Prefiro não dizer</option>
-                     </select>
                   </div>
                </div>
             </div>
