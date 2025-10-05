@@ -1,3 +1,4 @@
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -99,12 +100,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   
           if (!profile && currentUser.user_metadata.name) {
             try {
-              profile = await createProfile(currentUser.id, currentUser.user_metadata.name);
+              // Create both profile and gamification data. Both must succeed.
+              const newProfile = await createProfile(currentUser.id, currentUser.user_metadata.name);
               await createGamificationData(currentUser.id);
+              profile = newProfile; // Only assign to profile variable after both creations are successful
               addToast(`Bem-vindo, ${currentUser.user_metadata.name}!`, 'success');
             } catch (error) {
               console.error("Failed to create profile/gamification:", error);
-              addToast("Erro ao criar seu perfil.", "info");
+              addToast("Erro ao criar seu perfil. Por favor, tente recarregar a página.", "info");
+              // If creation fails, profile remains null, and the logic below will handle it.
             }
           }
           
@@ -115,7 +119,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             setCheckIns([]);
             setGamification(null);
             setCompletedItemsByDay({});
-            addToast("Não foi possível carregar seu perfil. Tente fazer login novamente.", "info");
+            if (_event !== 'SIGNED_IN') {
+              addToast("Não foi possível carregar seu perfil. Tente fazer login novamente.", "info");
+            }
           }
         } catch (error) {
           console.error("An error occurred during auth state change:", error);

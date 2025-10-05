@@ -39,7 +39,7 @@ const Layout: React.FC = () => {
             <p className="text-neutral-900 font-semibold">{userProfile?.name}</p>
             <div className="flex items-center text-sm text-gold">
                 <Gem size={14} className="mr-1.5" />
-                <span>{gamification.points} Pontos</span>
+                <span>{gamification?.points ?? 0} Pontos</span>
             </div>
         </div>
         <nav className="flex-1 px-4">
