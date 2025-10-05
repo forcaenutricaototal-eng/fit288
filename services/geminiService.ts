@@ -1,4 +1,3 @@
-
 // Per Gemini API guidelines, the API key must be accessed via `process.env.API_KEY`.
 // The execution environment is expected to provide this variable.
 
@@ -88,7 +87,7 @@ const recipeSchema = {
 };
 
 
-export const generateMealPlan = async (userProfile: UserProfile, day: number): Promise<DailyPlan> => {
+export const generateMealPlan = async (userProfile: UserProfile, day: number, feedback?: string): Promise<DailyPlan> => {
     try {
         const aiClient = getAi();
         const systemInstruction = `Você é um nutricionista expert para o app Fit28. Sua tarefa é criar um plano alimentar Low-Carb detalhado para um usuário, focado em estimular GIP/GLP-1 e promover saciedade e emagrecimento saudável. Retorne APENAS o objeto JSON, sem nenhum texto adicional ou formatação markdown.`;
@@ -111,6 +110,14 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number): P
             - Bebidas alcoólicas.
             `;
         }
+        
+        let feedbackInstruction = '';
+        if (feedback) {
+            feedbackInstruction = `
+            INSTRUÇÃO IMPORTANTE: O usuário pediu para ajustar o plano deste dia. O feedback foi: "${feedback}".
+            Gere um NOVO plano para o Dia ${day} que leve essa preferência em consideração. Seja criativo e evite repetir as refeições que o usuário não gostou, mas mantenha-se estritamente dentro da estrutura low-carb e das regras do protocolo (especialmente as restrições do Detox para os primeiros 10 dias).
+            `;
+        }
 
         const prompt = `Gere o plano alimentar para o Dia ${day} do programa de 28 dias para o seguinte usuário:
         - Nome: ${userProfile.name}
@@ -123,9 +130,15 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number): P
         - Meta de Peso: ${userProfile.weightGoal} kg
         - Restrições Alimentares: ${userProfile.dietaryRestrictions.join(', ') || 'Nenhuma'}
 
+        ${feedbackInstruction}
         ${daySpecificInstructions}
 
-        O plano deve incluir café da manhã, almoço, jantar, um lanche opcional e 3 tarefas/hábitos diários para reforçar o programa. As receitas devem ser simples, com ingredientes acessíveis no Brasil.
+        O plano deve incluir 3 tarefas/hábitos diários para reforçar o programa. As receitas devem ser simples, com ingredientes acessíveis no Brasil.
+
+        REGRAS ESTRITAS DE ESTRUTURA DO PLANO:
+        1. O plano DEVE OBRIGATORIAMENTE conter 4 refeições: café da manhã, almoço, lanche da tarde e jantar.
+        2. O JANTAR deve ser SEMPRE uma proteína leve (frango, peixe) ou um shake de whey protein com uma fruta vermelha (ex: morango).
+        3. Iogurte grego ou natural DEVE ser incluído em pelo menos uma refeição todos os dias (no café da manhã ou no lanche da tarde).
 
         INSTRUÇÕES ADICIONAIS E LISTA DE ALIMENTOS PERMITIDOS:
         Baseie TODAS as refeições ESTRITAMENTE na lista de alimentos abaixo. Não use nenhum ingrediente que não esteja nesta lista.
@@ -161,9 +174,9 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number): P
                                 breakfast: recipeSchema,
                                 lunch: recipeSchema,
                                 dinner: recipeSchema,
-                                snack: { ...recipeSchema, description: "Lanche opcional. Pode ser nulo." }
+                                snack: recipeSchema
                             },
-                             required: ["breakfast", "lunch", "dinner"]
+                             required: ["breakfast", "lunch", "dinner", "snack"]
                         },
                         tasks: { type: Type.ARRAY, items: { type: Type.STRING } }
                     },
@@ -194,7 +207,7 @@ export const generateShoppingList = async (plan: DailyPlan): Promise<string> => 
             ...plan.meals.breakfast.ingredients,
             ...plan.meals.lunch.ingredients,
             ...plan.meals.dinner.ingredients,
-            ...(plan.meals.snack?.ingredients || [])
+            ...plan.meals.snack.ingredients,
         ].join('\n');
         
         const prompt = `A partir da seguinte lista de ingredientes para um dia de refeições, crie uma lista de compras organizada por categorias (ex: Hortifrúti, Açougue, Mercearia). Agrupe itens semelhantes e remova duplicatas. A lista é: \n${ingredients}`;

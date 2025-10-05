@@ -60,7 +60,7 @@ export interface DailyPlan {
         breakfast: Recipe;
         lunch: Recipe;
         dinner: Recipe;
-        snack?: Recipe;
+        snack: Recipe;
     };
     tasks: string[];
 }

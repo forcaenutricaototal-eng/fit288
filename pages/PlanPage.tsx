@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import type { DailyPlan, Recipe } from '../types';
 import { generateMealPlan, generateShoppingList } from '../services/geminiService';
 import { useApp } from '../App';
-import { CheckCircle, Circle, Soup, Beef, Fish, Apple, Loader, ClipboardList, X } from 'lucide-react';
+import { CheckCircle, Circle, Soup, Beef, Fish, Apple, Loader, ClipboardList, X, RefreshCw } from 'lucide-react';
 
 const MealCard: React.FC<{ recipe: Recipe, onToggle: () => void, completed: boolean }> = ({ recipe, onToggle, completed }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -104,27 +104,69 @@ const ShoppingListModal: React.FC<{ plan: DailyPlan | null, onClose: () => void 
     );
 };
 
+const RegenerateModal: React.FC<{
+    day: number;
+    onClose: () => void;
+    onRegenerate: (feedback: string) => void;
+}> = ({ day, onClose, onRegenerate }) => {
+    const [feedback, setFeedback] = useState('');
+
+    const handleSubmit = () => {
+        onRegenerate(feedback);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fade-in">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+                <div className="flex justify-between items-center p-4 border-b">
+                    <h3 className="text-lg font-semibold text-neutral-900">Ajustar Plano - Dia {day}</h3>
+                    <button onClick={onClose}><X size={24} /></button>
+                </div>
+                <div className="p-6 space-y-4">
+                    <p className="text-neutral-800">O que você não gostou ou gostaria de mudar? A IA usará seu feedback para criar um novo plano para hoje.</p>
+                    <textarea
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        rows={4}
+                        placeholder="Ex: Não gosto de abacate, prefiro peixe no almoço..."
+                        className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                </div>
+                <div className="flex justify-end p-4 border-t gap-2">
+                    <button onClick={onClose} className="bg-neutral-200 text-neutral-900 px-4 py-2 rounded-md font-semibold hover:bg-neutral-300">
+                        Cancelar
+                    </button>
+                    <button onClick={handleSubmit} className="bg-primary text-white px-4 py-2 rounded-md font-semibold hover:bg-primary-dark">
+                        Gerar Novo Plano
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const PlanPage: React.FC = () => {
     const { day } = useParams();
     const navigate = useNavigate();
-    const { userProfile, completedItemsByDay, toggleItemCompletion } = useApp();
+    const { userProfile, completedItemsByDay, toggleItemCompletion, resetDayCompletion } = useApp();
     const dayId = day ? parseInt(day, 10) : 1;
 
     const [plan, setPlan] = useState<DailyPlan | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showShoppingList, setShowShoppingList] = useState(false);
+    const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
     
     const completedItemsForDay = completedItemsByDay[dayId] || {};
 
-    const fetchPlan = useCallback(async (currentDay: number) => {
+    const fetchPlan = useCallback(async (currentDay: number, feedback?: string) => {
         if (!userProfile) return;
         
         setIsLoading(true);
         setError(null);
         try {
-            const generatedPlan = await generateMealPlan(userProfile, currentDay);
+            const generatedPlan = await generateMealPlan(userProfile, currentDay, feedback);
             setPlan(generatedPlan);
         } catch (e: any) {
             setError(e.message);
@@ -132,6 +174,12 @@ const PlanPage: React.FC = () => {
             setIsLoading(false);
         }
     }, [userProfile]);
+    
+    const handleRegenerate = (feedback: string) => {
+        resetDayCompletion(dayId);
+        fetchPlan(dayId, feedback);
+        setIsRegenerateModalOpen(false);
+    };
 
     useEffect(() => {
         fetchPlan(dayId);
@@ -170,6 +218,13 @@ const PlanPage: React.FC = () => {
     return (
         <div className="space-y-6">
             {showShoppingList && <ShoppingListModal plan={plan} onClose={() => setShowShoppingList(false)} />}
+            {isRegenerateModalOpen && (
+                <RegenerateModal
+                    day={plan.day}
+                    onClose={() => setIsRegenerateModalOpen(false)}
+                    onRegenerate={handleRegenerate}
+                />
+            )}
             
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
@@ -177,18 +232,24 @@ const PlanPage: React.FC = () => {
                     <p className="text-neutral-800">Siga as refeições e complete as tarefas para um dia de sucesso!</p>
                     <p className="text-sm text-primary-dark mt-1 font-medium">Clique em uma refeição ou tarefa para marcar como concluída e ganhar pontos!</p>
                 </div>
-                <button onClick={() => setShowShoppingList(true)} className="flex items-center gap-2 bg-white px-4 py-2 rounded-md shadow-soft border border-neutral-200 font-semibold text-primary-dark hover:bg-neutral-100">
-                    <ClipboardList size={18} />
-                    Lista de Compras
-                </button>
+                <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setShowShoppingList(true)} className="flex items-center gap-2 bg-white px-4 py-2 rounded-md shadow-soft border border-neutral-200 font-semibold text-primary-dark hover:bg-neutral-100">
+                        <ClipboardList size={18} />
+                        Lista de Compras
+                    </button>
+                    <button onClick={() => setIsRegenerateModalOpen(true)} className="flex items-center gap-2 bg-white px-4 py-2 rounded-md shadow-soft border border-neutral-200 font-semibold text-primary-dark hover:bg-neutral-100">
+                        <RefreshCw size={18} />
+                        Ajustar Plano
+                    </button>
+                </div>
             </div>
             
             <div className="space-y-4">
                 <h3 className="font-semibold text-lg text-neutral-900">Refeições do Dia</h3>
                 <MealCard recipe={plan.meals.breakfast} onToggle={() => toggleItemCompletion(dayId, 'breakfast', 'meal', plan)} completed={!!completedItemsForDay['breakfast']} />
                 <MealCard recipe={plan.meals.lunch} onToggle={() => toggleItemCompletion(dayId, 'lunch', 'meal', plan)} completed={!!completedItemsForDay['lunch']} />
+                <MealCard recipe={plan.meals.snack} onToggle={() => toggleItemCompletion(dayId, 'snack', 'meal', plan)} completed={!!completedItemsForDay['snack']} />
                 <MealCard recipe={plan.meals.dinner} onToggle={() => toggleItemCompletion(dayId, 'dinner', 'meal', plan)} completed={!!completedItemsForDay['dinner']} />
-                {plan.meals.snack && <MealCard recipe={plan.meals.snack} onToggle={() => toggleItemCompletion(dayId, 'snack', 'meal', plan)} completed={!!completedItemsForDay['snack']} />}
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow-soft">

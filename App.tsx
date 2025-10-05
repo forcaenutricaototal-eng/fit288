@@ -28,6 +28,7 @@ interface AppContextType {
   gamification: GamificationData;
   completedItemsByDay: { [day: number]: { [itemId: string]: boolean } };
   toggleItemCompletion: (day: number, itemId: string, itemType: 'meal' | 'task', plan: DailyPlan | null) => void;
+  resetDayCompletion: (day: number) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -234,7 +235,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         // Exception: Check for Perfect Day badge here, as it depends on the daily plan context.
         if (plan && !isCompleted) {
-            const mealIds = ['breakfast', 'lunch', 'dinner', ...(plan.meals.snack ? ['snack'] : [])];
+            const mealIds = ['breakfast', 'lunch', 'dinner', 'snack'];
             const taskIds = plan.tasks.map((_, i) => `task-${i}`);
             const allItemIds = [...mealIds, ...taskIds];
             
@@ -261,6 +262,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     });
   }, [addPoints, addToast]);
 
+  const resetDayCompletion = useCallback((day: number) => {
+    setCompletedItemsByDay(prev => {
+        const newState = { ...prev };
+        delete newState[day];
+        localStorage.setItem('fit28_completedItems', JSON.stringify(newState));
+        return newState;
+    });
+  }, []);
+
   const value = useMemo(() => ({
     isAuthenticated,
     userProfile,
@@ -274,7 +284,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     gamification,
     completedItemsByDay,
     toggleItemCompletion,
-  }), [isAuthenticated, userProfile, isLoading, checkIns, gamification, completedItemsByDay, logout, completeOnboarding, updateUserProfile, addCheckIn, toggleItemCompletion]);
+    resetDayCompletion,
+  }), [isAuthenticated, userProfile, isLoading, checkIns, gamification, completedItemsByDay, logout, completeOnboarding, updateUserProfile, addCheckIn, toggleItemCompletion, resetDayCompletion]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
