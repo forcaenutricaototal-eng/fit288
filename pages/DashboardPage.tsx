@@ -166,11 +166,11 @@ const DashboardPage: React.FC = () => {
                     </div>
                      <div className="bg-primary-light p-4 rounded-md col-span-2 md:col-span-1">
                         <Award className="mx-auto text-yellow-600" size={24} />
-                        <p className="text-2xl font-bold text-neutral-900">{gamification.badges.length}</p>
+                        <p className="text-2xl font-bold text-neutral-900">{gamification.badges?.length ?? 0}</p>
                         <p className="text-sm text-neutral-800">Conquistas</p>
                     </div>
                  </div>
-                 {gamification.badges.length > 0 && (
+                 {gamification.badges && gamification.badges.length > 0 && (
                     <div className="mt-6">
                         <h4 className="font-semibold text-neutral-900 mb-3">Últimas Conquistas</h4>
                         <div className="space-y-3">

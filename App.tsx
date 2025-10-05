@@ -1,4 +1,5 @@
 
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -132,13 +133,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
     if (!userProfile || !gamification || isLoading) return;
 
+    // FIX: Gracefully handle if gamification.badges is null
+    const currentBadges = gamification.badges || [];
     const potentialNewBadges = checkAndAwardBadges(gamification, userProfile, checkIns);
     const newBadges = potentialNewBadges.filter(
-        (potentialBadge) => !gamification.badges.some((b) => b.id === potentialBadge.id)
+        (potentialBadge) => !currentBadges.some((b) => b.id === potentialBadge.id)
     );
     
     if (newBadges.length > 0 && user) {
-        const updatedBadges = [...gamification.badges, ...newBadges];
+        const updatedBadges = [...currentBadges, ...newBadges];
         updateGamificationData(user.id, { badges: updatedBadges }).then(() => {
              setGamification(prev => prev ? { ...prev, badges: updatedBadges } : null);
              newBadges.forEach(badge => addToast(`Nova Conquista: ${badge.name}!`, 'success'));
@@ -241,10 +244,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (plan && !isCompleted) {
         const allItemIds = ['breakfast', 'lunch', 'dinner', 'snack', ...plan.tasks.map((_, i) => `task-${i}`)];
         if (allItemIds.every(id => newDayItems[id])) {
-            const hasBadge = gamification.badges.some(b => b.id === 'perfectDay');
+            // FIX: Gracefully handle if gamification.badges is null
+            const currentBadges = gamification.badges || [];
+            const hasBadge = currentBadges.some(b => b.id === 'perfectDay');
             if (!hasBadge) {
                 const perfectDayBadge = { ...ALL_BADGES.perfectDay, earnedOn: new Date().toISOString() };
-                const updatedBadges = [...gamification.badges, perfectDayBadge];
+                const updatedBadges = [...currentBadges, perfectDayBadge];
                 await updateGamificationData(user.id, { badges: updatedBadges });
                 setGamification(prev => prev ? { ...prev, badges: updatedBadges } : null);
                 addToast("Nova Conquista: Dia Perfeito!", 'success');
