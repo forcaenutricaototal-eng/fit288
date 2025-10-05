@@ -12,11 +12,11 @@ const getAi = () => {
         return ai;
     }
 
-    // Fix: Per Gemini API guidelines, the API key must be obtained from process.env.API_KEY. This also resolves the TypeScript error on `import.meta.env`.
+    // The API key is injected during the build process by Vite from the CHAVE_API_VITE environment variable.
     const apiKey = process.env.API_KEY;
     
     if (!apiKey) {
-      const errorMessage = "A chave da API Gemini não foi encontrada. Para corrigir, adicione a variável de ambiente `API_KEY` com sua chave nas configurações do projeto no seu provedor de hospedagem (ex: Vercel) e, em seguida, faça um novo deploy da aplicação.";
+      const errorMessage = "A chave da API Gemini não foi encontrada. Para corrigir, adicione a variável de ambiente `CHAVE_API_VITE` com sua chave nas configurações do projeto no seu provedor de hospedagem (ex: Vercel) e, em seguida, faça um novo deploy da aplicação.";
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
