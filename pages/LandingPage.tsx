@@ -10,24 +10,30 @@ const LandingPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setSuccessMessage('');
         setLoading(true);
 
         if (authMode === 'login') {
             const { error: loginError } = await login(email, password);
             if (loginError) setError(loginError.message);
-            // On successful login, App.tsx will handle navigation
         } else {
-            const { error: signupError } = await signup(email, password, name);
-            if (signupError) {
-                setError(signupError.message);
-            } else {
-                // On successful signup, App.tsx will navigate to onboarding
+            const result = await signup(email, password, name);
+            if (result.error) {
+                setError(result.error.message);
+            } else if (result.data.user && !result.data.session) {
+                // Handle case where email confirmation is required
+                setSuccessMessage("Cadastro realizado! Verifique seu e-mail para confirmar sua conta e poder fazer o login.");
+                setAuthMode('login');
+                setName('');
+                setPassword('');
             }
+            // On successful signup with session, App.tsx will navigate to onboarding
         }
         setLoading(false);
     };
@@ -41,6 +47,13 @@ const LandingPage: React.FC = () => {
         { icon: Sparkles, text: "Ajuda a combater sintomas de depressão e ansiedade" },
         { icon: TrendingUp, text: "Resultados duradouros e reeducativos" },
     ];
+    
+    const toggleAuthMode = (mode: 'login' | 'signup') => {
+        setAuthMode(mode);
+        setError('');
+        setSuccessMessage('');
+        setPassword('');
+    };
 
     return (
         <div className="min-h-screen bg-primary-light flex items-center justify-center p-4 lg:p-8 font-sans">
@@ -104,6 +117,7 @@ const LandingPage: React.FC = () => {
                             </div>
                             
                             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                            {successMessage && <p className="text-green-600 text-sm text-center">{successMessage}</p>}
                             
                             <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-green-300 disabled:scale-100">
                                 {loading ? 'Carregando...' : (authMode === 'login' ? 'Fazer Login' : 'Iniciar minha transformação')}
@@ -114,14 +128,14 @@ const LandingPage: React.FC = () => {
                             {authMode === 'signup' ? (
                                 <>
                                     Já tem uma conta?{' '}
-                                    <button onClick={() => setAuthMode('login')} className="font-semibold text-primary-dark hover:underline">
+                                    <button onClick={() => toggleAuthMode('login')} className="font-semibold text-primary-dark hover:underline">
                                         Fazer Login
                                     </button>
                                 </>
                             ) : (
                                 <>
                                     Não tem uma conta?{' '}
-                                    <button onClick={() => setAuthMode('signup')} className="font-semibold text-primary-dark hover:underline">
+                                    <button onClick={() => toggleAuthMode('signup')} className="font-semibold text-primary-dark hover:underline">
                                         Crie uma agora
                                     </button>
                                 </>

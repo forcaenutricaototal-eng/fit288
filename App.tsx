@@ -2,7 +2,7 @@
 
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import type { User, AuthError } from '@supabase/supabase-js';
+import type { User, AuthError, Session } from '@supabase/supabase-js';
 import type { UserProfile, CheckInData, GamificationData, Badge, DailyPlan } from './types';
 import { supabase } from './components/supabaseClient';
 import { getProfile, getCheckIns, getGamification, createProfile, updateProfile, addCheckInData, updateGamificationData, updateCompletedItems } from './services/supabaseService';
@@ -25,7 +25,7 @@ interface AppContextType {
   isLoading: boolean;
   user: User | null;
   login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
-  signup: (email: string, pass: string, name: string) => Promise<{ error: AuthError | null }>;
+  signup: (email: string, pass: string, name: string) => Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }>;
   logout: () => void;
   completeOnboarding: (profile: Omit<UserProfile, 'user_id' | 'created_at'>) => Promise<void>;
   updateUserProfile: (updatedProfile: Partial<UserProfile>) => Promise<void>;
@@ -122,7 +122,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const signup = async (email: string, pass: string, name: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password: pass,
       options: {
@@ -131,7 +131,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         },
       },
     });
-    return { error };
+    return { data, error };
   };
 
   const logout = async () => {
