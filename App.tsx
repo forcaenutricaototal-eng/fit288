@@ -73,7 +73,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       try {
         let profile = await getProfile(currentUser.id);
 
-        // Step 1: Create profile if it doesn't exist.
         if (!profile) {
           const name = currentUser.user_metadata.name || 'Novo Usuário';
           profile = await createProfile(currentUser.id, name);
@@ -82,25 +81,30 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           }
         }
         
-        // Step 2: Patch profile if it's missing necessary fields.
-        // This handles both newly created profiles and old profiles from before a schema change.
+        let needsDbPatch = false;
+        // Defensively ensure the profile object in the app's state is valid before rendering.
+        // This prevents the UI from crashing if the database schema is outdated.
         if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
-          const updatedProfile = await updateProfile(currentUser.id, { completed_items_by_day: {} });
-           if (!updatedProfile) {
-            throw new Error("Falha crítica ao ATUALIZAR o perfil do usuário.");
-          }
-          profile = updatedProfile;
+          profile = { ...profile, completed_items_by_day: {} }; // Fix in-memory object FIRST.
+          needsDbPatch = true;
         }
         
+        // Set the valid profile immediately so the UI can render without errors.
         setUserProfile(profile);
 
+        // If a patch was needed, attempt to update the DB in the background.
+        // This is a "fire-and-forget" operation; its failure won't block the user.
+        if (needsDbPatch) {
+          updateProfile(currentUser.id, { completed_items_by_day: {} }).catch(patchError => {
+            console.error("Falha não-crítica ao tentar atualizar o perfil no DB:", patchError);
+          });
+        }
+        
       } catch (error) {
         console.error("Erro no processo de autenticação e perfil:", error);
         addToast("Ocorreu um erro ao carregar seus dados. Por favor, tente novamente.", 'info');
         setUserProfile(null);
         setCheckIns([]);
-        // Avoid logging out here to prevent potential auth loops.
-        // The UI will show a stuck state, but the toast and console provide info.
       } finally {
         setIsLoading(false);
         isProcessingAuthRef.current = false;
