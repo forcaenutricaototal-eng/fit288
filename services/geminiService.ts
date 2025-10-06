@@ -17,7 +17,7 @@ const getAi = () => {
     const apiKey = process.env.API_KEY;
     
     if (!apiKey) {
-      const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `VITE_GEMINI_API_KEY` (ou a antiga `CHAVE_API_VITE`) está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
+      const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `VITE_GEMINI_API_KEY` está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
       console.error(errorMessage);
       throw new Error(errorMessage);
     }

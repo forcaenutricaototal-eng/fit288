@@ -21,7 +21,7 @@ const OnboardingPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!age || !weight || !height || !weightGoal) {
-            setError('Todos os campos, exceto o nome, são obrigatórios.');
+            setError('Todos os campos são obrigatórios.');
             return;
         }
         setError('');
@@ -36,8 +36,16 @@ const OnboardingPage: React.FC = () => {
             });
             // No need to redirect here, the routing in App.tsx will handle it
             // automatically when the userProfile state updates.
-        } catch (err) {
-            setError('Ocorreu um erro ao salvar. Tente novamente.');
+        } catch (err: any) {
+            const defaultMessage = 'Ocorreu um erro ao salvar. Tente novamente.';
+            let specificError = err.message || defaultMessage;
+            
+            // Provide a more helpful message for the most common Supabase issue.
+            if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
+                 specificError = 'Falha de permissão. Verifique se a "Row Level Security" está ATIVA e configurada corretamente para a tabela "profiles" no seu painel do Supabase. O usuário precisa de permissão para "UPDATE".';
+            }
+
+            setError(specificError);
             console.error(err);
         } finally {
             setLoading(false);
@@ -101,7 +109,7 @@ const OnboardingPage: React.FC = () => {
                             />
                         </div>
                         
-                        {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-2 rounded-md">{error}</p>}
+                        {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{error}</p>}
                         
                         <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-green-300 disabled:scale-100">
                             {loading ? 'Salvando...' : 'Salvar e Continuar'}
