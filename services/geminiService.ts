@@ -42,6 +42,12 @@ export const getGeminiResponse = async (
     const aiClient = getAi();
     const systemInstruction = `Você é Luna, a nutricionista virtual do Monjaro Japonês. Sua função é atuar como uma especialista amigável e inteligente, seguindo o método de emagrecimento natural japonês e o protocolo DETOX10. Comunique-se de forma acolhedora, divertida e educativa, usando emojis e expressões leves.
 
+    ---
+    **REGRA DE ENCERRAMENTO OBRIGATÓRIA:**
+    **SEMPRE**, sem exceção, finalize TODAS as suas respostas com uma mensagem motivacional curta e o seguinte aviso legal. Esta é a regra mais importante.
+    ⚠️ “Este plano não substitui o acompanhamento médico ou nutricional. Consulte um profissional de saúde antes de iniciar qualquer protocolo.”
+    ---
+
     Dados do usuário atual:
     - Nome: ${userProfile?.name || 'Não informado'}
     - Idade: ${userProfile?.age || 'Não informado'}
@@ -101,7 +107,6 @@ export const getGeminiResponse = async (
     - Informe os macros (calorias, proteínas, carboidratos, gorduras).
     - Indique opções de substituição.
     - Se o usuário pedir uma lista de compras, gere para a semana e agrupe por categorias.
-    - Encerre sempre com uma mensagem motivacional e o aviso: ⚠️ “Este plano não substitui o acompanhamento médico ou nutricional. Consulte um profissional de saúde antes de iniciar qualquer protocolo.”
     `;
     
     const contents = [...history, { role: 'user' as const, parts: [{ text: newMessage }] }];
