@@ -40,6 +40,8 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         left_thigh: lastCheckIn?.left_thigh ?? undefined,
         observations: lastCheckIn?.observations ?? '',
     });
+    
+    const [goalWeight, setGoalWeight] = useState(userProfile?.weight_goal ?? undefined);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -52,6 +54,12 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
             }));
         }
     };
+    
+    const handleGoalWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+        setGoalWeight(value === '' ? undefined : Number(value));
+    };
+
 
     const handleSave = async () => {
         if (!measurements.weight || measurements.weight <= 0) {
@@ -59,9 +67,18 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
             return;
         }
 
+        const profileUpdates: Partial<UserProfile> = {};
         if (measurements.height && measurements.height !== userProfile?.height) {
-            await updateUserProfile({ height: measurements.height });
+            profileUpdates.height = measurements.height;
         }
+        if (goalWeight !== undefined && goalWeight !== userProfile?.weight_goal) {
+            profileUpdates.weight_goal = goalWeight;
+        }
+
+        if (Object.keys(profileUpdates).length > 0) {
+            await updateUserProfile(profileUpdates);
+        }
+
 
         const { height, ...restOfMeasurements } = measurements;
         
@@ -85,7 +102,7 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                         Cancelar
                     </button>
                 </div>
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Peso (kg)</label>
@@ -95,6 +112,10 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                             <label className="text-sm font-medium text-neutral-800">Altura (cm)</label>
                             <input type="number" name="height" value={measurements.height ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                         </div>
+                         <div>
+                            <label className="text-sm font-medium text-neutral-800">Meta de Peso (kg)</label>
+                            <input type="number" name="weight_goal" value={goalWeight ?? ''} onChange={handleGoalWeightChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                        </div>
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Cintura (cm)</label>
                             <input type="number" name="waist" value={measurements.waist ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
@@ -102,6 +123,10 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Quadril (cm)</label>
                             <input type="number" name="hips" value={measurements.hips ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-neutral-800">Pescoço (cm)</label>
+                            <input type="number" name="neck" value={measurements.neck ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                         </div>
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Braço Esq. (cm)</label>
@@ -119,10 +144,6 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                             <label className="text-sm font-medium text-neutral-800">Coxa Dir. (cm)</label>
                             <input type="number" name="right_thigh" value={measurements.right_thigh ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                         </div>
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-neutral-800">Pescoço (cm)</label>
-                        <input type="number" name="neck" value={measurements.neck ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                     </div>
                     <div>
                         <label className="text-sm font-medium text-neutral-800">Observações</label>
@@ -249,12 +270,8 @@ const ProfilePage: React.FC = () => {
                                     <label className="text-sm text-neutral-800 block mb-1">Altura (cm)</label>
                                     <input type="number" name="height" value={editableProfile.height || ''} onChange={handleProfileChange} placeholder="Sua altura" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
-                                <div>
-                                    <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
-                                     <input type="number" name="weight_goal" value={editableProfile.weight_goal || ''} onChange={handleProfileChange} placeholder="Seu objetivo" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
-                                </div>
                                 <div className="sm:col-span-2">
-                                    <label className="text-sm text-neutral-800 block mb-1">Peso de Início (kg)</label>
+                                    <label className="text-sm text-neutral-800 block mb-1">Peso Inicial (kg)</label>
                                     <input type="number" name="weight" value={editableProfile.weight || ''} onChange={handleProfileChange} placeholder="Seu peso inicial" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
                             </div>
