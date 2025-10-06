@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import { User, Scale, Ruler, Leaf, Target, Calendar } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
-    const { user, updateUserProfile } = useApp();
+    const { user, userProfile, updateUserProfile } = useApp();
     const [name, setName] = useState('');
     const [age, setAge] = useState<number | undefined>(undefined);
     const [weight, setWeight] = useState<number | undefined>(undefined);
@@ -13,11 +12,13 @@ const OnboardingPage: React.FC = () => {
     const [error, setError] = useState<React.ReactNode | null>(null);
 
     useEffect(() => {
-        // Pre-populate the name from the auth metadata when the component loads
-        if (user?.user_metadata?.name) {
+        // Pre-populate with profile name first, fallback to metadata
+        if (userProfile?.name) {
+            setName(userProfile.name);
+        } else if (user?.user_metadata?.name) {
             setName(user.user_metadata.name);
         }
-    }, [user]);
+    }, [user, userProfile]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
