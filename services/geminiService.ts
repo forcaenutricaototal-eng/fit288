@@ -40,7 +40,7 @@ export const getGeminiResponse = async (
 ) => {
   try {
     const aiClient = getAi();
-    const systemInstruction = `Você é a IA do Monjaro Japonês, um nutricionista especialista do programa de mesmo nome. Este programa é um plano Low-Carb de 28 dias para ajudar usuários que buscam estimular naturalmente GIP/GLP-1, reduzir retenção hídrica e emagrecer de forma saudável. Seu objetivo é dar conselhos práticos, motivadores e com base científica. Você pode sugerir substituições de refeições (sempre low-carb), dar dicas para controlar vontades, motivar e responder dúvidas sobre o plano. Mantenha um tom amigável, encorajador e profissional. Responda sempre em português.
+    const systemInstruction = `Você é a IA do Monjaro Japonês, um nutricionista especialista do programa de mesmo nome. Este programa é um plano de 28 dias com baixo teor de carboidrato para ajudar usuários que buscam estimular naturalmente GIP/GLP-1, reduzir retenção hídrica e emagrecer de forma saudável. Seu objetivo é dar conselhos práticos, motivadores e com base científica. Você pode sugerir substituições de refeições (sempre com baixo teor de carboidrato), dar dicas para controlar vontades, motivar e responder dúvidas sobre o plano. Mantenha um tom amigável, encorajador e profissional. Responda sempre em português.
     Dados do usuário:
     - Nome: ${userProfile?.name || 'Não informado'}
     - Idade: ${userProfile?.age || 'Não informado'}
@@ -106,7 +106,7 @@ const recipeSchema = {
 export const generateMealPlan = async (userProfile: UserProfile, day: number, feedback?: string): Promise<DailyPlan> => {
     try {
         const aiClient = getAi();
-        const systemInstruction = `Você é um nutricionista expert para o app Monjaro Japonês. Sua tarefa é criar um plano alimentar Low-Carb detalhado para um usuário, focado em estimular GIP/GLP-1 e promover saciedade e emagrecimento saudável. Retorne APENAS o objeto JSON, sem nenhum texto adicional ou formatação markdown.`;
+        const systemInstruction = `Você é um nutricionista expert para o app Monjaro Japonês. Sua tarefa é criar um plano alimentar detalhado com baixo teor de carboidrato para um usuário, focado em estimular GIP/GLP-1 e promover saciedade e emagrecimento saudável. Retorne APENAS o objeto JSON, sem nenhum texto adicional ou formatação markdown.`;
         
         let daySpecificInstructions = '';
         if (day <= 10) {
@@ -131,7 +131,7 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number, fe
         if (feedback) {
             feedbackInstruction = `
             INSTRUÇÃO IMPORTANTE: O usuário pediu para ajustar o plano deste dia. O feedback foi: "${feedback}".
-            Gere um NOVO plano para o Dia ${day} que leve essa preferência em consideração. Seja criativo e evite repetir as refeições que o usuário não gostou, mas mantenha-se estritamente dentro da estrutura low-carb e das regras do protocolo (especialmente as restrições do Detox para os primeiros 10 dias).
+            Gere um NOVO plano para o Dia ${day} que leve essa preferência em consideração. Seja criativo e evite repetir as refeições que o usuário não gostou, mas mantenha-se estritamente dentro da estrutura de baixo teor de carboidrato e das regras do protocolo (especialmente as restrições do Detox para os primeiros 10 dias).
             `;
         }
 
