@@ -86,23 +86,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           }
         }
         
-        let needsDbPatch = false;
-        // Defensively ensure the profile object in the app's state is valid before rendering.
-        // This prevents the UI from crashing if the database schema is outdated.
         if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
-          profile = { ...profile, completed_items_by_day: {} }; // Fix in-memory object FIRST.
-          needsDbPatch = true;
-        }
-        
-        // Set the valid profile immediately so the UI can render without errors.
-        setUserProfile(profile);
-
-        // If a patch was needed, attempt to update the DB in the background.
-        // This is a "fire-and-forget" operation; its failure won't block the user.
-        if (needsDbPatch) {
+          const patchedProfile = { ...profile, completed_items_by_day: {} };
+          setUserProfile(patchedProfile);
+          // Fire-and-forget update to the DB.
           updateProfile(currentUser.id, { completed_items_by_day: {} }).catch(patchError => {
             console.error("Falha não-crítica ao tentar atualizar o perfil no DB:", patchError);
           });
+        } else {
+            setUserProfile(profile);
         }
         
       } catch (error) {
@@ -119,28 +111,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return () => subscription.unsubscribe();
   }, [addToast]);
 
-  // Separate effect for loading non-critical data like check-ins
   useEffect(() => {
-    if (userProfile && user) {
+    if (user) {
         let isMounted = true;
         const fetchCheckIns = async () => {
             try {
                 const checkInsData = await getCheckIns(user.id);
-                if (isMounted) {
-                    setCheckIns(checkInsData);
-                }
+                if (isMounted) setCheckIns(checkInsData);
             } catch (error) {
                 console.error("Erro ao carregar check-ins:", error);
-                addToast("Não foi possível carregar seu histórico de evolução.", 'info');
-                 if (isMounted) {
-                    setCheckIns([]);
-                }
+                if (isMounted) setCheckIns([]);
             }
         };
         fetchCheckIns();
         return () => { isMounted = false; };
     }
-  }, [userProfile, user, addToast]);
+  }, [user, addToast]);
 
 
   const login = async (email: string, pass: string) => {

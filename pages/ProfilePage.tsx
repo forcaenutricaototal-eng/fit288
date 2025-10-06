@@ -63,13 +63,8 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         }
 
         try {
-            const profileUpdates: Partial<UserProfile> = {};
             if (measurements.height && measurements.height !== userProfile?.height) {
-                profileUpdates.height = measurements.height;
-            }
-
-            if (Object.keys(profileUpdates).length > 0) {
-                await updateUserProfile(profileUpdates);
+                await updateUserProfile({ height: measurements.height });
             }
 
             const { height, ...restOfMeasurements } = measurements;
@@ -124,8 +119,8 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
             <div className="bg-white rounded-lg shadow-lg w-full max-w-lg">
                 <div className="flex justify-between items-center p-4 border-b">
                     <h3 className="text-xl font-bold text-neutral-900">Adicionar Medidas</h3>
-                    <button onClick={onClose} className="bg-primary text-white px-4 py-1 rounded-md text-sm font-semibold hover:bg-primary-dark transition-colors">
-                        Cancelar
+                    <button onClick={onClose} className="text-neutral-800 p-2 hover:bg-neutral-100 rounded-full">
+                        <X size={20}/>
                     </button>
                 </div>
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
@@ -170,10 +165,13 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                     </div>
                     <div>
                         <label className="text-sm font-medium text-neutral-800">Observações</label>
-                        <textarea name="observations" value={measurements.observations} onChange={handleChange} rows={3} placeholder="Observações sobre as medidas..." className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+                        <textarea name="observations" value={measurements.observations} onChange={handleChange} rows={3} placeholder="Como você se sentiu hoje? Alguma observação?" className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
                     </div>
                 </div>
-                 <div className="p-4 pt-0 mt-2">
+                 <div className="flex gap-2 p-4 border-t">
+                    <button onClick={onClose} className="bg-neutral-200 text-neutral-900 w-full px-6 py-3 rounded-md font-semibold hover:bg-neutral-300 transition-colors">
+                        Cancelar
+                    </button>
                     <button onClick={handleSave} className="flex items-center gap-2 bg-primary text-white w-full justify-center px-6 py-3 rounded-md font-semibold hover:bg-primary-dark transition-colors">
                         <Save size={18} />
                         Salvar Medidas
@@ -189,7 +187,7 @@ const ProfilePage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableProfile, setEditableProfile] = useState<Partial<UserProfile> | null>(userProfile);
-    const [editError, setEditError] = useState<string | null>(null);
+    const [editError, setEditError] = useState<React.ReactNode | null>(null);
 
     useEffect(() => {
         setEditableProfile(userProfile);
@@ -230,8 +228,8 @@ const ProfilePage: React.FC = () => {
 
     const lastCheckIn = checkIns.length > 0 ? checkIns[checkIns.length - 1] : null;
     const currentWeight = lastCheckIn?.weight ?? userProfile.weight;
-    const currentWaist = lastCheckIn?.waist ?? (checkIns.length > 0 ? checkIns[0].waist : undefined);
-    const currentHips = lastCheckIn?.hips ?? (checkIns.length > 0 ? checkIns[0].hips : undefined);
+    const currentWaist = lastCheckIn?.waist;
+    const currentHips = lastCheckIn?.hips;
     
     const calculateBmi = (weight?: number, height?: number) => {
         if (weight && height && height > 0) {
@@ -362,26 +360,22 @@ const ProfilePage: React.FC = () => {
                     <div className="bg-white p-6 rounded-lg shadow-soft">
                         <h2 className="text-xl font-semibold text-neutral-900 mb-4">Histórico de Medidas</h2>
                         <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                           {checkIns.slice().reverse().map((checkIn) => {
-                                const checkInBmi = calculateBmi(checkIn.weight, userProfile.height);
+                           {checkIns.length > 0 ? checkIns.slice().reverse().map((checkIn) => {
                                 const isCurrent = checkIn.day === (lastCheckIn?.day ?? -1);
-                                
                                 const date = checkIn.created_at ? new Date(checkIn.created_at) : new Date();
-                                const formattedDate = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                const formattedDate = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
                                 return (
-                                <div key={checkIn.day} className={`p-3 rounded-md flex flex-wrap justify-between items-center ${isCurrent ? 'bg-green-50 border border-green-200' : 'bg-neutral-100'}`}>
-                                    <div className="font-semibold text-neutral-900">{formattedDate}</div>
-                                    <div className="flex gap-4 text-sm text-neutral-800">
+                                <div key={checkIn.day} className={`p-3 rounded-md flex flex-wrap justify-between items-center gap-2 ${isCurrent ? 'bg-green-50 border border-green-200' : 'bg-neutral-100'}`}>
+                                    <div className="font-semibold text-neutral-900">{checkIn.day === 0 ? "Início" : `Dia ${checkIn.day}`} <span className="text-xs font-normal text-neutral-800">({formattedDate})</span></div>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-800">
                                         <span>Peso: <strong>{checkIn.weight.toFixed(1)}kg</strong></span>
                                         {checkIn.waist && <span>Cintura: <strong>{checkIn.waist}cm</strong></span>}
                                         {checkIn.hips && <span>Quadril: <strong>{checkIn.hips}cm</strong></span>}
-                                        {checkInBmi > 0 && <span>IMC: <strong>{checkInBmi.toFixed(1)}</strong></span>}
                                     </div>
-                                    {isCurrent && <span className="text-xs font-bold text-primary-dark bg-green-200 px-2 py-1 rounded-full">Atual</span>}
                                 </div>
                                 )
-                           })}
+                           }) : <p className="text-center text-neutral-800 text-sm py-4">Nenhum check-in registrado ainda.</p>}
                         </div>
                     </div>
                 </div>
