@@ -22,7 +22,7 @@ const OnboardingPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || !age || !weight || !height) {
+        if (!name || name.trim().length === 0 || !age || !weight || !height) {
             setError('Todos os campos são obrigatórios.');
             return;
         }
@@ -31,7 +31,7 @@ const OnboardingPage: React.FC = () => {
 
         try {
             await updateUserProfile({
-                name: name, // Use the name from the local state
+                name: name.trim(), // Use the name from the local state
                 age,
                 weight, // This will be the initial weight
                 height,

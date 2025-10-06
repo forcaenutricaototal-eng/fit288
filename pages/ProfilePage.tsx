@@ -200,8 +200,16 @@ const ProfilePage: React.FC = () => {
     const handleEditSave = async () => {
         setEditError(null);
         if (editableProfile) {
+            if (!editableProfile.name || editableProfile.name.trim().length === 0) {
+                setEditError("O nome não pode ficar em branco.");
+                return;
+            }
             try {
-                await updateUserProfile(editableProfile);
+                const profileToSave = {
+                    ...editableProfile,
+                    name: editableProfile.name.trim(),
+                };
+                await updateUserProfile(profileToSave);
                 setIsEditing(false);
             } catch (err: any) {
                 if (err.message && (err.message.includes("column \"weight_goal\" of relation \"profiles\" does not exist") || err.message.includes("Could not find the 'weight_goal' column"))) {
