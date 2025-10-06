@@ -73,16 +73,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       try {
         let profile = await getProfile(currentUser.id);
-        const nameFromAuth = currentUser.user_metadata?.name;
 
-        // If there is no profile, create one. This is the first line of defense.
+        // If there is no profile, create a barebones one.
+        // The Onboarding page will be forced and will handle populating it with correct details.
         if (!profile) {
-          profile = await createProfile(currentUser.id, nameFromAuth || 'Novo Usuário');
-        } 
-        // If there IS a profile but the name is missing or is the default, and we have a better name from auth, UPDATE IT.
-        // This is the critical fix. It handles the trigger-created profile case.
-        else if (nameFromAuth && (!profile.name || profile.name === 'Novo Usuário')) {
-          profile = await updateProfile(currentUser.id, { name: nameFromAuth });
+          const initialName = currentUser.user_metadata?.name || 'Novo Usuário';
+          profile = await createProfile(currentUser.id, initialName);
         }
         
         // Safety check for `completed_items_by_day`
