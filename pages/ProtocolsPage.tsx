@@ -29,7 +29,7 @@ const MonjaroProtocol: React.FC = () => (
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <YoutubeEmbed embedId="76jTKr-dRq8" title="Iogurte Grego: Como escolher" />
-            <YoutubeEmbed embedId="Rf1lOuw1x0o" title="Chá de Cavalinha: Preparo e benefícios" />
+            <YoutubeEmbed embedId="mCDsMFaXafE" title="Chá de Cavalinha: Preparo e benefícios" />
             <YoutubeEmbed embedId="2JWaNfuh6iU" title="Receita: Crepe Proteico" />
             <YoutubeEmbed embedId="tCoeWsDfxrk" title="Receita: Pão Proteico" />
         </div>
