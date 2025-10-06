@@ -1,5 +1,5 @@
 
-import React, { useState, createContext, useContext, useMemo, useEffect, useRef } from 'react';
+import React, { useState, createContext, useContext, useMemo, useEffect, useRef, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
 import type { UserProfile, CheckInData } from './types';
@@ -168,23 +168,38 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return { error };
   };
 
-  const updateUserProfile = async (updatedData: Partial<UserProfile>) => {
-    if (!user || !userProfile) return;
-    const updated = await updateProfile(user.id, updatedData);
-    setUserProfile(updated);
-  };
-
-  const addCheckIn = async (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => {
-    if (!user) return;
-    
-    if (userProfile && data.weight) {
-        await updateProfile(user.id, { weight: data.weight });
-        setUserProfile(prev => prev ? { ...prev, weight: data.weight! } : null);
+  const updateUserProfile = useCallback(async (updatedData: Partial<UserProfile>) => {
+    if (!user) {
+        addToast('Você precisa estar logado para atualizar o perfil.', 'info');
+        return;
     }
-    
-    const newCheckInData = await addCheckInData(user.id, data, checkIns.length);
-    setCheckIns(prev => [...prev, newCheckInData]);
-  };
+    try {
+        const updated = await updateProfile(user.id, updatedData);
+        setUserProfile(updated);
+        addToast('Perfil atualizado com sucesso!', 'success');
+    } catch (error) {
+        console.error("Erro ao atualizar perfil:", error);
+        addToast('Ocorreu um erro ao salvar seu perfil. Tente novamente.', 'info');
+    }
+  }, [user, addToast]);
+
+  const addCheckIn = useCallback(async (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => {
+      if (!user) {
+          addToast('Você precisa estar logado para fazer um check-in.', 'info');
+          return;
+      }
+      try {
+          // BUG FIX: The userProfile.weight is the *starting* weight.
+          // It should not be updated with the current check-in weight.
+          // The current weight is correctly derived from the latest check-in record.
+          const newCheckInData = await addCheckInData(user.id, data, checkIns.length);
+          setCheckIns(prev => [...prev, newCheckInData]);
+          addToast('Check-in adicionado com sucesso!', 'success');
+      } catch (error) {
+          console.error("Erro ao adicionar check-in:", error);
+          addToast('Ocorreu um erro ao salvar o check-in.', 'info');
+      }
+  }, [user, checkIns.length, addToast]);
 
  const toggleItemCompletion = async (day: number, itemId: string) => {
     if (!user || !userProfile) return;
@@ -224,7 +239,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay]);
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, updateUserProfile, addCheckIn]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
