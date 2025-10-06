@@ -1,6 +1,6 @@
 
 
-import React, { useState, createContext, useContext, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
 import type { UserProfile, CheckInData } from './types';
@@ -50,7 +50,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
-  const isProcessingAuthRef = useRef(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -60,8 +59,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     
     const supabase = getSupabaseClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (isProcessingAuthRef.current) return;
-      isProcessingAuthRef.current = true;
       setIsLoading(true);
 
       const currentUser = session?.user ?? null;
@@ -71,30 +68,26 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setUserProfile(null);
         setCheckIns([]);
         setIsLoading(false);
-        isProcessingAuthRef.current = false;
         return;
       }
 
       try {
         let profile = await getProfile(currentUser.id);
-        const nameFromAuth = currentUser.user_metadata.name;
+        const nameFromAuth = currentUser.user_metadata?.name;
 
+        // If there is no profile, create one. This is the first line of defense.
         if (!profile) {
-          // Case 1: No profile exists at all. Create it with the name.
-          const newProfileName = nameFromAuth || 'Novo Usuário';
-          profile = await createProfile(currentUser.id, newProfileName);
-        } else if (!profile.name && nameFromAuth) {
-          // Case 2: Profile exists (e.g., from a trigger) but is missing a name. Update it.
+          profile = await createProfile(currentUser.id, nameFromAuth || 'Novo Usuário');
+        } 
+        // If there IS a profile but the name is missing or is the default, and we have a better name from auth, UPDATE IT.
+        // This is the critical fix. It handles the trigger-created profile case.
+        else if (nameFromAuth && (!profile.name || profile.name === 'Novo Usuário')) {
           profile = await updateProfile(currentUser.id, { name: nameFromAuth });
         }
         
-        if (!profile) {
-            throw new Error("Falha crítica ao carregar ou criar o perfil do usuário.");
-        }
-        
-        // Ensure completed_items_by_day exists to prevent crashes.
-        if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
-            profile.completed_items_by_day = {}; // Update in-memory object first
+        // Safety check for `completed_items_by_day`
+        if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
+            profile.completed_items_by_day = {}; 
             // Fire-and-forget update to the DB. Don't wait for it.
             updateProfile(currentUser.id, { completed_items_by_day: {} }).catch(patchError => {
                 console.error("Falha não-crítica ao inicializar completed_items_by_day:", patchError);
@@ -110,7 +103,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setCheckIns([]);
       } finally {
         setIsLoading(false);
-        isProcessingAuthRef.current = false;
       }
     });
 

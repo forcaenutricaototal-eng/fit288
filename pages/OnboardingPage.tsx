@@ -21,6 +21,7 @@ const OnboardingPage: React.FC = () => {
 
         try {
             await updateUserProfile({
+                name: userProfile?.name, // Safeguard: ensure name is passed along
                 age,
                 weight, // This will be the initial weight
                 height,
