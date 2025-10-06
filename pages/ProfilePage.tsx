@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import { User, Calendar, Edit, LogOut, PlusCircle, Save, X, Ruler, Scale } from 'lucide-react';
@@ -366,7 +367,7 @@ const ProfilePage: React.FC = () => {
                                 const formattedDate = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
                                 return (
-                                <div key={checkIn.day} className={`p-3 rounded-md flex flex-wrap justify-between items-center gap-2 ${isCurrent ? 'bg-green-50 border border-green-200' : 'bg-neutral-100'}`}>
+                                <div key={checkIn.day} className={`p-3 rounded-md flex flex-wrap justify-between items-center gap-2 ${isCurrent ? 'bg-red-50 border border-red-200' : 'bg-neutral-100'}`}>
                                     <div className="font-semibold text-neutral-900">{checkIn.day === 0 ? "Início" : `Dia ${checkIn.day}`} <span className="text-xs font-normal text-neutral-800">({formattedDate})</span></div>
                                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-neutral-800">
                                         <span>Peso: <strong>{checkIn.weight.toFixed(1)}kg</strong></span>
@@ -392,7 +393,7 @@ const ProfilePage: React.FC = () => {
                                     <YAxis tick={{ fontSize: 12 }} domain={['dataMin - 5', 'dataMax + 5']} />
                                     <Tooltip formatter={(value: number) => value.toFixed(1)} />
                                     <Legend wrapperStyle={{ fontSize: "12px" }} />
-                                    <Line type="monotone" dataKey="Peso" stroke="#2ECC71" strokeWidth={2} name="Peso (kg)" />
+                                    <Line type="monotone" dataKey="Peso" stroke="#D32F2F" strokeWidth={2} name="Peso (kg)" />
                                     <Line type="monotone" dataKey="Cintura" stroke="#8884d8" strokeWidth={2} name="Cintura (cm)" />
                                     <Line type="monotone" dataKey="Quadril" stroke="#ff7300" strokeWidth={2} name="Quadril (cm)" />
                                 </LineChart>

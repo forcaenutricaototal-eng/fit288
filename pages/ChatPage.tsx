@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { ChatMessage } from '../types';
 import { useApp } from '../App';
@@ -92,7 +93,7 @@ const ChatPage: React.FC = () => {
     return (
         <div className="flex flex-col h-full max-h-[80vh] md:max-h-full bg-white rounded-lg shadow-soft">
             <div className="p-4 border-b border-neutral-200 flex items-center space-x-3">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-primary-light rounded-full flex items-center justify-center">
                     <BrainCircuit className="text-primary-dark" size={28}/>
                 </div>
                 <div>
@@ -127,7 +128,7 @@ const ChatPage: React.FC = () => {
             <div className="p-4 border-t border-neutral-200 bg-white rounded-b-lg">
                  <div className="flex space-x-2 mb-3 overflow-x-auto pb-2">
                     {quickReplies.map((reply, index) => (
-                        <button key={index} onClick={() => handleQuickReply(reply)} className="flex-shrink-0 bg-green-100 text-primary-dark text-sm px-3 py-1 rounded-full hover:bg-green-200 transition-colors">
+                        <button key={index} onClick={() => handleQuickReply(reply)} className="flex-shrink-0 bg-primary-light text-primary-dark text-sm px-3 py-1 rounded-full hover:bg-red-200 transition-colors">
                            {reply}
                         </button>
                     ))}
@@ -142,7 +143,7 @@ const ChatPage: React.FC = () => {
                         className="flex-1 bg-transparent border-none focus:ring-0 outline-none px-2 text-neutral-900"
                         disabled={isLoading}
                     />
-                    <button onClick={handleSend} disabled={isLoading} className="bg-primary text-white p-2 rounded-md disabled:bg-green-300 hover:bg-primary-dark transition-colors">
+                    <button onClick={handleSend} disabled={isLoading} className="bg-primary text-white p-2 rounded-md disabled:bg-red-300 hover:bg-primary-dark transition-colors">
                         <Send size={20} />
                     </button>
                 </div>

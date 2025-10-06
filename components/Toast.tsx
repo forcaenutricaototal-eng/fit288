@@ -48,7 +48,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           <div
             key={toast.id}
             className="bg-white rounded-lg shadow-soft border-l-4 p-4 flex items-start space-x-3 animate-fade-in-left"
-            style={{ borderColor: toast.type === 'success' ? '#2ECC71' : '#DAB982' }}
+            style={{ borderColor: toast.type === 'success' ? '#D32F2F' : '#DAB982' }}
           >
             <div className="flex-shrink-0 pt-0.5">
                 {toast.type === 'success' ? (

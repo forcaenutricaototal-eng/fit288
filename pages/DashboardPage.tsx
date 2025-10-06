@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -76,7 +77,7 @@ const DashboardPage: React.FC = () => {
                                     tickFormatter={(value) => `${value}kg`}
                                 />
                                 <Tooltip formatter={(value: number) => `${value.toFixed(1)} kg`} />
-                                <Line type="monotone" dataKey="Peso" stroke="#2ECC71" strokeWidth={3} dot={{ r: 5, fill: '#2ECC71' }} activeDot={{ r: 7, stroke: '#fff', strokeWidth: 2 }}/>
+                                <Line type="monotone" dataKey="Peso" stroke="#D32F2F" strokeWidth={3} dot={{ r: 5, fill: '#D32F2F' }} activeDot={{ r: 7, stroke: '#fff', strokeWidth: 2 }}/>
                             </LineChart>
                         </ResponsiveContainer>
                     </div>

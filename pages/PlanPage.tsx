@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { DailyPlan, Recipe } from '../types';
@@ -266,7 +267,7 @@ const PlanPage: React.FC = () => {
                  <h3 className="font-semibold text-lg text-neutral-900 mb-4">Navegue pelo Plano</h3>
                  <div className="flex flex-wrap gap-2">
                      {Array.from({ length: 28 }, (_, i) => i + 1).map(d => (
-                        <button onClick={() => navigate(`/meal-plan/day/${d}`)} key={d} className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${d === dayId ? 'bg-primary text-white font-bold' : 'bg-neutral-200 text-neutral-900 hover:bg-green-200'}`}>
+                        <button onClick={() => navigate(`/meal-plan/day/${d}`)} key={d} className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${d === dayId ? 'bg-primary text-white font-bold' : 'bg-neutral-200 text-neutral-900 hover:bg-red-200'}`}>
                            {d}
                         </button>
                      ))}

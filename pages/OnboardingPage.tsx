@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { User, Scale, Ruler, Leaf, Target, Calendar } from 'lucide-react';
+import { User, Scale, Ruler, Leaf, Target, Calendar, Sunrise } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
     const { user, userProfile, updateUserProfile } = useApp();
@@ -101,7 +102,7 @@ const OnboardingPage: React.FC = () => {
             <div className="w-full max-w-md mx-auto animate-fade-in">
                 <div className="bg-white p-8 rounded-lg shadow-soft">
                     <div className="flex items-center justify-center space-x-3 mb-4">
-                        <Leaf size={28} className="text-primary" />
+                        <Sunrise size={28} className="text-primary" />
                         <span className="text-2xl font-bold text-neutral-900">Monjaro Japonês</span>
                     </div>
                     <h2 className="text-2xl font-bold text-center text-neutral-900 mb-2">
@@ -147,7 +148,7 @@ const OnboardingPage: React.FC = () => {
                         
                         {error && <div className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{error}</div>}
                         
-                        <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-green-300 disabled:scale-100">
+                        <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-red-300 disabled:scale-100">
                             {loading ? 'Salvando...' : 'Salvar e Continuar'}
                         </button>
                     </form>

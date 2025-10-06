@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Lock, Leaf, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles } from 'lucide-react';
+import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf } from 'lucide-react';
 import { useApp } from '../App';
 
 const LandingPage: React.FC = () => {
@@ -84,14 +85,14 @@ const LandingPage: React.FC = () => {
                 {/* Left Column: Content */}
                 <div className="space-y-6 text-center lg:text-left animate-fade-in-right">
                     <div className="flex items-center justify-center lg:justify-start space-x-3 mb-4">
-                        <Leaf size={32} className="text-primary" />
+                        <Sunrise size={32} className="text-primary" />
                         <span className="text-3xl font-bold text-neutral-900">Monjaro Japonês</span>
                     </div>
                     <h1 className="text-4xl lg:text-5xl font-extrabold text-neutral-900 leading-tight">
-                        <span className="text-primary-dark">Monjaro Japonês:</span> a alternativa 100% natural para emagrecimento real.
+                        <span className="text-primary-dark">Monjaro Japonês:</span> O mesmo poder do Monjaro farmacêutico, mas em versão natural e mais potente.
                     </h1>
                     <p className="text-lg text-neutral-800">
-                        O mesmo poder do Monjaro, mas em versão natural e japonesa.
+                       Acompanhe seu progresso, receba planos alimentares personalizados e converse com nossa IA para tirar dúvidas.
                     </p>
                     <div className="pt-4 text-left inline-block">
                         <h2 className="text-2xl font-bold text-neutral-900 mb-3">Benefícios do Monjaro Japonês 🍵</h2>
@@ -158,7 +159,7 @@ const LandingPage: React.FC = () => {
                             {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-2 rounded-md">{error}</p>}
                             {successMessage && <p className="text-green-600 text-sm text-center font-semibold bg-green-50 p-2 rounded-md">{successMessage}</p>}
                             
-                            <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-green-300 disabled:scale-100">
+                            <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-red-300 disabled:scale-100">
                                 {loading ? 'Carregando...' : (
                                     authMode === 'login' ? 'Fazer Login' :
                                     authMode === 'signup' ? 'Iniciar minha transformação' :
