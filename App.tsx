@@ -3,7 +3,7 @@ import React, { useState, createContext, useContext, useMemo, useEffect, useRef,
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
 import type { UserProfile, CheckInData } from './types';
-import { supabase, isSupabaseConfigured } from './components/supabaseClient';
+import { getSupabaseClient, isSupabaseConfigured } from './components/supabaseClient';
 import { getProfile, getCheckIns, createProfile, updateProfile, addCheckInData } from './services/supabaseService';
 
 import Layout from './components/Layout';
@@ -56,6 +56,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         return;
     }
     
+    const supabase = getSupabaseClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (isProcessingAuthRef.current) return;
       isProcessingAuthRef.current = true;
@@ -141,12 +142,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 
   const login = async (email: string, pass: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    const { error } = await getSupabaseClient().auth.signInWithPassword({ email, password: pass });
     return { error };
   };
 
   const signup = async (email: string, pass: string, name: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await getSupabaseClient().auth.signUp({
       email,
       password: pass,
       options: {
@@ -159,11 +160,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    await getSupabaseClient().auth.signOut();
   };
   
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await getSupabaseClient().auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin, 
     });
     return { error };

@@ -1,5 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_KEY;
@@ -8,7 +9,24 @@ const supabaseAnonKey = process.env.SUPABASE_KEY;
 // before attempting to make any API calls.
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-// Create the client with credentials or empty strings.
-// The Supabase client library does not throw an error on initialization with invalid credentials.
-// Errors will occur on the first API call, which will be handled within the app's UI.
-export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
+let supabaseInstance: SupabaseClient | null = null;
+
+// Only create the client if the configuration is available.
+// This prevents the application from crashing at startup if env vars are missing.
+if (isSupabaseConfigured) {
+  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+}
+
+/**
+ * Provides access to the Supabase client instance.
+ * Throws an error if the client is not initialized, ensuring that
+ * attempts to use Supabase without proper configuration fail early and clearly.
+ * This function should only be called *after* checking `isSupabaseConfigured`.
+ * @returns {SupabaseClient} The initialized Supabase client.
+ */
+export const getSupabaseClient = (): SupabaseClient => {
+  if (!supabaseInstance) {
+    throw new Error('Supabase client is not initialized. Please check your environment variables.');
+  }
+  return supabaseInstance;
+};
