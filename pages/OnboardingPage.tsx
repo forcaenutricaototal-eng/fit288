@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { User, Scale, Ruler, Leaf, Target } from 'lucide-react';
+import { User, Scale, Ruler, Leaf, Target, Calendar } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
     const { userProfile, updateUserProfile } = useApp();
@@ -20,8 +20,8 @@ const OnboardingPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || !age || !weight || !height || !weightGoal) {
-            setError('Todos os campos são obrigatórios.');
+        if (!age || !weight || !height || !weightGoal) {
+            setError('Todos os campos, exceto o nome, são obrigatórios.');
             return;
         }
         setError('');
@@ -29,7 +29,6 @@ const OnboardingPage: React.FC = () => {
 
         try {
             await updateUserProfile({
-                name,
                 age,
                 weight, // This will be the initial weight
                 height,
@@ -65,12 +64,12 @@ const OnboardingPage: React.FC = () => {
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input
                                 type="text" placeholder="Seu nome completo" required value={name} 
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                                disabled
+                                className="w-full pl-10 pr-3 py-3 bg-neutral-200 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors cursor-not-allowed"
                             />
                         </div>
                         <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input
                                 type="number" placeholder="Sua idade" required value={age ?? ''} 
                                 onChange={(e) => setAge(e.target.value ? Number(e.target.value) : undefined)}
