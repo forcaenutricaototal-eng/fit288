@@ -20,7 +20,7 @@ const OnboardingPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!age || !weight || !height || !weightGoal) {
+        if (!name || !age || !weight || !height || !weightGoal) {
             setError('Todos os campos são obrigatórios.');
             return;
         }
@@ -29,6 +29,7 @@ const OnboardingPage: React.FC = () => {
 
         try {
             await updateUserProfile({
+                name,
                 age,
                 weight, // This will be the initial weight
                 height,
@@ -37,21 +38,59 @@ const OnboardingPage: React.FC = () => {
         } catch (err: any) {
             const defaultMessage = 'Ocorreu um erro ao salvar. Tente novamente.';
             
-            if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
+            if (err.message && err.message.includes('relation "profiles" does not exist')) {
+                 setError(
+                    <div className="text-sm text-left">
+                        <h4 className="font-bold text-red-700">Tabela Não Encontrada no Banco de Dados</h4>
+                        <p className="mt-2 text-neutral-800">O app não conseguiu encontrar a tabela <strong>'profiles'</strong>. Sua tabela pode estar com um nome diferente (ex: 'perfis').</p>
+                         <p className="mt-2 text-neutral-900 font-semibold">Como Resolver:</p>
+                        <ol className="list-decimal list-inside mt-1 text-neutral-800 bg-neutral-100 p-3 rounded-md">
+                            <li>Vá para o <strong>Table Editor</strong> no seu projeto Supabase.</li>
+                            <li>Encontre sua tabela de usuários (provavelmente 'perfis').</li>
+                            <li>Renomeie a tabela para <strong>profiles</strong>.</li>
+                        </ol>
+                    </div>
+                );
+            } else if (err.message && (err.message.includes("column \"weight_goal\" of relation \"profiles\" does not exist") || err.message.includes("Could not find the 'weight_goal' column"))) {
+                const schemaErrorGuide = (
+                    <div className="text-sm text-left">
+                        <h4 className="font-bold text-red-700">Coluna Faltando no Banco de Dados</h4>
+                        <p className="mt-2 text-neutral-800">O app tentou salvar sua meta de peso, mas a coluna <strong>'weight_goal'</strong> não existe na sua tabela <strong>'profiles'</strong> no Supabase. Pode haver outras colunas com nomes errados também (ex: 'nome' em vez de 'name').</p>
+                        <p className="mt-2 text-neutral-900 font-semibold">Como Resolver:</p>
+                        <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800 bg-neutral-100 p-3 rounded-md">
+                            <li>Vá para a tabela <strong>'profiles'</strong> no Supabase.</li>
+                            <li>Clique em <strong>"+ Add column"</strong>.</li>
+                            <li>Crie a coluna <code className="bg-neutral-200 px-1 rounded">weight_goal</code> com o tipo <code className="bg-neutral-200 px-1 rounded">numeric</code>.</li>
+                            <li>Verifique se outras colunas como <code className="bg-neutral-200 px-1 rounded">name</code>, <code className="bg-neutral-200 px-1 rounded">age</code>, <code className="bg-neutral-200 px-1 rounded">height</code>, <code className="bg-neutral-200 px-1 rounded">weight</code> estão com os nomes corretos (em inglês).</li>
+                        </ol>
+                    </div>
+                );
+                setError(schemaErrorGuide);
+            } else if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
                  const rlsErrorGuide = (
                     <div className="text-sm text-left">
                         <h4 className="font-bold text-red-700">Falha de Permissão no Banco de Dados (RLS)</h4>
-                        <p className="mt-2 text-neutral-800">Este é o erro mais comum e é fácil de resolver! Significa que seu banco de dados precisa de uma regra para permitir que você salve suas próprias informações.</p>
-                        <p className="mt-2 text-neutral-900 font-semibold">Ação Necessária:</p>
-                        <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800 bg-neutral-100 p-3 rounded-md">
-                            <li>Abra seu projeto no <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold underline">Supabase</a>.</li>
-                            <li>No menu à esquerda, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
-                            <li>Na lista de tabelas, selecione a <strong>profiles</strong>.</li>
-                            <li>Clique em <strong>"New Policy"</strong> e depois <strong>"From a template"</strong>.</li>
-                            <li>Selecione o template chamado <strong>"Enable update access for users based on their UID"</strong>.</li>
-                            <li>Não altere nada no template, apenas clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
-                        </ol>
-                        <p className="mt-2 text-xs text-neutral-800">Após adicionar a política, recarregue esta página (F5) e tente salvar novamente.</p>
+                        <p className="mt-2 text-neutral-800">Este é o erro mais comum! Significa que seu banco de dados precisa de regras para permitir que você veja e salve suas próprias informações. Você precisa criar <strong>DUAS</strong> políticas.</p>
+                        
+                        <div className="mt-4 bg-neutral-100 p-3 rounded-md">
+                            <p className="font-semibold text-neutral-900">1ª Política: Permitir Leitura (SELECT)</p>
+                            <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
+                                <li>No menu do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
+                                <li>Na tabela <strong>profiles</strong>, clique em <strong>"New Policy"</strong> → <strong>"From a template"</strong>.</li>
+                                <li>Selecione o template: <strong>"Enable read access for users based on their UID"</strong>.</li>
+                                <li>Clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
+                            </ol>
+                        </div>
+
+                         <div className="mt-3 bg-neutral-100 p-3 rounded-md">
+                            <p className="font-semibold text-neutral-900">2ª Política: Permitir Atualização (UPDATE)</p>
+                            <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
+                                <li>Na mesma tela, clique em <strong>"New Policy"</strong> → <strong>"From a template"</strong> novamente.</li>
+                                <li>Selecione o template: <strong>"Enable update access for users based on their UID"</strong>.</li>
+                                <li>Clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
+                            </ol>
+                        </div>
+                        <p className="mt-3 text-xs text-neutral-800">Após criar as duas políticas, recarregue esta página (F5) e tente salvar novamente.</p>
                     </div>
                 );
                 setError(rlsErrorGuide);
@@ -84,8 +123,8 @@ const OnboardingPage: React.FC = () => {
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input
                                 type="text" placeholder="Seu nome completo" required value={name} 
-                                disabled
-                                className="w-full pl-10 pr-3 py-3 bg-neutral-200 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors cursor-not-allowed"
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                             />
                         </div>
                         <div className="relative">

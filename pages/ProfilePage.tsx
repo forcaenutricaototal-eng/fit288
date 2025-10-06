@@ -40,7 +40,7 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         left_thigh: lastCheckIn?.left_thigh ?? undefined,
         observations: lastCheckIn?.observations ?? '',
     });
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<React.ReactNode | null>(null);
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -85,11 +85,36 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
             onClose();
 
         } catch (err: any) {
-            let specificError = 'Não foi possível salvar o check-in. Tente novamente.';
-            if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
-                specificError = 'Falha de permissão ao salvar o check-in. Verifique se a tabela "check_ins" tem políticas RLS para INSERT e SELECT no Supabase.';
+             if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
+                const rlsErrorGuide = (
+                    <div className="text-sm text-left">
+                        <h4 className="font-bold text-red-700">Falha de Permissão ao Salvar Check-in (RLS)</h4>
+                        <p className="mt-2 text-neutral-800">Seu banco de dados precisa de regras para permitir que você salve e veja seus check-ins. Crie <strong>DUAS</strong> políticas para a tabela <strong>check_ins</strong>.</p>
+                        
+                        <div className="mt-4 bg-neutral-100 p-3 rounded-md">
+                            <p className="font-semibold text-neutral-900">1ª Política: Permitir Leitura (SELECT)</p>
+                            <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
+                                <li>Vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
+                                <li>Na tabela <strong>check_ins</strong>, clique em <strong>"New Policy"</strong> → <strong>"From a template"</strong>.</li>
+                                <li>Selecione o template: <strong>"Enable read access for users based on their UID"</strong>.</li>
+                                <li>Clique em <strong>"Review"</strong> e <strong>"Save policy"</strong>.</li>
+                            </ol>
+                        </div>
+
+                         <div className="mt-3 bg-neutral-100 p-3 rounded-md">
+                            <p className="font-semibold text-neutral-900">2ª Política: Permitir Inserção (INSERT)</p>
+                            <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
+                                <li>Clique em <strong>"New Policy"</strong> → <strong>"From a template"</strong> novamente.</li>
+                                <li>Selecione o template: <strong>"Enable insert for authenticated users only"</strong>.</li>
+                                <li>Clique em <strong>"Review"</strong> e <strong>"Save policy"</strong>.</li>
+                            </ol>
+                        </div>
+                    </div>
+                );
+                setError(rlsErrorGuide);
+            } else {
+                setError('Não foi possível salvar o check-in. Tente novamente.');
             }
-            setError(specificError);
             console.error(err);
         }
     };
@@ -104,7 +129,7 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                     </button>
                 </div>
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                    {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{error}</p>}
+                    {error && <div className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{error}</div>}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Peso (kg)</label>
@@ -164,6 +189,7 @@ const ProfilePage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableProfile, setEditableProfile] = useState<Partial<UserProfile> | null>(userProfile);
+    const [editError, setEditError] = useState<string | null>(null);
 
     useEffect(() => {
         setEditableProfile(userProfile);
@@ -173,16 +199,27 @@ const ProfilePage: React.FC = () => {
         return <div>Carregando perfil...</div>;
     }
     
-    const handleEditSave = () => {
+    const handleEditSave = async () => {
+        setEditError(null);
         if (editableProfile) {
-            updateUserProfile(editableProfile);
+            try {
+                await updateUserProfile(editableProfile);
+                setIsEditing(false);
+            } catch (err: any) {
+                if (err.message && (err.message.includes("column \"weight_goal\" of relation \"profiles\" does not exist") || err.message.includes("Could not find the 'weight_goal' column"))) {
+                     setEditError("A coluna 'weight_goal' não existe no banco de dados. Adicione-a na tabela 'profiles' do Supabase com o tipo 'numeric' para poder salvar.");
+                } else {
+                    setEditError("Ocorreu um erro ao salvar o perfil. Tente novamente.");
+                }
+                console.error(err);
+            }
         }
-        setIsEditing(false);
     };
 
     const handleCancelEdit = () => {
         setEditableProfile(userProfile);
         setIsEditing(false);
+        setEditError(null);
     };
 
     const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -255,26 +292,29 @@ const ProfilePage: React.FC = () => {
                             )}
                         </div>
                         {isEditing ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
-                                <div>
-                                    <label className="text-sm text-neutral-800 block mb-1">Nome</label>
-                                    <input type="text" name="name" value={editableProfile.name || ''} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
-                                </div>
-                                <div>
-                                    <label className="text-sm text-neutral-800 block mb-1">Idade</label>
-                                    <input type="number" name="age" value={editableProfile.age || ''} onChange={handleProfileChange} placeholder="Sua idade" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
-                                </div>
-                                 <div>
-                                    <label className="text-sm text-neutral-800 block mb-1">Altura (cm)</label>
-                                    <input type="number" name="height" value={editableProfile.height || ''} onChange={handleProfileChange} placeholder="Sua altura" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
-                                </div>
-                                <div>
-                                    <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
-                                    <input type="number" name="weight_goal" value={editableProfile.weight_goal || ''} onChange={handleProfileChange} placeholder="Sua meta de peso" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <label className="text-sm text-neutral-800 block mb-1">Peso Inicial (kg)</label>
-                                    <input type="number" name="weight" value={editableProfile.weight || ''} onChange={handleProfileChange} placeholder="Seu peso inicial" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                            <div className="space-y-4 animate-fade-in">
+                                {editError && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{editError}</p>}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm text-neutral-800 block mb-1">Nome</label>
+                                        <input type="text" name="name" value={editableProfile.name || ''} onChange={handleProfileChange} className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-neutral-800 block mb-1">Idade</label>
+                                        <input type="number" name="age" value={editableProfile.age || ''} onChange={handleProfileChange} placeholder="Sua idade" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-neutral-800 block mb-1">Altura (cm)</label>
+                                        <input type="number" name="height" value={editableProfile.height || ''} onChange={handleProfileChange} placeholder="Sua altura" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
+                                        <input type="number" name="weight_goal" value={editableProfile.weight_goal || ''} onChange={handleProfileChange} placeholder="Sua meta de peso" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="text-sm text-neutral-800 block mb-1">Peso Inicial (kg)</label>
+                                        <input type="number" name="weight" value={editableProfile.weight || ''} onChange={handleProfileChange} placeholder="Seu peso inicial" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
