@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import { User, Calendar, Edit, LogOut, PlusCircle, Save, X, Ruler, Scale, Target } from 'lucide-react';
@@ -251,16 +250,16 @@ const ProfilePage: React.FC = () => {
                                     <input type="number" name="height" value={editableProfile.height || ''} onChange={handleProfileChange} placeholder="Sua altura" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
                                 <div>
-                                    <label className="text-sm text-neutral-800 block mb-1">Peso Atual (kg)</label>
-                                    <input type="number" name="weight" value={editableProfile.weight || ''} onChange={handleProfileChange} placeholder="Seu peso atual" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
+                                     <input type="number" name="weight_goal" value={editableProfile.weight_goal || ''} onChange={handleProfileChange} placeholder="Seu objetivo" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
-                                    <input type="number" name="weight_goal" value={editableProfile.weight_goal || ''} onChange={handleProfileChange} placeholder="Seu objetivo" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                    <label className="text-sm text-neutral-800 block mb-1">Peso de Início (kg)</label>
+                                    <input type="number" name="weight" value={editableProfile.weight || ''} onChange={handleProfileChange} placeholder="Seu peso inicial" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-4">
                                 <InfoItem icon={User} label="Nome" value={userProfile.name} />
                                 <InfoItem icon={Calendar} label="Idade" value={userProfile.age ? `${userProfile.age} anos` : undefined} />
                                 <InfoItem icon={Ruler} label="Altura" value={userProfile.height ? `${userProfile.height} cm` : undefined} />
