@@ -5,7 +5,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
 import type { UserProfile, CheckInData } from './types';
 import { getSupabaseClient, isSupabaseConfigured } from './components/supabaseClient';
-import { getProfile, getCheckIns, createProfile, updateProfile, addCheckInData } from './services/supabaseService';
+import { getProfile, createProfile, updateProfile, addCheckInData, getCheckIns } from './services/supabaseService';
 
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
