@@ -16,6 +16,7 @@ import LandingPage from './pages/LandingPage';
 import ProtocolsPage from './pages/ProtocolsPage';
 import OnboardingPage from './pages/OnboardingPage';
 import { ToastProvider, useToast } from './components/Toast';
+import { AlertTriangle } from 'lucide-react';
 
 interface AppContextType {
   isAuthenticated: boolean;
@@ -266,24 +267,46 @@ const LoadingSpinner: React.FC = () => {
 
 const ConfigErrorMessage: React.FC = () => (
     <div className="flex items-center justify-center min-h-screen bg-neutral-100 p-4 font-sans">
-        <div className="text-center bg-white p-8 rounded-lg shadow-soft max-w-lg border-t-4 border-red-500">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Erro de Configuração</h2>
-            <p className="text-neutral-800 mb-2">As chaves do Supabase ou Gemini não foram encontradas no aplicativo.</p>
-            <p className="text-neutral-800 mb-6">Isso geralmente acontece quando as variáveis de ambiente não foram aplicadas ao último deploy.</p>
-            <h3 className="font-semibold text-neutral-900 mb-3">Ação Necessária:</h3>
-            <div className="bg-green-50 p-4 rounded-md text-left text-green-900">
-                <p className="font-bold mb-2">1. Verifique as Variáveis de Ambiente na Vercel:</p>
-                <ul className="list-disc list-inside text-sm space-y-1">
-                    <li><code>VITE_SUPABASE_URL</code></li>
-                    <li><code>VITE_SUPABASE_ANON_KEY</code></li>
-                    <li><code>VITE_GEMINI_API_KEY</code></li>
-                </ul>
-                 <p className="font-bold mt-4 mb-2">2. Faça o Redeploy:</p>
-                 <p className="text-sm">Vá até o painel do seu projeto na Vercel, clique na aba "Deployments", encontre o deploy mais recente e clique em "Redeploy" para aplicar as variáveis.</p>
+        <div className="text-center bg-white p-8 rounded-lg shadow-soft max-w-2xl border-t-4 border-yellow-500">
+            <div className="flex justify-center mb-4">
+                <AlertTriangle className="text-yellow-600" size={40} />
+            </div>
+            <h2 className="text-2xl font-bold text-neutral-900 mb-3">Configuração Incompleta</h2>
+            <p className="text-neutral-800 mb-6">
+                O aplicativo não conseguiu se conectar aos serviços essenciais (Supabase e Google Gemini). Isso acontece quando as chaves da API não estão configuradas corretamente no ambiente de deploy (Vercel).
+            </p>
+            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver em 3 Passos:</h3>
+            <div className="space-y-6 text-left">
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">1. Obtenha suas Chaves:</p>
+                    <ul className="list-disc list-inside text-sm space-y-2 text-neutral-800">
+                        <li><strong>Supabase:</strong> No seu projeto, vá em <code className="bg-neutral-200 px-1 rounded">Project Settings → API</code> e copie a <code className="bg-neutral-200 px-1 rounded">URL</code> e a chave <code className="bg-neutral-200 px-1 rounded">anon public</code>.</li>
+                        <li><strong>Google Gemini:</strong> Vá para o <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary-dark font-semibold underline">Google AI Studio</a> e copie sua <code className="bg-neutral-200 px-1 rounded">API Key</code>.</li>
+                    </ul>
+                </div>
+                 <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">2. Adicione as Chaves na Vercel:</p>
+                     <p className="text-sm text-neutral-800 mb-3">No seu projeto na Vercel, vá em <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. Crie as três variáveis com os nomes <strong>exatos</strong> abaixo:</p>
+                    <ul className="list-disc list-inside text-sm space-y-1 font-mono bg-gray-800 text-white p-3 rounded-md">
+                        <li>VITE_SUPABASE_URL=[cole sua URL aqui]</li>
+                        <li>VITE_SUPABASE_ANON_KEY=[cole sua chave anon aqui]</li>
+                        <li>VITE_GEMINI_API_KEY=[cole sua chave Gemini aqui]</li>
+                    </ul>
+                    <p className="text-xs text-neutral-800 mt-2">
+                        <strong>Atenção:</strong> Se você usava <code className="bg-neutral-200 px-1 rounded">CHAVE_API_VITE</code>, por favor, renomeie para <code className="bg-neutral-200 px-1 rounded">VITE_GEMINI_API_KEY</code> para seguir o novo padrão.
+                    </p>
+                </div>
+                 <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">3. Faça o Redeploy:</p>
+                    <p className="text-sm text-neutral-800">
+                        Na Vercel, vá para a aba <code className="bg-neutral-200 px-1 rounded">Deployments</code>, encontre o deploy mais recente e clique no menu de três pontos (•••) e depois em <strong>"Redeploy"</strong> para que as novas variáveis sejam aplicadas.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 );
+
 
 const Main: React.FC = () => {
     const { isAuthenticated, isLoading, userProfile } = useApp();
