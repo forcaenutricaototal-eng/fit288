@@ -51,6 +51,42 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
 
+  const loadUserProfileAndData = useCallback(async (currentUser: User | null) => {
+    if (!currentUser) {
+      setUser(null);
+      setUserProfile(null);
+      setCheckIns([]);
+      return;
+    }
+
+    try {
+      let profile = await getProfile(currentUser.id);
+      if (!profile) {
+        const initialName = currentUser.user_metadata?.name || 'Novo Usuário';
+        profile = await createProfile(currentUser.id, initialName);
+      }
+      
+      if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
+        profile.completed_items_by_day = {};
+        updateProfile(currentUser.id, { completed_items_by_day: {} }).catch(console.error);
+      }
+      
+      setUser(currentUser);
+      setUserProfile(profile);
+
+      const checkInsData = await getCheckIns(currentUser.id);
+      setCheckIns(checkInsData);
+
+    } catch (error) {
+      console.error("Erro ao carregar dados do usuário:", error);
+      addToast("Ocorreu um erro ao carregar seus dados.", 'info');
+      setUser(null);
+      setUserProfile(null);
+      setCheckIns([]);
+    }
+  }, [addToast]);
+  
+  // Effect for initial session load
   useEffect(() => {
     if (!isSupabaseConfigured) {
         setIsLoading(false);
@@ -58,69 +94,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
     
     const supabase = getSupabaseClient();
+    const checkInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      await loadUserProfileAndData(session?.user ?? null);
+      setIsLoading(false);
+    };
+
+    checkInitialSession();
+
+    // Listen for auth changes after the initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setIsLoading(true);
-
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (!currentUser) {
-        setUserProfile(null);
-        setCheckIns([]);
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        let profile = await getProfile(currentUser.id);
-
-        // If there is no profile, create a barebones one.
-        // The Onboarding page will be forced and will handle populating it with correct details.
-        if (!profile) {
-          const initialName = currentUser.user_metadata?.name || 'Novo Usuário';
-          profile = await createProfile(currentUser.id, initialName);
-        }
-        
-        // Safety check for `completed_items_by_day`
-        if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
-            profile.completed_items_by_day = {}; 
-            // Fire-and-forget update to the DB. Don't wait for it.
-            updateProfile(currentUser.id, { completed_items_by_day: {} }).catch(patchError => {
-                console.error("Falha não-crítica ao inicializar completed_items_by_day:", patchError);
-            });
-        }
-        
-        setUserProfile(profile);
-        
-      } catch (error) {
-        console.error("Erro no processo de autenticação e perfil:", error);
-        addToast("Ocorreu um erro ao carregar seus dados. Por favor, tente novamente.", 'info');
-        setUserProfile(null);
-        setCheckIns([]);
-      } finally {
-        setIsLoading(false);
-      }
+      // Don't set loading for subsequent changes, just update data
+      await loadUserProfileAndData(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
-  }, [addToast]);
-
-  useEffect(() => {
-    if (user) {
-        let isMounted = true;
-        const fetchCheckIns = async () => {
-            try {
-                const checkInsData = await getCheckIns(user.id);
-                if (isMounted) setCheckIns(checkInsData);
-            } catch (error) {
-                console.error("Erro ao carregar check-ins:", error);
-                if (isMounted) setCheckIns([]);
-            }
-        };
-        fetchCheckIns();
-        return () => { isMounted = false; };
-    }
-  }, [user, addToast]);
+  }, [loadUserProfileAndData]);
 
 
   const login = async (email: string, pass: string) => {
@@ -153,13 +142,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const updateUserProfile = useCallback(async (updatedData: Partial<UserProfile>) => {
-    if (!user) {
+    const currentUser = user;
+    if (!currentUser) {
         const err = new Error('Você precisa estar logado para atualizar o perfil.');
         addToast(err.message, 'info');
         throw err;
     }
     try {
-        const updated = await updateProfile(user.id, updatedData);
+        const updated = await updateProfile(currentUser.id, updatedData);
         setUserProfile(updated);
         addToast('Perfil atualizado com sucesso!', 'success');
     } catch (error) {
@@ -170,13 +160,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, [user, addToast]);
 
   const addCheckIn = useCallback(async (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => {
-      if (!user) {
+      const currentUser = user;
+      if (!currentUser) {
           const err = new Error('Você precisa estar logado para fazer um check-in.');
           addToast(err.message, 'info');
           throw err;
       }
       try {
-          const newCheckInData = await addCheckInData(user.id, data, checkIns.length);
+          const newCheckInData = await addCheckInData(currentUser.id, data, checkIns.length);
           setCheckIns(prev => [...prev, newCheckInData]);
           addToast('Check-in adicionado com sucesso!', 'success');
       } catch (error) {
