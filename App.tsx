@@ -13,6 +13,7 @@ import PlanPage from './pages/PlanPage';
 import ProfilePage from './pages/ProfilePage';
 import LandingPage from './pages/LandingPage';
 import ProtocolsPage from './pages/ProtocolsPage';
+import OnboardingPage from './pages/OnboardingPage';
 import { ToastProvider, useToast } from './components/Toast';
 
 interface AppContextType {
@@ -282,13 +283,16 @@ const ConfigErrorMessage: React.FC = () => (
 );
 
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading } = useApp();
+    const { isAuthenticated, isLoading, userProfile } = useApp();
     
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
     }
 
     if (isLoading) return <LoadingSpinner />;
+
+    // A user has completed onboarding if their core physical stats are present.
+    const hasCompletedOnboarding = !!(userProfile?.age && userProfile?.weight && userProfile?.height);
 
     return (
         <div className="bg-neutral-100 min-h-screen">
@@ -298,6 +302,12 @@ const Main: React.FC = () => {
                         <>
                             <Route path="/" element={<LandingPage />} />
                             <Route path="*" element={<Navigate to="/" />} />
+                        </>
+                    ) : !hasCompletedOnboarding ? (
+                        <>
+                            {/* Force authenticated but non-onboarded users to this page */}
+                            <Route path="/onboarding" element={<OnboardingPage />} />
+                            <Route path="*" element={<Navigate to="/onboarding" />} />
                         </>
                     ) : (
                         <Route path="/" element={<Layout />}>
