@@ -61,12 +61,28 @@ export const getGeminiResponse = async (
     });
 
     return response.text;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro ao chamar a API Gemini:", error);
-    if (error instanceof Error) {
-        throw error;
+
+    let userMessage = "Desculpe, não consegui processar sua solicitação no momento. Tente novamente mais tarde.";
+
+    try {
+        if (error.message && typeof error.message === 'string' && error.message.includes('{')) {
+            const jsonString = error.message.substring(error.message.indexOf('{'));
+            const parsedError = JSON.parse(jsonString);
+            const apiError = parsedError.error || parsedError;
+
+            if (apiError.code === 503 || apiError.status === 'UNAVAILABLE') {
+                userMessage = 'A IA está sobrecarregada no momento. Por favor, aguarde um pouco e tente novamente.';
+            } else if (apiError.message) {
+                userMessage = 'A IA encontrou um problema ao processar sua mensagem. Tente reformular a pergunta.';
+            }
+        }
+    } catch (e) {
+        console.error("Não foi possível analisar a mensagem de erro da Gemini:", e);
     }
-    throw new Error("Desculpe, não consegui processar sua solicitação no momento. Tente novamente mais tarde.");
+    
+    throw new Error(userMessage);
   }
 };
 
