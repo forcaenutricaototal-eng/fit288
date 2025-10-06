@@ -77,25 +77,31 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       try {
         let profile = await getProfile(currentUser.id);
+        const nameFromAuth = currentUser.user_metadata.name;
 
         if (!profile) {
-          const name = currentUser.user_metadata.name || 'Novo Usuário';
-          profile = await createProfile(currentUser.id, name);
-          if (!profile) {
-            throw new Error("Falha crítica ao CRIAR o perfil do usuário.");
-          }
+          // Case 1: No profile exists at all. Create it with the name.
+          const newProfileName = nameFromAuth || 'Novo Usuário';
+          profile = await createProfile(currentUser.id, newProfileName);
+        } else if (!profile.name && nameFromAuth) {
+          // Case 2: Profile exists (e.g., from a trigger) but is missing a name. Update it.
+          profile = await updateProfile(currentUser.id, { name: nameFromAuth });
         }
         
-        if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
-          const patchedProfile = { ...profile, completed_items_by_day: {} };
-          setUserProfile(patchedProfile);
-          // Fire-and-forget update to the DB.
-          updateProfile(currentUser.id, { completed_items_by_day: {} }).catch(patchError => {
-            console.error("Falha não-crítica ao tentar atualizar o perfil no DB:", patchError);
-          });
-        } else {
-            setUserProfile(profile);
+        if (!profile) {
+            throw new Error("Falha crítica ao carregar ou criar o perfil do usuário.");
         }
+        
+        // Ensure completed_items_by_day exists to prevent crashes.
+        if (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object') {
+            profile.completed_items_by_day = {}; // Update in-memory object first
+            // Fire-and-forget update to the DB. Don't wait for it.
+            updateProfile(currentUser.id, { completed_items_by_day: {} }).catch(patchError => {
+                console.error("Falha não-crítica ao inicializar completed_items_by_day:", patchError);
+            });
+        }
+        
+        setUserProfile(profile);
         
       } catch (error) {
         console.error("Erro no processo de autenticação e perfil:", error);
