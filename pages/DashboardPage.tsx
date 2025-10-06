@@ -36,7 +36,6 @@ const DashboardPage: React.FC = () => {
     const name = userProfile.name;
     const age = userProfile.age;
     const height = userProfile.height;
-    const goalWeight = userProfile.weight_goal;
     const currentWeight = checkIns.length > 0 ? checkIns[checkIns.length - 1].weight : userProfile.weight;
 
     const weightChartData = checkIns.length > 0 
@@ -55,11 +54,10 @@ const DashboardPage: React.FC = () => {
             </div>
 
             {/* User Summary Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard icon={User} label="Idade" value={age} unit=" anos" />
                 <StatCard icon={Ruler} label="Altura" value={height} unit=" cm" />
                 <StatCard icon={Scale} label="Peso Atual" value={currentWeight?.toFixed(1)} unit=" kg" />
-                <StatCard icon={Target} label="Meta de Peso" value={goalWeight?.toFixed(1)} unit=" kg" />
             </div>
 
             {/* Evolution Chart */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { User, Calendar, Edit, LogOut, PlusCircle, Save, X, Ruler, Scale, Target } from 'lucide-react';
+import { User, Calendar, Edit, LogOut, PlusCircle, Save, X, Ruler, Scale } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { UserProfile } from '../types';
 
@@ -212,11 +212,7 @@ const ProfilePage: React.FC = () => {
                 await updateUserProfile(profileToSave);
                 setIsEditing(false);
             } catch (err: any) {
-                if (err.message && (err.message.includes("column \"weight_goal\" of relation \"profiles\" does not exist") || err.message.includes("Could not find the 'weight_goal' column"))) {
-                     setEditError("A coluna 'weight_goal' não existe no banco de dados. Adicione-a na tabela 'profiles' do Supabase com o tipo 'numeric' para poder salvar.");
-                } else {
-                    setEditError("Ocorreu um erro ao salvar o perfil. Tente novamente.");
-                }
+                setEditError("Ocorreu um erro ao salvar o perfil. Tente novamente.");
                 console.error(err);
             }
         }
@@ -230,7 +226,7 @@ const ProfilePage: React.FC = () => {
 
     const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        const isNumeric = ['age', 'height', 'weight', 'weight_goal'].includes(name);
+        const isNumeric = ['age', 'height', 'weight'].includes(name);
         setEditableProfile(prev => prev ? { ...prev, [name]: isNumeric && value ? Number(value) : (isNumeric ? undefined : value) } : null);
     };
 
@@ -313,10 +309,6 @@ const ProfilePage: React.FC = () => {
                                         <label className="text-sm text-neutral-800 block mb-1">Altura (cm)</label>
                                         <input type="number" name="height" value={editableProfile.height || ''} onChange={handleProfileChange} placeholder="Sua altura" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                     </div>
-                                    <div>
-                                        <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
-                                        <input type="number" name="weight_goal" value={editableProfile.weight_goal || ''} onChange={handleProfileChange} placeholder="Sua meta de peso" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
-                                    </div>
                                     <div className="sm:col-span-2">
                                         <label className="text-sm text-neutral-800 block mb-1">Peso Inicial (kg)</label>
                                         <input type="number" name="weight" value={editableProfile.weight || ''} onChange={handleProfileChange} placeholder="Seu peso inicial" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
@@ -329,7 +321,6 @@ const ProfilePage: React.FC = () => {
                                 <InfoItem icon={Calendar} label="Idade" value={userProfile.age ? `${userProfile.age} anos` : undefined} />
                                 <InfoItem icon={Ruler} label="Altura" value={userProfile.height ? `${userProfile.height} cm` : undefined} />
                                 <InfoItem icon={Scale} label="Peso Atual" value={currentWeight ? `${currentWeight.toFixed(1)} kg` : undefined} />
-                                <InfoItem icon={Target} label="Meta de Peso" value={userProfile.weight_goal ? `${userProfile.weight_goal} kg` : undefined} />
                             </div>
                         )}
                     </div>

@@ -6,7 +6,6 @@ export interface UserProfile {
   weight?: number;
   height?: number;
   dietary_restrictions?: string[];
-  weight_goal?: number;
   created_at: string;
   completed_items_by_day: { [day: number]: { [itemId: string]: boolean } };
 }

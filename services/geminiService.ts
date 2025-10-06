@@ -127,7 +127,6 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number, fe
         - Altura: ${userProfile.height} cm
         - Nível de Atividade: Moderado (para fins de cálculo calórico)
         - Objetivo Principal: Perda de peso e melhora da saúde metabólica
-        - Meta de Peso: ${userProfile.weight_goal} kg
         - Restrições Alimentares: ${userProfile.dietary_restrictions?.join(', ') || 'Nenhuma'}
 
         ${feedbackInstruction}
