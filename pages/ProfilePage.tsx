@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { User, Calendar, Edit, LogOut, PlusCircle, Save, X, Ruler, Scale } from 'lucide-react';
+import { User, Calendar, Edit, LogOut, PlusCircle, Save, X, Ruler, Scale, Mail } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { UserProfile } from '../types';
 
@@ -264,11 +264,15 @@ const ProfilePage: React.FC = () => {
                     <h1 className="text-3xl font-bold text-neutral-900">Meu Perfil</h1>
                     <p className="text-neutral-800">Gerencie suas informações e acompanhe sua evolução.</p>
                 </div>
-                 <div className="flex items-center gap-4">
+                 <div className="flex flex-wrap items-center gap-2">
                     <button onClick={() => setIsModalOpen(true)} className="flex items-center space-x-2 bg-primary text-white px-4 py-2 rounded-md font-semibold hover:bg-primary-dark transition-colors">
                         <PlusCircle size={18} />
                         <span>Adicionar Check-in</span>
                     </button>
+                    <a href="mailto:contato@caosaocontrole.com.br" className="flex items-center space-x-2 bg-neutral-800 text-white px-4 py-2 rounded-md font-semibold hover:bg-neutral-900 transition-colors">
+                        <Mail size={18} />
+                        <span>Contato</span>
+                    </a>
                     <button onClick={logout} className="flex items-center space-x-2 bg-red-500 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-600 transition-colors">
                         <LogOut size={18} />
                         <span>Sair</span>
