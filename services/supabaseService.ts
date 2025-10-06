@@ -1,3 +1,4 @@
+
 import { supabase } from '../components/supabaseClient';
 import type { UserProfile, CheckInData } from '../types';
 

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 // This page is no longer used in the simplified onboarding flow.

@@ -1,3 +1,4 @@
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';

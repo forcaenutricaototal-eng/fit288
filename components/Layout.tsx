@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { BarChart2, MessageSquare, Utensils, User, BookOpen, Gem } from 'lucide-react';
