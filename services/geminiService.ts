@@ -48,6 +48,40 @@ export const getGeminiResponse = async (
     - Altura: ${userProfile?.height || 'Não informado'} cm
     - Objetivo: Emagrecimento saudável e melhora metabólica
     - Restrições: ${userProfile?.dietary_restrictions?.join(', ') || 'Nenhuma'}
+
+    ---
+    INFORMAÇÕES ADICIONAIS SOBRE O PROGRAMA E SUA CRIADORA (Use estas informações para responder perguntas sobre o Monjaro Japonês, Simone Tavares ou a filosofia do programa):
+
+    **Descrição Oficial – Simone Tavares**
+    Simone Tavares é a idealizadora do Monjaro Japonês Natural, uma tecnologia japonesa de emagrecimento natural, criada após anos de estudo sobre metabolismo, comportamento alimentar e neurociência.
+    Ela também é mentora do programa “Versão Mais Leve de Mim” e autora dos livros “Código do Autoconhecimento” e “A Ciência para Emagrecer de Vez” — referências em transformação física e emocional através da reeducação metabólica e mental.
+    Simone emagreceu 73 quilos de forma 100% natural, sem cirurgias e sem medicamentos, mantendo massa magra, pele firme, cabelo e unhas saudáveis. Sua trajetória é hoje um símbolo de superação e inspiração para milhares de pessoas.
+
+    **🍵 O Monjaro Japonês Natural**
+    O Monjaro Japonês Natural possui o mesmo poder do Monjaro farmacêutico — mas é ainda melhor, pois oferece resultados mais seguros, naturais e duradouros, sem efeitos colaterais.
+    Enquanto o medicamento atua de forma limitada, o Monjaro Japonês atua de forma completa, ativando não apenas os hormônios GLP-1 e GIP-1, mas também CCK, PYY e leptina — responsáveis por estimular o centro da saciedade no cérebro.
+    Além disso, ele equilibra neurotransmissores como dopamina, serotonina e noradrenalina, que promovem bem-estar, foco, saciedade e motivação, tornando o processo de emagrecimento muito mais eficiente e prazeroso.
+    Por isso, o Monjaro Japonês Natural é considerado mais potente e inteligente que o farmacêutico.
+
+    **⚖️ Por que os resultados são definitivos**
+    O Monjaro Japonês Natural não atua apenas no corpo — ele reprograma a mente e o metabolismo por meio de dois fenômenos científicos fundamentais: a neuroplasticidade e a epigênese.
+    *   **Neuroplasticidade** é a capacidade do cérebro de criar novas conexões neurais e substituir padrões antigos por novos hábitos saudáveis. Com o tempo, à medida que a pessoa vive de forma mais consciente, pratica alimentação equilibrada e adota a cultura japonesa de leveza e disciplina, o cérebro literalmente se reorganiza, consolidando comportamentos que sustentam o emagrecimento de forma natural e duradoura.
+    *   **Epigênese (ou epigenética)** é o processo em que os hábitos e o estilo de vida passam a influenciar a expressão dos genes. Isso significa que, ao manter uma rotina saudável por tempo suficiente, o corpo muda a forma como os genes se manifestam, favorecendo o equilíbrio hormonal, o controle da inflamação, a saciedade e a queima de gordura. Com isso, o emagrecimento se torna definitivo, porque o corpo passa a funcionar em harmonia com o novo padrão metabólico e mental.
+
+    **💚 Principais benefícios**
+    *   Infinitamente mais acessível que o farmacêutico
+    *   100% natural e não invasivo
+    *   Eleva naturalmente a saciedade
+    *   Acelera o metabolismo
+    *   Atua na neuroplasticidade e epigênese, tornando o resultado definitivo
+    *   Ajuda no tratamento do lipedema, sem crises inflamatórias
+    *   Auxilia no controle do diabetes tipo 2
+    *   Melhora o humor, o foco e o bem-estar emocional
+    *   Resultados duradouros e reeducativos
+
+    **💬 Missão e Propósito**
+    Simone Tavares acredita que o verdadeiro emagrecimento é um processo de autoconhecimento e reprogramação mental, onde corpo, mente e emoções se alinham para criar uma nova identidade leve e saudável.
+    Por isso, suas mentorias e programas combinam ciência, neuroplasticidade, epigenética e inteligência emocional, transformando não apenas o corpo, mas toda a forma de pensar, sentir e viver.
     `;
     
     const contents = [...history, { role: 'user' as const, parts: [{ text: newMessage }] }];
