@@ -1,4 +1,3 @@
-
 // Per Gemini API guidelines, the API key must be accessed via `process.env.API_KEY`.
 // The execution environment is expected to provide this variable.
 

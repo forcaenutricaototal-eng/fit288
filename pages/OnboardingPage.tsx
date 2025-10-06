@@ -22,18 +22,25 @@ const OnboardingPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name || name.trim().length === 0 || !age || !weight || !height) {
-            setError('Todos os campos são obrigatórios.');
+        
+        const trimmedName = name.trim();
+        if (!trimmedName) {
+            setError('O nome é obrigatório e não pode ficar em branco.');
             return;
         }
+        if (!age || !weight || !height) {
+            setError('Todos os campos (idade, peso e altura) são obrigatórios.');
+            return;
+        }
+        
         setError(null);
         setLoading(true);
 
         try {
             await updateUserProfile({
-                name: name.trim(), // Use the name from the local state
+                name: trimmedName,
                 age,
-                weight, // This will be the initial weight
+                weight,
                 height,
             });
         } catch (err: any) {

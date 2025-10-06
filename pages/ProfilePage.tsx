@@ -200,14 +200,15 @@ const ProfilePage: React.FC = () => {
     const handleEditSave = async () => {
         setEditError(null);
         if (editableProfile) {
-            if (!editableProfile.name || editableProfile.name.trim().length === 0) {
+            const trimmedName = editableProfile.name?.trim();
+            if (!trimmedName) {
                 setEditError("O nome não pode ficar em branco.");
                 return;
             }
             try {
                 const profileToSave = {
                     ...editableProfile,
-                    name: editableProfile.name.trim(),
+                    name: trimmedName,
                 };
                 await updateUserProfile(profileToSave);
                 setIsEditing(false);
