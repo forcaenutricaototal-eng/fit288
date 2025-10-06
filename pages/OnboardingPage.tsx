@@ -102,7 +102,7 @@ const OnboardingPage: React.FC = () => {
                 <div className="bg-white p-8 rounded-lg shadow-soft">
                     <div className="flex items-center justify-center space-x-3 mb-4">
                         <Leaf size={28} className="text-primary" />
-                        <span className="text-2xl font-bold text-neutral-900">Fit28</span>
+                        <span className="text-2xl font-bold text-neutral-900">Monjaro Japonês</span>
                     </div>
                     <h2 className="text-2xl font-bold text-center text-neutral-900 mb-2">
                         Complete seu Perfil

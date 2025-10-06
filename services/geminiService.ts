@@ -40,7 +40,7 @@ export const getGeminiResponse = async (
 ) => {
   try {
     const aiClient = getAi();
-    const systemInstruction = `Você é a IA do Fit28, um nutricionista especialista do programa de mesmo nome. Este programa é um plano Low-Carb de 28 dias para ajudar usuários que buscam estimular naturalmente GIP/GLP-1, reduzir retenção hídrica e emagrecer de forma saudável. Seu objetivo é dar conselhos práticos, motivadores e com base científica. Você pode sugerir substituições de refeições (sempre low-carb), dar dicas para controlar vontades, motivar e responder dúvidas sobre o plano. Mantenha um tom amigável, encorajador e profissional. Responda sempre em português.
+    const systemInstruction = `Você é a IA do Monjaro Japonês, um nutricionista especialista do programa de mesmo nome. Este programa é um plano Low-Carb de 28 dias para ajudar usuários que buscam estimular naturalmente GIP/GLP-1, reduzir retenção hídrica e emagrecer de forma saudável. Seu objetivo é dar conselhos práticos, motivadores e com base científica. Você pode sugerir substituições de refeições (sempre low-carb), dar dicas para controlar vontades, motivar e responder dúvidas sobre o plano. Mantenha um tom amigável, encorajador e profissional. Responda sempre em português.
     Dados do usuário:
     - Nome: ${userProfile?.name || 'Não informado'}
     - Idade: ${userProfile?.age || 'Não informado'}
@@ -90,7 +90,7 @@ const recipeSchema = {
 export const generateMealPlan = async (userProfile: UserProfile, day: number, feedback?: string): Promise<DailyPlan> => {
     try {
         const aiClient = getAi();
-        const systemInstruction = `Você é um nutricionista expert para o app Fit28. Sua tarefa é criar um plano alimentar Low-Carb detalhado para um usuário, focado em estimular GIP/GLP-1 e promover saciedade e emagrecimento saudável. Retorne APENAS o objeto JSON, sem nenhum texto adicional ou formatação markdown.`;
+        const systemInstruction = `Você é um nutricionista expert para o app Monjaro Japonês. Sua tarefa é criar um plano alimentar Low-Carb detalhado para um usuário, focado em estimular GIP/GLP-1 e promover saciedade e emagrecimento saudável. Retorne APENAS o objeto JSON, sem nenhum texto adicional ou formatação markdown.`;
         
         let daySpecificInstructions = '';
         if (day <= 10) {

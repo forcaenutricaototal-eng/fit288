@@ -32,7 +32,7 @@ const Layout: React.FC = () => {
   const sidebarContent = (
     <div className="flex flex-col h-full bg-white">
         <div className="flex items-center justify-between p-4 border-b border-neutral-200">
-            <h1 className="text-2xl font-bold text-primary-dark">Fit28</h1>
+            <h1 className="text-xl font-bold text-primary-dark">Monjaro Japonês</h1>
         </div>
         <div className="p-4">
             <p className="text-neutral-900 font-semibold">{userProfile?.name}</p>

@@ -85,7 +85,7 @@ const LandingPage: React.FC = () => {
                 <div className="space-y-6 text-center lg:text-left animate-fade-in-right">
                     <div className="flex items-center justify-center lg:justify-start space-x-3 mb-4">
                         <Leaf size={32} className="text-primary" />
-                        <span className="text-3xl font-bold text-neutral-900">Fit28</span>
+                        <span className="text-3xl font-bold text-neutral-900">Monjaro Japonês</span>
                     </div>
                     <h1 className="text-4xl lg:text-5xl font-extrabold text-neutral-900 leading-tight">
                         <span className="text-primary-dark">Monjaro Japonês:</span> a alternativa 100% natural para emagrecimento real.

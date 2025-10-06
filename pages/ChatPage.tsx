@@ -93,7 +93,7 @@ const ChatPage: React.FC = () => {
                     <BrainCircuit className="text-primary-dark" size={28}/>
                 </div>
                 <div>
-                    <h2 className="text-xl font-bold text-neutral-900">Fit28 AI</h2>
+                    <h2 className="text-xl font-bold text-neutral-900">Monjaro Japonês AI</h2>
                     <p className="text-sm text-neutral-800 flex items-center">
                         <span className="w-2 h-2 bg-primary rounded-full mr-2"></span>
                         Online
