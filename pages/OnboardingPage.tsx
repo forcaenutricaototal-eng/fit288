@@ -1,19 +1,26 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { User, Scale, Ruler, Leaf } from 'lucide-react';
+import { User, Scale, Ruler, Leaf, Target } from 'lucide-react';
 
 const OnboardingPage: React.FC = () => {
     const { userProfile, updateUserProfile } = useApp();
+    const [name, setName] = useState('');
     const [age, setAge] = useState<number | undefined>(undefined);
     const [weight, setWeight] = useState<number | undefined>(undefined);
     const [height, setHeight] = useState<number | undefined>(undefined);
+    const [weightGoal, setWeightGoal] = useState<number | undefined>(undefined);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    useEffect(() => {
+        if (userProfile?.name) {
+            setName(userProfile.name);
+        }
+    }, [userProfile?.name]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!age || !weight || !height) {
+        if (!name || !age || !weight || !height || !weightGoal) {
             setError('Todos os campos são obrigatórios.');
             return;
         }
@@ -22,9 +29,11 @@ const OnboardingPage: React.FC = () => {
 
         try {
             await updateUserProfile({
+                name,
                 age,
                 weight, // This will be the initial weight
                 height,
+                weight_goal: weightGoal,
             });
             // No need to redirect here, the routing in App.tsx will handle it
             // automatically when the userProfile state updates.
@@ -48,10 +57,18 @@ const OnboardingPage: React.FC = () => {
                         Complete seu Perfil
                     </h2>
                     <p className="text-center text-neutral-800 mb-6">
-                        Olá, {userProfile?.name}! Faltam só mais alguns detalhes para começarmos.
+                        Faltam só mais alguns detalhes para começarmos.
                     </p>
                     
                     <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="text" placeholder="Seu nome completo" required value={name} 
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                            />
+                        </div>
                         <div className="relative">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input
@@ -73,6 +90,14 @@ const OnboardingPage: React.FC = () => {
                             <input
                                 type="number" placeholder="Sua altura (cm)" required value={height ?? ''} 
                                 onChange={(e) => setHeight(e.target.value ? Number(e.target.value) : undefined)}
+                                className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                            />
+                        </div>
+                         <div className="relative">
+                            <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <input
+                                type="number" step="0.1" placeholder="Sua meta de peso (kg)" required value={weightGoal ?? ''} 
+                                onChange={(e) => setWeightGoal(e.target.value ? Number(e.target.value) : undefined)}
                                 className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                             />
                         </div>

@@ -41,8 +41,6 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         observations: lastCheckIn?.observations ?? '',
     });
     
-    const [goalWeight, setGoalWeight] = useState(userProfile?.weight_goal ?? undefined);
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         if (name === 'observations') {
@@ -53,11 +51,6 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                 [name]: value === '' ? undefined : Number(value)
             }));
         }
-    };
-    
-    const handleGoalWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { value } = e.target;
-        setGoalWeight(value === '' ? undefined : Number(value));
     };
 
 
@@ -70,9 +63,6 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         const profileUpdates: Partial<UserProfile> = {};
         if (measurements.height && measurements.height !== userProfile?.height) {
             profileUpdates.height = measurements.height;
-        }
-        if (goalWeight !== undefined && goalWeight !== userProfile?.weight_goal) {
-            profileUpdates.weight_goal = goalWeight;
         }
 
         if (Object.keys(profileUpdates).length > 0) {
@@ -111,10 +101,6 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Altura (cm)</label>
                             <input type="number" name="height" value={measurements.height ?? ''} onChange={handleChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
-                        </div>
-                         <div>
-                            <label className="text-sm font-medium text-neutral-800">Meta de Peso (kg)</label>
-                            <input type="number" name="weight_goal" value={goalWeight ?? ''} onChange={handleGoalWeightChange} className="w-full mt-1 p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                         </div>
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Cintura (cm)</label>
@@ -269,6 +255,10 @@ const ProfilePage: React.FC = () => {
                                  <div>
                                     <label className="text-sm text-neutral-800 block mb-1">Altura (cm)</label>
                                     <input type="number" name="height" value={editableProfile.height || ''} onChange={handleProfileChange} placeholder="Sua altura" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
+                                </div>
+                                <div>
+                                    <label className="text-sm text-neutral-800 block mb-1">Meta de Peso (kg)</label>
+                                    <input type="number" name="weight_goal" value={editableProfile.weight_goal || ''} onChange={handleProfileChange} placeholder="Sua meta de peso" className="w-full p-2 border border-neutral-200 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"/>
                                 </div>
                                 <div className="sm:col-span-2">
                                     <label className="text-sm text-neutral-800 block mb-1">Peso Inicial (kg)</label>
