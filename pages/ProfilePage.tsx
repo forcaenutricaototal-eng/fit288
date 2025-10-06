@@ -40,6 +40,7 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         left_thigh: lastCheckIn?.left_thigh ?? undefined,
         observations: lastCheckIn?.observations ?? '',
     });
+    const [error, setError] = useState<string | null>(null);
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -55,32 +56,42 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
 
 
     const handleSave = async () => {
+        setError(null);
         if (!measurements.weight || measurements.weight <= 0) {
-            alert("O peso é obrigatório e deve ser maior que zero.");
+            setError("O peso é obrigatório e deve ser maior que zero.");
             return;
         }
 
-        const profileUpdates: Partial<UserProfile> = {};
-        if (measurements.height && measurements.height !== userProfile?.height) {
-            profileUpdates.height = measurements.height;
+        try {
+            const profileUpdates: Partial<UserProfile> = {};
+            if (measurements.height && measurements.height !== userProfile?.height) {
+                profileUpdates.height = measurements.height;
+            }
+
+            if (Object.keys(profileUpdates).length > 0) {
+                await updateUserProfile(profileUpdates);
+            }
+
+            const { height, ...restOfMeasurements } = measurements;
+            
+            const checkInData = {
+                ...restOfMeasurements,
+                weight: measurements.weight,
+                water_intake: 0, 
+                fluid_retention: 1,
+            };
+
+            await addCheckIn(checkInData);
+            onClose();
+
+        } catch (err: any) {
+            let specificError = 'Não foi possível salvar o check-in. Tente novamente.';
+            if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
+                specificError = 'Falha de permissão ao salvar o check-in. Verifique se a tabela "check_ins" tem políticas RLS para INSERT e SELECT no Supabase.';
+            }
+            setError(specificError);
+            console.error(err);
         }
-
-        if (Object.keys(profileUpdates).length > 0) {
-            await updateUserProfile(profileUpdates);
-        }
-
-
-        const { height, ...restOfMeasurements } = measurements;
-        
-        const checkInData = {
-            ...restOfMeasurements,
-            weight: measurements.weight,
-            water_intake: 0, 
-            fluid_retention: 1,
-        };
-
-        await addCheckIn(checkInData);
-        onClose();
     };
     
     return (
@@ -93,6 +104,7 @@ const AddMeasurementModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                     </button>
                 </div>
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{error}</p>}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
                         <div>
                             <label className="text-sm font-medium text-neutral-800">Peso (kg)</label>

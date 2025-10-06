@@ -1,4 +1,5 @@
 
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useRef, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -189,19 +190,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const addCheckIn = useCallback(async (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => {
       if (!user) {
-          addToast('Você precisa estar logado para fazer um check-in.', 'info');
-          return;
+          const err = new Error('Você precisa estar logado para fazer um check-in.');
+          addToast(err.message, 'info');
+          throw err;
       }
       try {
-          // BUG FIX: The userProfile.weight is the *starting* weight.
-          // It should not be updated with the current check-in weight.
-          // The current weight is correctly derived from the latest check-in record.
           const newCheckInData = await addCheckInData(user.id, data, checkIns.length);
           setCheckIns(prev => [...prev, newCheckInData]);
           addToast('Check-in adicionado com sucesso!', 'success');
       } catch (error) {
           console.error("Erro ao adicionar check-in:", error);
           addToast('Ocorreu um erro ao salvar o check-in.', 'info');
+          throw error;
       }
   }, [user, checkIns.length, addToast]);
 

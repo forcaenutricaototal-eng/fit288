@@ -10,7 +10,7 @@ const OnboardingPage: React.FC = () => {
     const [height, setHeight] = useState<number | undefined>(undefined);
     const [weightGoal, setWeightGoal] = useState<number | undefined>(undefined);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState<React.ReactNode | null>(null);
 
     useEffect(() => {
         if (userProfile?.name) {
@@ -24,7 +24,7 @@ const OnboardingPage: React.FC = () => {
             setError('Todos os campos são obrigatórios.');
             return;
         }
-        setError('');
+        setError(null);
         setLoading(true);
 
         try {
@@ -34,18 +34,30 @@ const OnboardingPage: React.FC = () => {
                 height,
                 weight_goal: weightGoal,
             });
-            // No need to redirect here, the routing in App.tsx will handle it
-            // automatically when the userProfile state updates.
         } catch (err: any) {
             const defaultMessage = 'Ocorreu um erro ao salvar. Tente novamente.';
-            let specificError = err.message || defaultMessage;
             
-            // Provide a more helpful message for the most common Supabase issue.
             if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
-                 specificError = 'Falha de permissão. Verifique se a "Row Level Security" está ATIVA e configurada corretamente para a tabela "profiles" no seu painel do Supabase. O usuário precisa de permissão para "UPDATE".';
+                 const rlsErrorGuide = (
+                    <div className="text-sm text-left">
+                        <h4 className="font-bold text-red-700">Falha de Permissão no Banco de Dados (RLS)</h4>
+                        <p className="mt-2 text-neutral-800">Este é o erro mais comum e é fácil de resolver! Significa que seu banco de dados precisa de uma regra para permitir que você salve suas próprias informações.</p>
+                        <p className="mt-2 text-neutral-900 font-semibold">Ação Necessária:</p>
+                        <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800 bg-neutral-100 p-3 rounded-md">
+                            <li>Abra seu projeto no <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="text-primary font-semibold underline">Supabase</a>.</li>
+                            <li>No menu à esquerda, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
+                            <li>Na lista de tabelas, selecione a <strong>profiles</strong>.</li>
+                            <li>Clique em <strong>"New Policy"</strong> e depois <strong>"From a template"</strong>.</li>
+                            <li>Selecione o template chamado <strong>"Enable update access for users based on their UID"</strong>.</li>
+                            <li>Não altere nada no template, apenas clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
+                        </ol>
+                        <p className="mt-2 text-xs text-neutral-800">Após adicionar a política, recarregue esta página (F5) e tente salvar novamente.</p>
+                    </div>
+                );
+                setError(rlsErrorGuide);
+            } else {
+                setError(err.message || defaultMessage);
             }
-
-            setError(specificError);
             console.error(err);
         } finally {
             setLoading(false);
@@ -109,7 +121,7 @@ const OnboardingPage: React.FC = () => {
                             />
                         </div>
                         
-                        {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{error}</p>}
+                        {error && <div className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{error}</div>}
                         
                         <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-green-300 disabled:scale-100">
                             {loading ? 'Salvando...' : 'Salvar e Continuar'}
