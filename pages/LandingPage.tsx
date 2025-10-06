@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Lock, Leaf, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles } from 'lucide-react';
 import { useApp } from '../App';
@@ -33,12 +32,18 @@ const LandingPage: React.FC = () => {
                 const { error: loginError } = await login(email, password);
                 if (loginError) setError(loginError.message);
             } else { // signup
+                const trimmedName = name.trim();
+                if (!trimmedName) {
+                    setError("O nome é obrigatório e não pode ficar em branco.");
+                    setLoading(false);
+                    return;
+                }
                 if (password.length < 6) {
                     setError("A senha deve ter pelo menos 6 caracteres.");
                     setLoading(false);
                     return;
                 }
-                const result = await signup(email, password, name);
+                const result = await signup(email, password, trimmedName);
                 if (result.error) {
                     setError(result.error.message);
                 } else if (result.data.user && !result.data.session) {
