@@ -4,14 +4,15 @@ import process from 'process';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Carrega as variáveis de ambiente do Vercel
+  // Carrega as variáveis de ambiente do Vercel/build
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
     plugins: [react()],
     define: {
-      // Expõe as variáveis para o aplicativo do lado do cliente
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
+      // Mapeia as variáveis de ambiente do Vercel para o objeto process.env no lado do cliente.
+      // A SDK do Gemini exige 'API_KEY', então mapeamos a variável do usuário 'CHAVE_API' para ela.
+      'process.env.API_KEY': JSON.stringify(env.CHAVE_API),
       'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
       'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
     }

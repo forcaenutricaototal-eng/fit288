@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { UserProfile, DailyPlan } from '../types';
 
@@ -9,12 +10,12 @@ const getAi = () => {
         return ai;
     }
 
-    // A chave da API agora é injetada no build pelo vite.config.ts
+    // A chave da API é injetada no build pelo vite.config.ts
     const apiKey = process.env.API_KEY;
     
     if (!apiKey) {
-      // Mensagem de erro atualizada para o novo nome da variável
-      const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `API_KEY` está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
+      // A mensagem de erro agora aponta para a variável que o usuário configurou.
+      const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `CHAVE_API` está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
