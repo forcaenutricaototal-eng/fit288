@@ -1,9 +1,10 @@
 
+
 import React from 'react';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { Target, Scale, User, Ruler } from 'lucide-react';
+import { Target, Scale, User, Ruler, CalendarCheck } from 'lucide-react';
 
 const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string | number | undefined | null, unit?: string }> = ({ icon: Icon, label, value, unit }) => (
     <div className="bg-primary-light p-4 rounded-lg flex items-center space-x-3">
@@ -21,7 +22,7 @@ const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string
 
 
 const DashboardPage: React.FC = () => {
-    const { userProfile, checkIns } = useApp();
+    const { userProfile, checkIns, currentPlanDay } = useApp();
     const navigate = useNavigate();
 
     if (!userProfile) {
@@ -45,24 +46,47 @@ const DashboardPage: React.FC = () => {
         }))
         : (currentWeight ? [{ name: 'Início', Peso: currentWeight }] : []);
 
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Bom dia';
+        if (hour < 18) return 'Boa tarde';
+        return 'Boa noite';
+    };
 
     return (
         <div className="space-y-6 animate-fade-in">
             <div>
-                <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Dashboard</h1>
-                <p className="text-neutral-800">Seu resumo de progresso, {name}.</p>
+                <h1 className="text-xl md:text-2xl font-bold text-neutral-900">{getGreeting()}, {name}!</h1>
+                <p className="text-neutral-800">Pronta para mais um dia de sucesso? ✨</p>
+            </div>
+
+            {/* Daily Focus Card */}
+            <div className="bg-white p-6 rounded-lg shadow-soft border-l-4 border-primary">
+                <div className="flex items-center space-x-3 mb-3">
+                    <CalendarCheck className="text-primary-dark" size={24} />
+                    <h3 className="font-semibold text-lg text-neutral-900">Foco do Dia: Plano do Dia {currentPlanDay}</h3>
+                </div>
+                <p className="text-neutral-800 mb-4">Continue sua jornada. Acesse seu plano alimentar e complete suas tarefas de hoje para se aproximar do seu objetivo.</p>
+                <button 
+                    onClick={() => navigate(`/meal-plan/day/${currentPlanDay}`)} 
+                    className="bg-primary text-white font-semibold py-3 px-6 rounded-md shadow-md hover:bg-primary-dark transition-colors w-full sm:w-auto"
+                >
+                    Acessar Plano do Dia {currentPlanDay}
+                </button>
             </div>
 
             {/* User Summary Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard icon={User} label="Idade" value={age} unit=" anos" />
                 <StatCard icon={Ruler} label="Altura" value={height} unit=" cm" />
-                <StatCard icon={Scale} label="Peso Atual" value={currentWeight?.toFixed(1)} unit=" kg" />
+                <StatCard icon={Scale} label="Seu Peso Atual" value={currentWeight?.toFixed(1)} unit=" kg" />
             </div>
 
             {/* Evolution Chart */}
             <div className="bg-white p-4 sm:p-6 rounded-lg shadow-soft">
-                <h3 className="font-semibold text-lg text-neutral-900 mb-4">Evolução do Peso</h3>
+                <h3 className="font-semibold text-lg text-neutral-900 mb-1">Sua Jornada de Progresso</h3>
+                <p className="text-sm text-neutral-800 mb-4">Veja como você está evoluindo a cada check-in.</p>
+
                 {weightChartData.length > 0 ? (
                     <div className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -90,10 +114,7 @@ const DashboardPage: React.FC = () => {
             </div>
             
             {/* Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                <button onClick={() => navigate('/meal-plan')} className="bg-primary text-white font-semibold py-4 rounded-md shadow-md hover:bg-primary-dark transition-colors">
-                    Acessar Meu Plano Diário
-                </button>
+            <div className="grid grid-cols-1 gap-4 pt-4">
                  <button onClick={() => navigate('/chat')} className="bg-white text-neutral-900 font-semibold py-4 rounded-md shadow-md hover:bg-neutral-100 transition-colors border border-neutral-200">
                     Falar com a Nutricionista IA
                 </button>

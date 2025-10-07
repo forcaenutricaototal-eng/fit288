@@ -1,4 +1,4 @@
-// FIX: Add Vite client types to resolve import.meta.env error.
+// FIX: Moved the Vite client types reference to the top of the file to ensure it is processed correctly by TypeScript.
 /// <reference types="vite/client" />
 
 // Environment variables are exposed via `import.meta.env` in a Vite environment.
