@@ -10,8 +10,8 @@ const getAi = () => {
     }
 
     // Access the API key directly from Vite's environment variables.
-    // FIX: Bypassing TypeScript error for import.meta.env due to missing Vite client types.
-    const apiKey = (import.meta.env as any).VITE_GEMINI_API_KEY;
+    // Fix: Use typed import.meta.env now that Vite client types are available.
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     
     if (!apiKey) {
       const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `VITE_GEMINI_API_KEY` está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";

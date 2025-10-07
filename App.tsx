@@ -34,7 +34,6 @@ interface AppContextType {
   completedItemsByDay: { [day: number]: { [itemId: string]: boolean } };
   toggleItemCompletion: (day: number, itemId: string) => Promise<void>;
   resetDayCompletion: (day: number) => Promise<void>;
-  currentPlanDay: number;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -201,8 +200,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const completedItemsByDay = useMemo(() => userProfile?.completed_items_by_day || {}, [userProfile]);
   
   const planDuration = 28;
-  const currentPlanDay = useMemo(() => Math.min(checkIns.length + 1, planDuration), [checkIns, planDuration]);
-
 
   const value = useMemo(() => ({
     isAuthenticated: !!user,
@@ -220,8 +217,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-    currentPlanDay,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, updateUserProfile, addCheckIn, currentPlanDay]);
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, updateUserProfile, addCheckIn]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

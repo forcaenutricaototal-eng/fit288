@@ -1,3 +1,6 @@
+// Fix: Add Vite client types to enable strongly-typed access to import.meta.env
+/// <reference types="vite/client" />
+
 export interface UserProfile {
   id: string;
   name: string;

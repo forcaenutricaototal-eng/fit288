@@ -2,10 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Environment variables are exposed via `import.meta.env` in a Vite environment.
-// FIX: Bypassing TypeScript error for import.meta.env due to missing Vite client types.
-const supabaseUrl = (import.meta.env as any).VITE_SUPABASE_URL;
-// FIX: Bypassing TypeScript error for import.meta.env due to missing Vite client types.
-const supabaseAnonKey = (import.meta.env as any).VITE_SUPABASE_ANON_KEY;
+// Fix: Use typed import.meta.env now that Vite client types are available.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+// Fix: Use typed import.meta.env now that Vite client types are available.
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // This flag allows the React components to check if the configuration is present
 // before attempting to make any API calls.

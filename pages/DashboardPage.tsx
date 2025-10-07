@@ -4,7 +4,7 @@ import React from 'react';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { Target, Scale, User, Ruler, CalendarCheck } from 'lucide-react';
+import { Scale, User, Ruler } from 'lucide-react';
 
 const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string | number | undefined | null, unit?: string }> = ({ icon: Icon, label, value, unit }) => (
     <div className="bg-primary-light p-4 rounded-lg flex items-center space-x-3">
@@ -22,7 +22,7 @@ const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string
 
 
 const DashboardPage: React.FC = () => {
-    const { userProfile, checkIns, currentPlanDay } = useApp();
+    const { userProfile, checkIns } = useApp();
     const navigate = useNavigate();
 
     if (!userProfile) {
@@ -46,33 +46,12 @@ const DashboardPage: React.FC = () => {
         }))
         : (currentWeight ? [{ name: 'Início', Peso: currentWeight }] : []);
 
-    const getGreeting = () => {
-        const hour = new Date().getHours();
-        if (hour < 12) return 'Bom dia';
-        if (hour < 18) return 'Boa tarde';
-        return 'Boa noite';
-    };
 
     return (
         <div className="space-y-6 animate-fade-in">
             <div>
-                <h1 className="text-xl md:text-2xl font-bold text-neutral-900">{getGreeting()}, {name}!</h1>
-                <p className="text-neutral-800">Pronta para mais um dia de sucesso? ✨</p>
-            </div>
-
-            {/* Daily Focus Card */}
-            <div className="bg-white p-6 rounded-lg shadow-soft border-l-4 border-primary">
-                <div className="flex items-center space-x-3 mb-3">
-                    <CalendarCheck className="text-primary-dark" size={24} />
-                    <h3 className="font-semibold text-lg text-neutral-900">Foco do Dia: Plano do Dia {currentPlanDay}</h3>
-                </div>
-                <p className="text-neutral-800 mb-4">Continue sua jornada. Acesse seu plano alimentar e complete suas tarefas de hoje para se aproximar do seu objetivo.</p>
-                <button 
-                    onClick={() => navigate(`/meal-plan/day/${currentPlanDay}`)} 
-                    className="bg-primary text-white font-semibold py-3 px-6 rounded-md shadow-md hover:bg-primary-dark transition-colors w-full sm:w-auto"
-                >
-                    Acessar Plano do Dia {currentPlanDay}
-                </button>
+                <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">Dashboard</h1>
+                <p className="text-neutral-800">Seu resumo de progresso, {name}.</p>
             </div>
 
             {/* User Summary Section */}
@@ -84,10 +63,10 @@ const DashboardPage: React.FC = () => {
 
             {/* Evolution Chart */}
             <div className="bg-white p-4 sm:p-6 rounded-lg shadow-soft">
-                <h3 className="font-semibold text-lg text-neutral-900 mb-1">Sua Jornada de Progresso</h3>
+                <h3 className="font-semibold text-lg text-neutral-900 mb-1">Evolução do Peso</h3>
                 <p className="text-sm text-neutral-800 mb-4">Veja como você está evoluindo a cada check-in.</p>
 
-                {weightChartData.length > 0 ? (
+                {weightChartData.length > 1 ? (
                     <div className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={weightChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -107,17 +86,10 @@ const DashboardPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="h-[250px] flex flex-col items-center justify-center text-center text-neutral-800">
-                        <p>Nenhum registro de peso encontrado.</p>
-                        <p className="text-sm">Vá para a página de <span className="font-semibold">Perfil</span> e faça seu primeiro check-in para começar a acompanhar sua evolução.</p>
+                        <p>Ainda não há dados suficientes para exibir o gráfico.</p>
+                        <p className="text-sm">Faça pelo menos dois check-ins para começar a ver sua evolução aqui.</p>
                     </div>
                 )}
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="grid grid-cols-1 gap-4 pt-4">
-                 <button onClick={() => navigate('/chat')} className="bg-white text-neutral-900 font-semibold py-4 rounded-md shadow-md hover:bg-neutral-100 transition-colors border border-neutral-200">
-                    Falar com a Nutricionista IA
-                </button>
             </div>
         </div>
     );
