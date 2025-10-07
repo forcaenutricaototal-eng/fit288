@@ -1,7 +1,10 @@
-// Per Gemini API guidelines, the API key must be accessed from an environment variable.
-// In this frontend environment, variables are exposed via `process.env`. We use the
-// VITE_ prefix for consistency with other variables and user-facing instructions.
-// The execution environment is expected to provide this variable.
+// FIX: Add Vite client types to resolve import.meta.env error.
+/// <reference types="vite/client" />
+
+// In a Vite environment, environment variables prefixed with VITE_ are exposed
+// on the `import.meta.env` object. This is the standard and secure way to access them
+// on the client-side. The execution environment (like Vercel) is expected
+// to provide the `VITE_GEMINI_API_KEY` variable.
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { UserProfile, DailyPlan } from '../types';
@@ -14,8 +17,8 @@ const getAi = () => {
         return ai;
     }
 
-    // Use process.env to access env variables in this environment.
-    const apiKey = process.env.VITE_GEMINI_API_KEY;
+    // Use import.meta.env to access env variables in a Vite environment.
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     
     if (!apiKey) {
       const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `VITE_GEMINI_API_KEY` está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
@@ -25,6 +28,7 @@ const getAi = () => {
     
     try {
         // Create and cache the instance.
+        // As per guidelines, the API key is passed directly during initialization.
         ai = new GoogleGenAI({ apiKey });
         return ai;
     } catch (error) {

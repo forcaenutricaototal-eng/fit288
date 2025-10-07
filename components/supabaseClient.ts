@@ -1,10 +1,13 @@
-// Environment variables are exposed via `process.env` in this environment.
+// FIX: Add Vite client types to resolve import.meta.env error.
+/// <reference types="vite/client" />
+
+// Environment variables are exposed via `import.meta.env` in a Vite environment.
 
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // This flag allows the React components to check if the configuration is present
 // before attempting to make any API calls.
