@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import { User, Calendar, Edit, LogOut, PlusCircle, Save, X, Ruler, Scale, Mail } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 import type { UserProfile } from '../types';
 
 
@@ -214,7 +213,38 @@ const ProfilePage: React.FC = () => {
                 await updateUserProfile(profileToSave);
                 setIsEditing(false);
             } catch (err: any) {
-                setEditError("Ocorreu um erro ao salvar o perfil. Tente novamente.");
+                const defaultMessage = "Ocorreu um erro ao salvar o perfil. Tente novamente.";
+                if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
+                    const rlsErrorGuide = (
+                        <div className="text-sm text-left">
+                            <h4 className="font-bold text-red-700">Falha de Permissão ao Salvar (RLS)</h4>
+                            <p className="mt-2 text-neutral-800">Este erro indica que seu banco de dados não tem as permissões corretas. Para funcionar, a tabela <strong>'profiles'</strong> precisa de <strong>TRÊS</strong> políticas de segurança.</p>
+                            <p className="mt-2 text-neutral-900 font-semibold">Verifique suas políticas no Supabase:</p>
+                            
+                            <div className="mt-4 bg-neutral-100 p-3 rounded-md">
+                                <p className="font-semibold text-neutral-900">1. Política de Criação (INSERT)</p>
+                                <p className="text-xs text-neutral-800">Template: <strong>"Enable insert for authenticated users only"</strong></p>
+                            </div>
+
+                            <div className="mt-3 bg-neutral-100 p-3 rounded-md">
+                                <p className="font-semibold text-neutral-900">2. Política de Leitura (SELECT)</p>
+                                <p className="text-xs text-neutral-800">Template: <strong>"Enable read access for users based on their UID"</strong></p>
+                            </div>
+
+                            <div className="mt-3 bg-neutral-100 p-3 rounded-md">
+                                <p className="font-semibold text-neutral-900">3. Política de Atualização (UPDATE)</p>
+                                <p className="text-xs text-neutral-800">Template: <strong>"Enable update access for users based on their UID"</strong></p>
+                            </div>
+                            
+                            <p className="mt-3 text-xs text-neutral-800">
+                                Vá para <strong>Authentication → Policies</strong> no Supabase e garanta que essas três políticas existem e estão ativas para a tabela 'profiles'.
+                            </p>
+                        </div>
+                    );
+                    setEditError(rlsErrorGuide);
+                } else {
+                    setEditError(err.message || defaultMessage);
+                }
                 console.error(err);
             }
         }
@@ -254,6 +284,13 @@ const ProfilePage: React.FC = () => {
         Quadril: ci.hips,
     }));
 
+    const bmiChartData = userProfile.height 
+        ? checkIns.map(ci => ({
+            name: ci.day === 0 ? 'Início' : `Dia ${ci.day}`,
+            IMC: parseFloat(calculateBmi(ci.weight, userProfile.height).toFixed(1)),
+          }))
+        : [];
+
 
     return (
         <div className="space-y-6">
@@ -261,7 +298,7 @@ const ProfilePage: React.FC = () => {
             
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-neutral-900">Meu Perfil</h1>
+                    <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Meu Perfil</h1>
                     <p className="text-neutral-800">Gerencie suas informações e acompanhe sua evolução.</p>
                 </div>
                  <div className="flex flex-wrap items-center gap-2">
@@ -287,7 +324,7 @@ const ProfilePage: React.FC = () => {
                     {/* Informações Básicas */}
                     <div className="bg-white p-6 rounded-lg shadow-soft">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold text-neutral-900">Informações Básicas</h2>
+                            <h2 className="text-lg font-semibold text-neutral-900">Informações Básicas</h2>
                             {isEditing ? (
                                 <div className="flex items-center gap-2">
                                     <button onClick={handleEditSave} className="text-primary-dark p-2 rounded-full hover:bg-neutral-100"><Save size={18} /></button>
@@ -301,7 +338,7 @@ const ProfilePage: React.FC = () => {
                         </div>
                         {isEditing ? (
                             <div className="space-y-4 animate-fade-in">
-                                {editError && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{editError}</p>}
+                                {editError && <div className="text-red-500 text-sm text-center font-semibold bg-red-50 p-3 rounded-md">{editError}</div>}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-sm text-neutral-800 block mb-1">Nome</label>
@@ -333,26 +370,27 @@ const ProfilePage: React.FC = () => {
 
                     {/* Estatísticas Atuais */}
                     <div className="bg-white p-6 rounded-lg shadow-soft">
-                        <h2 className="text-xl font-semibold text-neutral-900 mb-4">Estatísticas Atuais</h2>
+                        <h2 className="text-lg font-semibold text-neutral-900 mb-4">Estatísticas Atuais</h2>
                          {currentWeight ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center items-center">
                                 <div>
-                                    <p className="text-3xl font-bold text-neutral-900">{currentWeight.toFixed(1)}<span className="text-lg text-gray-500">kg</span></p>
+                                    <p className="text-lg sm:text-2xl font-bold text-neutral-900">{currentWeight.toFixed(1)}<span className="text-base text-gray-500">kg</span></p>
                                     <p className="text-sm text-neutral-800">Peso</p>
                                 </div>
                                  <div>
-                                    <p className="text-3xl font-bold text-neutral-900">{currentBmi.toFixed(1)}</p>
+                                    <p className="text-lg sm:text-2xl font-bold text-neutral-900">{currentBmi.toFixed(1)}</p>
                                     <p className={`text-sm font-semibold ${bmiInfo.color}`}>{bmiInfo.category}</p>
+
                                 </div>
                                  {currentWaist && (
                                     <div>
-                                        <p className="text-3xl font-bold text-neutral-900">{currentWaist}<span className="text-lg text-gray-500">cm</span></p>
+                                        <p className="text-lg sm:text-2xl font-bold text-neutral-900">{currentWaist}<span className="text-base text-gray-500">cm</span></p>
                                         <p className="text-sm text-neutral-800">Cintura</p>
                                     </div>
                                 )}
                                  {currentHips && (
                                     <div>
-                                        <p className="text-3xl font-bold text-neutral-900">{currentHips}<span className="text-lg text-gray-500">cm</span></p>
+                                        <p className="text-lg sm:text-2xl font-bold text-neutral-900">{currentHips}<span className="text-base text-gray-500">cm</span></p>
                                         <p className="text-sm text-neutral-800">Quadril</p>
                                     </div>
                                 )}
@@ -363,7 +401,7 @@ const ProfilePage: React.FC = () => {
                     </div>
                      {/* Histórico de Medidas */}
                     <div className="bg-white p-6 rounded-lg shadow-soft">
-                        <h2 className="text-xl font-semibold text-neutral-900 mb-4">Histórico de Medidas</h2>
+                        <h2 className="text-lg font-semibold text-neutral-900 mb-4">Histórico de Medidas</h2>
                         <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                            {checkIns.length > 0 ? checkIns.slice().reverse().map((checkIn) => {
                                 const isCurrent = checkIn.day === (lastCheckIn?.day ?? -1);
@@ -389,10 +427,11 @@ const ProfilePage: React.FC = () => {
                 <div className="lg:col-span-2 space-y-6">
                     {/* Evolução das Medidas */}
                     <div className="bg-white p-6 rounded-lg shadow-soft">
-                         <h2 className="text-xl font-semibold text-neutral-900 mb-4">Evolução das Medidas</h2>
+                         <h2 className="text-lg font-semibold text-neutral-900 mb-4">Evolução das Medidas</h2>
                          <div className="h-80">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                                     <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                                     <YAxis tick={{ fontSize: 12 }} domain={['dataMin - 5', 'dataMax + 5']} />
                                     <Tooltip formatter={(value: number) => value.toFixed(1)} />
@@ -404,6 +443,24 @@ const ProfilePage: React.FC = () => {
                             </ResponsiveContainer>
                          </div>
                     </div>
+                    {/* Evolução do IMC */}
+                    {bmiChartData.length > 1 && (
+                        <div className="bg-white p-6 rounded-lg shadow-soft">
+                             <h2 className="text-lg font-semibold text-neutral-900 mb-4">Evolução do IMC</h2>
+                             <div className="h-80">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={bmiChartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                                        <YAxis tick={{ fontSize: 12 }} domain={['dataMin - 2', 'dataMax + 2']} />
+                                        <Tooltip formatter={(value: number) => value.toFixed(1)} />
+                                        <Legend wrapperStyle={{ fontSize: "12px" }} />
+                                        <Line type="monotone" dataKey="IMC" stroke="#10B981" strokeWidth={2} name="IMC" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                             </div>
+                        </div>
+                    )}
                 </div>
 
             </div>

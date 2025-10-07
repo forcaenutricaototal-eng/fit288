@@ -11,7 +11,7 @@ import { Send, BrainCircuit } from 'lucide-react';
 const ChatPage: React.FC = () => {
     const { userProfile } = useApp();
     const [messages, setMessages] = useState<ChatMessage[]>([
-        { id: '1', text: `Olá, ${userProfile?.name}! Sou sua nutricionista IA. Como posso te ajudar hoje?`, sender: 'ai' }
+        { id: '1', text: `Olá, ${userProfile?.name}! Eu sou a Luna, sua nutricionista virtual. Fico muito feliz em te acompanhar na sua jornada! Como posso te ajudar hoje? 😊`, sender: 'ai' }
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);

@@ -230,7 +230,7 @@ const PlanPage: React.FC = () => {
             
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-neutral-900">Meu Plano - Dia {plan.day}</h1>
+                    <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Meu Plano - Dia {plan.day}</h1>
                     <p className="text-neutral-800">Siga as refeições e complete as tarefas para um dia de sucesso!</p>
                     <p className="text-sm text-primary-dark mt-1 font-medium">Clique em uma refeição ou tarefa para marcar como concluída!</p>
                 </div>

@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf } from 'lucide-react';
 import { useApp } from '../App';
@@ -85,22 +86,22 @@ const LandingPage: React.FC = () => {
                 {/* Left Column: Content */}
                 <div className="space-y-6 text-center lg:text-left animate-fade-in-right">
                     <div className="flex items-center justify-center lg:justify-start space-x-3 mb-4">
-                        <Sunrise size={32} className="text-primary" />
-                        <span className="text-3xl font-bold text-neutral-900">Monjaro Japonês</span>
+                        <Sunrise size={24} className="text-primary" />
+                        <span className="text-lg font-bold text-neutral-900">Monjaro Japonês</span>
                     </div>
-                    <h1 className="text-4xl lg:text-5xl font-extrabold text-neutral-900 leading-tight">
+                    <h1 className="text-xl md:text-3xl font-bold text-neutral-900 leading-tight">
                         <span className="text-primary-dark">Monjaro Japonês:</span> O mesmo poder do Monjaro farmacêutico, mas em versão natural e mais potente.
                     </h1>
-                    <p className="text-lg text-neutral-800">
+                    <p className="text-base lg:text-lg text-neutral-800">
                        Acompanhe seu progresso, receba planos alimentares personalizados e converse com nossa IA para tirar dúvidas.
                     </p>
                     <div className="pt-4 text-left inline-block">
-                        <h2 className="text-2xl font-bold text-neutral-900 mb-3">Benefícios do Monjaro Japonês 🍵</h2>
+                        <h2 className="text-lg lg:text-xl font-bold text-neutral-900 mb-3">Benefícios do Monjaro Japonês 🍵</h2>
                         <ul className="space-y-3">
                             {benefits.map((benefit, index) => (
                                 <li key={index} className="flex items-center space-x-3">
                                     <benefit.icon className="text-primary flex-shrink-0" size={20} />
-                                    <span className="text-neutral-900">{benefit.text}</span>
+                                    <span className="text-neutral-900 text-sm sm:text-base">{benefit.text}</span>
                                 </li>
                             ))}
                         </ul>
@@ -110,7 +111,7 @@ const LandingPage: React.FC = () => {
                 {/* Right Column: Auth Card */}
                 <div className="w-full max-w-md mx-auto animate-fade-in-left">
                     <div className="bg-white p-8 rounded-lg shadow-soft">
-                        <h2 className="text-2xl font-bold text-center text-neutral-900 mb-2">
+                        <h2 className="text-lg sm:text-xl font-bold text-center text-neutral-900 mb-2">
                             {authMode === 'login' && 'Bem-vindo de volta'}
                             {authMode === 'signup' && 'Inicie sua transformação'}
                             {authMode === 'recover' && 'Recuperar Senha'}

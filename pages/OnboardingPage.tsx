@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import { User, Scale, Ruler, Leaf, Target, Calendar, Sunrise } from 'lucide-react';
@@ -64,27 +65,36 @@ const OnboardingPage: React.FC = () => {
                  const rlsErrorGuide = (
                     <div className="text-sm text-left">
                         <h4 className="font-bold text-red-700">Falha de Permissão no Banco de Dados (RLS)</h4>
-                        <p className="mt-2 text-neutral-800">Este é o erro mais comum! Significa que seu banco de dados precisa de regras para permitir que você veja e salve suas próprias informações. Você precisa criar <strong>DUAS</strong> políticas.</p>
+                        <p className="mt-2 text-neutral-800">Este é o erro mais comum! Ele ocorre quando o banco de dados não tem as permissões corretas. Para que novos usuários possam se cadastrar e salvar seus dados, você precisa criar <strong>TRÊS</strong> políticas de segurança para a tabela <strong>'profiles'</strong>.</p>
                         
                         <div className="mt-4 bg-neutral-100 p-3 rounded-md">
-                            <p className="font-semibold text-neutral-900">1ª Política: Permitir Leitura (SELECT)</p>
+                            <p className="font-semibold text-neutral-900">1ª Política: Permitir Criação (INSERT)</p>
                             <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
                                 <li>No menu do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
                                 <li>Na tabela <strong>profiles</strong>, clique em <strong>"New Policy"</strong> → <strong>"From a template"</strong>.</li>
-                                <li>Selecione o template: <strong>"Enable read access for users based on their UID"</strong>.</li>
+                                <li>Selecione o template: <strong>"Enable insert for authenticated users only"</strong>.</li>
                                 <li>Clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
                             </ol>
                         </div>
 
                          <div className="mt-3 bg-neutral-100 p-3 rounded-md">
-                            <p className="font-semibold text-neutral-900">2ª Política: Permitir Atualização (UPDATE)</p>
+                            <p className="font-semibold text-neutral-900">2ª Política: Permitir Leitura (SELECT)</p>
                             <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
-                                <li>Na mesma tela, clique em <strong>"New Policy"</strong> → <strong>"From a template"</strong> novamente.</li>
-                                <li>Selecione o template: <strong>"Enable update access for users based on their UID"</strong>.</li>
-                                <li>Clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
+                                <li>Clique em <strong>"New Policy"</strong> → <strong>"From a template"</strong> novamente.</li>
+                                <li>Selecione o template: <strong>"Enable read access for users based on their UID"</strong>.</li>
+                                <li>Clique em <strong>"Review"</strong> e <strong>"Save policy"</strong>.</li>
                             </ol>
                         </div>
-                        <p className="mt-3 text-xs text-neutral-800">Após criar as duas políticas, recarregue esta página (F5) e tente salvar novamente.</p>
+                        
+                         <div className="mt-3 bg-neutral-100 p-3 rounded-md">
+                            <p className="font-semibold text-neutral-900">3ª Política: Permitir Atualização (UPDATE)</p>
+                            <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
+                                <li>Clique em <strong>"New Policy"</strong> → <strong>"From a template"</strong> mais uma vez.</li>
+                                <li>Selecione o template: <strong>"Enable update access for users based on their UID"</strong>.</li>
+                                <li>Clique em <strong>"Review"</strong> e <strong>"Save policy"</strong>.</li>
+                            </ol>
+                        </div>
+                        <p className="mt-3 text-xs text-neutral-800">Após criar as <strong>três</strong> políticas, recarregue a página (F5) e tente salvar novamente. Isso deve resolver o problema de forma definitiva.</p>
                     </div>
                 );
                 setError(rlsErrorGuide);
@@ -103,9 +113,9 @@ const OnboardingPage: React.FC = () => {
                 <div className="bg-white p-8 rounded-lg shadow-soft">
                     <div className="flex items-center justify-center space-x-3 mb-4">
                         <Sunrise size={28} className="text-primary" />
-                        <span className="text-2xl font-bold text-neutral-900">Monjaro Japonês</span>
+                        <span className="text-xl font-bold text-neutral-900">Monjaro Japonês</span>
                     </div>
-                    <h2 className="text-2xl font-bold text-center text-neutral-900 mb-2">
+                    <h2 className="text-xl font-bold text-center text-neutral-900 mb-2">
                         Complete seu Perfil
                     </h2>
                     <p className="text-center text-neutral-800 mb-6">

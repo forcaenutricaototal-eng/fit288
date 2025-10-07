@@ -1,4 +1,6 @@
-// Per Gemini API guidelines, the API key must be accessed via `process.env.API_KEY`.
+// Per Gemini API guidelines, the API key must be accessed from an environment variable.
+// In this frontend environment, variables are exposed via `process.env`. We use the
+// VITE_ prefix for consistency with other variables and user-facing instructions.
 // The execution environment is expected to provide this variable.
 
 import { GoogleGenAI, Type } from "@google/genai";
@@ -12,8 +14,8 @@ const getAi = () => {
         return ai;
     }
 
-    // The API key is injected during the build process by Vite from environment variables.
-    const apiKey = process.env.API_KEY;
+    // Use process.env to access env variables in this environment.
+    const apiKey = process.env.VITE_GEMINI_API_KEY;
     
     if (!apiKey) {
       const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `VITE_GEMINI_API_KEY` está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
@@ -40,7 +42,12 @@ export const getGeminiResponse = async (
 ) => {
   try {
     const aiClient = getAi();
-    const systemInstruction = `Você é Luna, a nutricionista virtual do Monjaro Japonês. Sua função é atuar como uma especialista amigável e inteligente, seguindo o método de emagrecimento natural japonês e o protocolo DETOX10. Comunique-se de forma acolhedora, divertida e educativa, usando emojis e expressões leves.
+    const systemInstruction = `Você é Luna, a nutricionista virtual do Monjaro Japonês. Sua função é atuar como uma especialista amigável, inteligente e extremamente amorosa.
+
+    **SUA PERSONALIDADE:**
+    - **Nome:** Luna. Sempre se apresente como Luna no início da conversa ou ao abordar um novo tópico.
+    - **Tom:** Extremamente gentil, acolhedora, encorajadora e divertida. Comunique-se de forma educativa, usando emojis (❤️, 😊, ✨, 🍵) para deixar a conversa leve e positiva.
+    - **Missão:** Ajudar o usuário a se sentir bem e motivado em sua jornada de emagrecimento com o método Monjaro Japonês e o protocolo DETOX10.
 
     ---
     **REGRA DE ENCERRAMENTO OBRIGATÓRIA:**

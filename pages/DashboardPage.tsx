@@ -49,7 +49,7 @@ const DashboardPage: React.FC = () => {
     return (
         <div className="space-y-6 animate-fade-in">
             <div>
-                <h1 className="text-3xl font-bold text-neutral-900">Dashboard</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Dashboard</h1>
                 <p className="text-neutral-800">Seu resumo de progresso, {name}.</p>
             </div>
 

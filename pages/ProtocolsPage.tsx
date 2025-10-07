@@ -22,8 +22,8 @@ const YoutubeEmbed: React.FC<{ embedId: string; title: string }> = ({ embedId, t
 const MonjaroProtocol: React.FC = () => (
     <div className="space-y-6">
         <div className="bg-white p-6 rounded-lg shadow-soft">
-            <h2 className="text-2xl font-bold text-neutral-900 mb-2">Protocolo Monjaro Japonês</h2>
-            <p className="text-neutral-800">
+            <h2 className="text-lg md:text-xl font-bold text-neutral-900 mb-2">Protocolo Monjaro Japonês</h2>
+            <p className="text-neutral-800 mt-2">
                 Este protocolo é inspirado em práticas de saúde e nutrição japonesas, focando em ingredientes naturais para otimizar o metabolismo e promover o bem-estar. Assista aos vídeos abaixo para receitas e dicas essenciais.
             </p>
         </div>
@@ -44,7 +44,7 @@ const SectionCard: React.FC<{ icon: React.ElementType; title: string; children: 
             <button onClick={() => setIsOpen(!isOpen)} className="flex items-center justify-between w-full p-4 md:p-6 text-left">
                 <div className="flex items-center space-x-3">
                     <Icon className="text-primary" size={24} />
-                    <h3 className="text-xl font-semibold text-neutral-900">{title}</h3>
+                    <h3 className="text-lg font-semibold text-neutral-900">{title}</h3>
                 </div>
                 {isOpen ? <ChevronUp /> : <ChevronDown />}
             </button>
@@ -136,8 +136,8 @@ const dailyPlans = [
 const Detox10Protocol: React.FC = () => (
     <div className="space-y-4">
         <div className="bg-white p-6 rounded-lg shadow-soft text-center">
-            <h2 className="text-2xl font-bold text-primary-dark mb-2">Estratégia dos 5 Primeiros Dias do Detox10</h2>
-            <p className="text-neutral-800 max-w-2xl mx-auto">
+            <h2 className="text-lg md:text-xl font-bold text-primary-dark mb-2">Estratégia dos 5 Primeiros Dias do Detox10</h2>
+            <p className="text-neutral-800 max-w-2xl mx-auto mt-2">
                 Emagreça de 3 a 5kg em 10 dias com um plano focado, organização e monitoramento constante para manter a motivação e alcançar resultados.
             </p>
         </div>
@@ -301,7 +301,7 @@ const ProtocolsPage: React.FC = () => {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold text-neutral-900">Protocolos</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Protocolos</h1>
                 <p className="text-neutral-800">Siga guias e estratégias para potencializar seus resultados.</p>
             </div>
 

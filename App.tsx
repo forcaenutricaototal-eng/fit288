@@ -244,7 +244,7 @@ const ConfigErrorMessage: React.FC = () => (
             </div>
             <h2 className="text-2xl font-bold text-neutral-900 mb-3">Configuração Incompleta</h2>
             <p className="text-neutral-800 mb-6">
-                O aplicativo não conseguiu se conectar aos serviços essenciais (Supabase e Google Gemini). Isso acontece quando as chaves da API não estão configuradas corretamente no ambiente de deploy (Vercel).
+                O aplicativo não conseguiu se conectar aos serviços essenciais. Isso geralmente acontece quando as chaves de API não estão configuradas corretamente no ambiente de deploy (Vercel).
             </p>
             <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver em 3 Passos:</h3>
             <div className="space-y-6 text-left">
@@ -257,20 +257,20 @@ const ConfigErrorMessage: React.FC = () => (
                 </div>
                  <div className="bg-neutral-100 p-4 rounded-md">
                     <p className="font-bold mb-2">2. Adicione as Chaves na Vercel:</p>
-                     <p className="text-sm text-neutral-800 mb-3">No seu projeto na Vercel, vá em <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. Crie as três variáveis com os nomes <strong>exatos</strong> abaixo:</p>
-                    <ul className="list-disc list-inside text-sm space-y-1 font-mono bg-gray-800 text-white p-3 rounded-md">
-                        <li>VITE_SUPABASE_URL=[cole sua URL aqui]</li>
-                        <li>VITE_SUPABASE_ANON_KEY=[cole sua chave anon aqui]</li>
-                        <li>VITE_GEMINI_API_KEY=[cole sua chave Gemini aqui]</li>
-                    </ul>
-                    <p className="text-xs text-neutral-800 mt-2">
-                        <strong>Atenção:</strong> Se você usava <code className="bg-neutral-200 px-1 rounded">CHAVE_API_VITE</code>, por favor, renomeie para <code className="bg-neutral-200 px-1 rounded">VITE_GEMINI_API_KEY</code> para seguir o novo padrão.
+                     <p className="text-sm text-neutral-800 mb-3">No seu projeto Vercel, vá para <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. Crie as três variáveis com os nomes <strong>exatos</strong> e os valores que você copiou:</p>
+                    <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
+                        <p>VITE_SUPABASE_URL=<span className="text-gray-400">[cole sua URL aqui]</span></p>
+                        <p>VITE_SUPABASE_ANON_KEY=<span className="text-gray-400">[cole sua chave anon aqui]</span></p>
+                        <p>VITE_GEMINI_API_KEY=<span className="text-gray-400">[cole sua chave Gemini aqui]</span></p>
+                    </div>
+                     <p className="text-xs text-neutral-800 mt-2">
+                        <strong>Atenção:</strong> Os nomes devem ser idênticos aos mostrados acima. Qualquer erro de digitação fará com que não funcione.
                     </p>
                 </div>
                  <div className="bg-neutral-100 p-4 rounded-md">
                     <p className="font-bold mb-2">3. Faça o Redeploy:</p>
                     <p className="text-sm text-neutral-800">
-                        Na Vercel, vá para a aba <code className="bg-neutral-200 px-1 rounded">Deployments</code>, encontre o deploy mais recente e clique no menu de três pontos (•••) e depois em <strong>"Redeploy"</strong> para que as novas variáveis sejam aplicadas.
+                        Após salvar as variáveis, vá para a aba <code className="bg-neutral-200 px-1 rounded">Deployments</code> na Vercel, encontre o deploy mais recente, clique no menu (•••) e selecione <strong>"Redeploy"</strong>. Isso é <strong>essencial</strong> para que as novas variáveis sejam aplicadas.
                     </p>
                 </div>
             </div>
