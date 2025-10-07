@@ -1,5 +1,13 @@
-// FIX: Moved the Vite client types reference to the top of the file to ensure it is processed correctly by TypeScript.
-/// <reference types="vite/client" />
+// FIX: Removed the non-functional vite/client reference and added a manual type declaration
+// for import.meta.env to resolve type errors when vite/client types are not found.
+declare global {
+  interface ImportMeta {
+    readonly env: {
+      readonly VITE_SUPABASE_URL: string;
+      readonly VITE_SUPABASE_ANON_KEY: string;
+    }
+  }
+}
 
 // Environment variables are exposed via `import.meta.env` in a Vite environment.
 
