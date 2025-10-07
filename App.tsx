@@ -267,8 +267,7 @@ const ConfigErrorMessage: React.FC = () => (
                     <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
                         <p>VITE_SUPABASE_URL=<span className="text-gray-400">[cole sua URL aqui]</span></p>
                         <p>VITE_SUPABASE_ANON_KEY=<span className="text-gray-400">[cole sua chave anon aqui]</span></p>
-                        {/* Fix: Changed environment variable name to VITE_API_KEY to follow Vite conventions and fix a bug where the variable was not exposed to the client. */}
-                        <p>VITE_API_KEY=<span className="text-gray-400">[cole sua chave Gemini aqui]</span></p>
+                        <p>API_KEY=<span className="text-gray-400">[cole sua chave Gemini aqui]</span></p>
                     </div>
                      <p className="text-xs text-neutral-800 mt-2">
                         <strong>Atenção:</strong> Os nomes devem ser idênticos aos mostrados acima. Qualquer erro de digitação fará com que não funcione.
