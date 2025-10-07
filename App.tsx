@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -263,8 +264,7 @@ const ConfigErrorMessage: React.FC = () => (
                     <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
                         <p>VITE_SUPABASE_URL=<span className="text-gray-400">[cole sua URL aqui]</span></p>
                         <p>VITE_SUPABASE_ANON_KEY=<span className="text-gray-400">[cole sua chave anon aqui]</span></p>
-                        {/* FIX: Changed environment variable name to API_KEY to match guidelines. */}
-                        <p>API_KEY=<span className="text-gray-400">[cole sua chave Gemini aqui]</span></p>
+                        <p>VITE_GEMINI_API_KEY=<span className="text-gray-400">[cole sua chave Gemini aqui]</span></p>
                     </div>
                      <p className="text-xs text-neutral-800 mt-2">
                         <strong>Atenção:</strong> Os nomes devem ser idênticos aos mostrados acima. Qualquer erro de digitação fará com que não funcione.

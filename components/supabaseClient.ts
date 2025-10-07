@@ -1,9 +1,17 @@
+
+// Fix for Vite environment variable typing error by defining ImportMeta
+interface ImportMeta {
+  readonly env: {
+    readonly VITE_SUPABASE_URL: string;
+    readonly VITE_SUPABASE_ANON_KEY: string;
+  };
+}
+
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// FIX: Replaced import.meta.env with process.env to resolve TypeScript errors.
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
