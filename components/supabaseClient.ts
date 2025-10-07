@@ -1,11 +1,5 @@
-
-// Fix for Vite environment variable typing error by defining ImportMeta
-interface ImportMeta {
-  readonly env: {
-    readonly VITE_SUPABASE_URL: string;
-    readonly VITE_SUPABASE_ANON_KEY: string;
-  };
-}
+// Fix: Add Vite client types to resolve 'import.meta.env' type errors.
+/// <reference types="vite/client" />
 
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';

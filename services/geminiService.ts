@@ -1,10 +1,5 @@
-
-// Fix for Vite environment variable typing error by defining ImportMeta
-interface ImportMeta {
-  readonly env: {
-    readonly VITE_GEMINI_API_KEY: string;
-  };
-}
+// Fix: Add Vite client types to resolve 'import.meta.env' type errors.
+/// <reference types="vite/client" />
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { UserProfile, DailyPlan } from '../types';
@@ -16,10 +11,13 @@ const getAi = () => {
         return ai;
     }
 
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    // Fix: Use VITE_API_KEY and Vite's import.meta.env for client-side environment variables.
+    // The previous variable name CHAVE_API_GEMINI_VITE would not be exposed to the browser by Vite.
+    const apiKey = import.meta.env.VITE_API_KEY;
     
     if (!apiKey) {
-      const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `VITE_GEMINI_API_KEY` está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
+      // Fix: Updated error message to reflect the corrected environment variable name.
+      const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `VITE_API_KEY` está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
