@@ -1,31 +1,36 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { UserProfile, DailyPlan } from '../types';
 
+// Declaração para o TypeScript reconhecer a variável injetada pelo Vite.
+declare const process: {
+  env: {
+    API_KEY: string
+  }
+};
+
 let ai: GoogleGenAI | null = null;
 
 const getAi = () => {
-    // If the instance already exists, return it.
     if (ai) {
         return ai;
     }
 
-    // Access the API key directly from Vite's environment variables.
-    // Fix: Use typed import.meta.env now that Vite client types are available.
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    // Acessa a API key injetada pelo vite.config.ts.
+    // Esta é a forma correta de seguir as diretrizes da SDK do Gemini.
+    const apiKey = process.env.API_KEY;
     
     if (!apiKey) {
+      // A mensagem de erro orienta o usuário a verificar a variável de origem correta.
       const errorMessage = "A chave da API Gemini não foi encontrada. Verifique se a variável de ambiente `VITE_GEMINI_API_KEY` está configurada corretamente nas configurações do seu projeto na Vercel e faça um novo deploy.";
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
     
     try {
-        // Create and cache the instance.
         ai = new GoogleGenAI({ apiKey });
         return ai;
     } catch (error) {
         console.error("Erro ao inicializar o GoogleGenAI:", error);
-        // Ensure `ai` is null if initialization fails, so we can retry.
         ai = null; 
         throw new Error("Falha ao inicializar o cliente Gemini AI. Verifique o console para mais detalhes.");
     }
