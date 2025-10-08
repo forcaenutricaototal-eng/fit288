@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, HelpCircle, Copy, Check } from 'lucide-react';
 import { useApp } from '../App';
@@ -12,19 +13,31 @@ const InlineRlsGuide: React.FC<{ type: 'UPDATE' | 'SELECT' | 'TABLE' }> = ({ typ
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const CodeBlock: React.FC<{ textToCopy: string }> = ({ textToCopy }) => (
+        <div className="my-2 p-2 bg-gray-800 rounded-md flex justify-between items-center ml-4">
+            <code className="text-white select-all">{textToCopy}</code>
+            <button onClick={() => copyToClipboard(textToCopy)} className="text-white p-1">
+                {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+            </button>
+        </div>
+    );
+
     const getContent = () => {
         switch (type) {
             case 'UPDATE':
                 return {
                     title: 'Ação Requerida: Configurar Permissão de UPDATE',
-                    textToCopy: 'is_used = false',
                     steps: [
                         'No seu painel Supabase, vá para: Authentication → Policies.',
                         'Na tabela `access_codes`, clique em "New Policy" e depois em "Create a new policy from scratch".',
                         'Para "Policy name", dê um nome descritivo (ex: `Permitir uso de códigos`).',
                         'Para "Allowed operation", marque APENAS a opção `UPDATE`.',
                         'Para "Target roles", selecione `anon`.',
-                        'No campo "USING expression", cole o texto abaixo. Esta regra garante que apenas códigos não utilizados possam ser marcados como "usados".',
+                        <>No campo <strong>"USING expression"</strong>, cole o texto abaixo. Esta regra permite que a operação afete apenas códigos que ainda não foram usados.</>,
+                        { code: 'is_used = false' },
+                        <>Marque a caixa <strong>"Use check expression"</strong>.</>,
+                        <>No campo <strong>"WITH CHECK expression"</strong>, cole o texto abaixo. Esta regra garante que a única alteração permitida seja marcar o código como "usado".</>,
+                        { code: 'is_used = true' },
                     ]
                 };
             case 'SELECT':
@@ -40,11 +53,11 @@ const InlineRlsGuide: React.FC<{ type: 'UPDATE' | 'SELECT' | 'TABLE' }> = ({ typ
             case 'TABLE':
                 return {
                     title: 'Ação Requerida: Tabela `access_codes` Não Encontrada',
-                    textToCopy: 'access_codes',
                     steps: [
                         'No seu painel Supabase, vá para: Table Editor.',
                         'Encontre sua tabela de códigos de acesso. Ela pode ter um nome diferente (ex: `simone11`).',
                         'Renomeie a tabela para o nome exato abaixo para que o aplicativo possa encontrá-la.',
+                         { code: 'access_codes' },
                     ]
                 };
             default: return null;
@@ -61,17 +74,13 @@ const InlineRlsGuide: React.FC<{ type: 'UPDATE' | 'SELECT' | 'TABLE' }> = ({ typ
                 <div>
                     <h3 className="font-bold text-red-700">{content.title}</h3>
                     <p className="text-neutral-800 mt-1">O cadastro falhou por um problema de configuração no seu projeto Supabase. Siga os passos abaixo para resolver o problema detectado:</p>
-                    <ol className="list-decimal list-inside mt-3 space-y-1 text-neutral-800">
-                        {content.steps.map((step, i) => <li key={i}>{step}</li>)}
+                    <ol className="list-decimal list-inside mt-3 space-y-2 text-neutral-800">
+                        {content.steps.map((step, i) => (
+                            typeof step === 'object' && 'code' in step 
+                            ? <CodeBlock key={i} textToCopy={step.code} />
+                            : <li key={i}>{step}</li>
+                        ))}
                     </ol>
-                    {content.textToCopy && (
-                         <div className="mt-2 p-2 bg-gray-800 rounded-md flex justify-between items-center">
-                            <code className="text-white select-all">{content.textToCopy}</code>
-                            <button onClick={() => copyToClipboard(content.textToCopy)} className="text-white">
-                                {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
-                            </button>
-                        </div>
-                    )}
                     <p className="text-xs text-neutral-800 mt-3 font-semibold">Após corrigir, tente se cadastrar novamente.</p>
                 </div>
             </div>
