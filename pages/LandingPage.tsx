@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, ShieldOff, Clipboard, ClipboardCheck, RefreshCw, DatabaseZap, AlertCircle } from 'lucide-react';
+import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, Settings, Key, Clipboard, ClipboardCheck, RefreshCw, DatabaseZap, AlertCircle } from 'lucide-react';
 import { useApp } from '../App';
 import { useToast } from '../components/Toast';
 
@@ -22,8 +22,8 @@ const SetupGuide: React.FC<{ errorType: 'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_M
     const renderTableNotFoundGuide = () => (
         <div className="bg-white p-8 rounded-lg shadow-soft animate-fade-in text-sm text-left">
             <div className="flex items-center gap-3 mb-4">
-                <DatabaseZap className="text-red-600 flex-shrink-0" size={40} />
-                <h4 className="font-bold text-xl text-red-700">Ação Urgente: Tabela de Códigos Incorreta!</h4>
+                <DatabaseZap className="text-blue-600 flex-shrink-0" size={40} />
+                <h4 className="font-bold text-xl text-blue-700">Último Passo: Corrigir Nome da Tabela</h4>
             </div>
             <p className="text-neutral-800">
                 Encontramos o problema! O aplicativo está configurado para usar uma tabela chamada <strong>`access_codes`</strong>, mas ela não foi encontrada.
@@ -68,10 +68,10 @@ const SetupGuide: React.FC<{ errorType: 'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_M
     const renderRLSUpdateGuide = () => (
          <div className="bg-white p-8 rounded-lg shadow-soft animate-fade-in text-sm text-left">
             <div className="flex items-center gap-3 mb-4">
-                <ShieldOff className="text-red-600 flex-shrink-0" size={40} />
-                <h4 className="font-bold text-xl text-red-700">Ação Urgente: Permissão Faltando!</h4>
+                <Key className="text-blue-600 flex-shrink-0" size={40} />
+                <h4 className="font-bold text-xl text-blue-700">Último Passo da Configuração</h4>
             </div>
-            <p className="text-neutral-800">O sistema foi **impedido** de usar seu código de acesso. Isso acontece porque a permissão de <strong>UPDATE (uso)</strong> está faltando no seu banco de dados Supabase. Sem ela, ninguém consegue se cadastrar.</p>
+            <p className="text-neutral-800">O aplicativo precisa de uma permissão final para funcionar. Sem ela, ninguém consegue se cadastrar. Vamos criar a permissão de <strong>USO (UPDATE)</strong> agora.</p>
             
             <div className="mt-4 bg-neutral-100 p-4 rounded-lg border border-neutral-200">
                 <p className="font-bold text-neutral-900 mb-2 text-base">Solução: Crie a Política de UPDATE (Uso)</p>
@@ -79,9 +79,9 @@ const SetupGuide: React.FC<{ errorType: 'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_M
                     <li>No painel do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
                     <li>Na tabela <strong>`access_codes`</strong>, clique em <strong>"New Policy"</strong> → <strong>"Create a new policy from scratch"</strong>.</li>
                     <li><strong>Policy name:</strong> Dê um nome, como `Permitir uso de códigos`.</li>
-                    <li className="p-3 bg-red-50 border border-red-200 rounded-md">
-                        <strong className="text-primary-dark text-base">Allowed operation (O PASSO MAIS IMPORTANTE):</strong>
-                        <p className="mt-1 text-neutral-800">Nesta seção, você verá várias opções. Certifique-se de que <strong>APENAS a opção `UPDATE`</strong> esteja marcada. Desmarque qualquer outra.</p>
+                    <li className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <strong className="text-blue-800 text-base">Allowed operation (O PASSO MAIS IMPORTANTE):</strong>
+                        <p className="mt-1 text-neutral-800">Nesta seção, você verá várias opções. Certifique-se de que <strong>APENAS a opção `UPDATE`</strong> esteja marcada.</p>
                         <div className="my-2 p-2 bg-gray-800 rounded-md text-center">
                             <code className="text-white select-all text-xs">[ ] SELECT &nbsp; [ ] INSERT &nbsp; [X] UPDATE &nbsp; [ ] DELETE</code>
                         </div>
@@ -103,7 +103,6 @@ const SetupGuide: React.FC<{ errorType: 'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_M
                 </ol>
             </div>
             
-            {/* Seção de Solução de Problemas */}
             <div className="mt-6 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                 <div className="flex items-center gap-2">
                     <AlertCircle className="text-yellow-600" size={20} />
@@ -129,10 +128,10 @@ const SetupGuide: React.FC<{ errorType: 'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_M
     const renderRLSSelectGuide = () => (
          <div className="bg-white p-8 rounded-lg shadow-soft animate-fade-in text-sm text-left">
             <div className="flex items-center gap-3 mb-4">
-                <ShieldOff className="text-red-600 flex-shrink-0" size={40} />
-                <h4 className="font-bold text-xl text-red-700">Ação Urgente: Permissão de Leitura Faltando!</h4>
+                <Key className="text-blue-600 flex-shrink-0" size={40} />
+                <h4 className="font-bold text-xl text-blue-700">Configuração de Permissão (Leitura)</h4>
             </div>
-            <p className="text-neutral-800">O sistema não conseguiu **verificar** seu código de acesso. Isso acontece porque a permissão de <strong>SELECT (leitura)</strong> está faltando no seu banco de dados Supabase.</p>
+            <p className="text-neutral-800">O sistema também precisa de permissão para <strong>VERIFICAR (SELECT)</strong> seu código de acesso. Sem isso, o cadastro não funciona.</p>
             
             <div className="mt-4 bg-neutral-100 p-4 rounded-lg border border-neutral-200">
                 <p className="font-bold text-neutral-900 mb-2 text-base">Solução: Crie a Política de SELECT (Leitura)</p>
@@ -141,8 +140,8 @@ const SetupGuide: React.FC<{ errorType: 'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_M
                     <li>No painel do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
                     <li>Na tabela <strong>`access_codes`</strong>, clique em <strong>"New Policy"</strong>.</li>
                     <li>Selecione a opção: <strong>"From a template"</strong>.</li>
-                    <li className="p-3 bg-red-50 border border-red-200 rounded-md">
-                        <strong className="text-primary-dark text-base">Selecione o Template Correto:</strong>
+                    <li className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <strong className="text-blue-800 text-base">Selecione o Template Correto:</strong>
                         <p className="mt-1 text-neutral-800">Na lista de modelos, escolha a opção que diz: <strong>"Enable read access for all users"</strong>.</p>
                         <div className="my-2 p-2 bg-gray-800 rounded-md text-center">
                             <code className="text-white select-all text-xs">Enable read access for all users</code>
