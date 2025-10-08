@@ -16,36 +16,35 @@ const InlineRlsGuide: React.FC<{ type: 'UPDATE' | 'SELECT' | 'TABLE' }> = ({ typ
         switch (type) {
             case 'UPDATE':
                 return {
-                    title: 'Permissão de Uso (UPDATE) Faltando',
+                    title: 'Ação Requerida: Configurar Permissão de UPDATE',
                     textToCopy: 'is_used = false',
                     steps: [
-                        'No Supabase, vá para: Authentication → Policies.',
-                        'Na tabela `access_codes`, clique em "New Policy" → "Create a new policy from scratch".',
-                        'Policy name: Dê um nome, como `Permitir uso de códigos`.',
-                        'Allowed operation: Marque APENAS a opção `UPDATE`.',
-                        'Target roles: Marque `anon`.',
-                        'USING expression: Cole o texto abaixo.',
+                        'No seu painel Supabase, vá para: Authentication → Policies.',
+                        'Na tabela `access_codes`, clique em "New Policy" e depois em "Create a new policy from scratch".',
+                        'Para "Policy name", dê um nome descritivo (ex: `Permitir uso de códigos`).',
+                        'Para "Allowed operation", marque APENAS a opção `UPDATE`.',
+                        'Para "Target roles", selecione `anon`.',
+                        'No campo "USING expression", cole o texto abaixo. Esta regra garante que apenas códigos não utilizados possam ser marcados como "usados".',
                     ]
                 };
             case 'SELECT':
                  return {
-                    title: 'Permissão de Leitura (SELECT) Faltando',
-                    textToCopy: 'true',
+                    title: 'Ação Requerida: Configurar Permissão de Leitura (SELECT)',
                      steps: [
-                        'No Supabase, vá para: Authentication → Policies.',
-                        'Na tabela `access_codes`, clique em "New Policy" → "From a template".',
-                        'Selecione o template: "Enable read access for all users".',
-                        'Clique em "Review" e depois em "Save policy".',
+                       'No seu painel Supabase, vá para: Authentication → Policies.',
+                       'Na tabela `access_codes`, clique em "New Policy" → "From a template".',
+                       'Selecione o template chamado "Enable read access for all users".',
+                       'Revise a política e clique em "Save policy". Esta regra permite que o sistema verifique se um código existe antes do cadastro.',
                     ]
                 };
             case 'TABLE':
                 return {
-                    title: 'Tabela `access_codes` Não Encontrada',
+                    title: 'Ação Requerida: Tabela `access_codes` Não Encontrada',
                     textToCopy: 'access_codes',
                     steps: [
-                        'No Supabase, vá para: Table Editor.',
-                        'Encontre a sua tabela de códigos (ela pode estar com um nome antigo, como `simone11`).',
-                        'Renomeie a tabela para o nome exato abaixo.',
+                        'No seu painel Supabase, vá para: Table Editor.',
+                        'Encontre sua tabela de códigos de acesso. Ela pode ter um nome diferente (ex: `simone11`).',
+                        'Renomeie a tabela para o nome exato abaixo para que o aplicativo possa encontrá-la.',
                     ]
                 };
             default: return null;
@@ -61,7 +60,7 @@ const InlineRlsGuide: React.FC<{ type: 'UPDATE' | 'SELECT' | 'TABLE' }> = ({ typ
                 <HelpCircle className="text-red-600 flex-shrink-0 mt-1" size={20} />
                 <div>
                     <h3 className="font-bold text-red-700">{content.title}</h3>
-                    <p className="text-neutral-800 mt-1">O cadastro falhou por um problema de configuração. Siga os passos abaixo para resolver:</p>
+                    <p className="text-neutral-800 mt-1">O cadastro falhou por um problema de configuração no seu projeto Supabase. Siga os passos abaixo para resolver o problema detectado:</p>
                     <ol className="list-decimal list-inside mt-3 space-y-1 text-neutral-800">
                         {content.steps.map((step, i) => <li key={i}>{step}</li>)}
                     </ol>
