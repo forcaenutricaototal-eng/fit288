@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 import LandingPage from './pages/LandingPage';
 import ProtocolsPage from './pages/ProtocolsPage';
 import OnboardingPage from './pages/OnboardingPage';
+import AdminPage from './pages/AdminPage'; // Import Admin Page
 import { ToastProvider, useToast } from './components/Toast';
 import { AlertTriangle } from 'lucide-react';
 
@@ -21,6 +22,7 @@ interface AppContextType {
   userProfile: UserProfile | null;
   isLoading: boolean;
   user: User | null;
+  isAdmin: boolean;
   login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
   signup: (email: string, pass: string, name: string, accessCode: string) => Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }>;
   logout: () => void;
@@ -48,6 +50,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
+  
+  const isAdmin = useMemo(() => {
+    // VITE_ADMIN_USER_ID is set in vite.config.ts from environment variables
+    const adminId = process.env.VITE_ADMIN_USER_ID;
+    return !!(adminId && userProfile && userProfile.id === adminId);
+  }, [userProfile]);
+
 
   const loadUserProfileAndData = useCallback(async (currentUser: User | null) => {
     if (!currentUser) {
@@ -195,6 +204,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     userProfile,
     isLoading,
     user,
+    isAdmin,
     login,
     signup,
     logout,
@@ -206,7 +216,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, updateUserProfile, addCheckIn]);
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -237,29 +247,23 @@ const ConfigErrorMessage: React.FC = () => (
             <p className="text-neutral-800 mb-6">
                 O aplicativo não conseguiu se conectar aos serviços essenciais. Isso geralmente acontece quando as chaves de API não estão configuradas corretamente no ambiente de deploy (Vercel).
             </p>
-            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver em 3 Passos:</h3>
+            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
             <div className="space-y-6 text-left">
                 <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">1. Obtenha suas Chaves:</p>
-                    <ul className="list-disc list-inside text-sm space-y-2 text-neutral-800">
-                        <li><strong>Supabase:</strong> No seu projeto, vá em <code className="bg-neutral-200 px-1 rounded">Project Settings → API</code> e copie a <code className="bg-neutral-200 px-1 rounded">URL</code> e a chave <code className="bg-neutral-200 px-1 rounded">anon public</code>.</li>
-                        <li><strong>Google Gemini:</strong> Vá para o <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary-dark font-semibold underline">Google AI Studio</a> e copie sua <code className="bg-neutral-200 px-1 rounded">API Key</code>.</li>
-                    </ul>
-                </div>
-                 <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">2. Adicione as Chaves na Vercel:</p>
-                     <p className="text-sm text-neutral-800 mb-3">No seu projeto Vercel, vá para <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. Crie as três variáveis com os nomes <strong>exatos</strong> e os valores que você copiou:</p>
+                    <p className="font-bold mb-2">1. Adicione as Chaves na Vercel:</p>
+                     <p className="text-sm text-neutral-800 mb-3">No seu projeto Vercel, vá para <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. Crie as quatro variáveis com os nomes <strong>exatos</strong> e os valores correspondentes:</p>
                     <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
-                        <p>VITE_SUPABASE_URL=<span className="text-gray-400">[cole sua URL aqui]</span></p>
-                        <p>VITE_SUPABASE_ANON_KEY=<span className="text-gray-400">[cole sua chave anon aqui]</span></p>
-                        <p>CHAVE_API=<span className="text-gray-400">[cole sua chave Gemini aqui]</span></p>
+                        <p>VITE_SUPABASE_URL=<span className="text-gray-400">[URL do seu projeto Supabase]</span></p>
+                        <p>VITE_SUPABASE_ANON_KEY=<span className="text-gray-400">[Chave 'anon public' do Supabase]</span></p>
+                        <p>CHAVE_API=<span className="text-gray-400">[Sua chave da API do Google Gemini]</span></p>
+                        <p>VITE_ADMIN_USER_ID=<span className="text-gray-400">[Seu User ID do Supabase]</span></p>
                     </div>
                      <p className="text-xs text-neutral-800 mt-2">
-                        <strong>Atenção:</strong> Os nomes devem ser idênticos aos mostrados acima. Qualquer erro de digitação fará com que não funcione.
+                        <strong>Atenção:</strong> Para encontrar seu User ID, vá para <code className="bg-neutral-200 px-1 rounded">Authentication → Users</code> no Supabase e copie o ID do seu usuário.
                     </p>
                 </div>
                  <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">3. Faça o Redeploy:</p>
+                    <p className="font-bold mb-2">2. Faça o Redeploy:</p>
                     <p className="text-sm text-neutral-800">
                         Após salvar as variáveis, vá para a aba <code className="bg-neutral-200 px-1 rounded">Deployments</code> na Vercel, encontre o deploy mais recente, clique no menu (•••) e selecione <strong>"Redeploy"</strong>. Isso é <strong>essencial</strong> para que as novas variáveis sejam aplicadas.
                     </p>
@@ -271,7 +275,7 @@ const ConfigErrorMessage: React.FC = () => (
 
 
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading, userProfile } = useApp();
+    const { isAuthenticated, isLoading, userProfile, isAdmin } = useApp();
     
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
@@ -306,6 +310,7 @@ const Main: React.FC = () => {
                             <Route path="meal-plan/day/:day" element={<PlanPage />} />
                             <Route path="protocols" element={<ProtocolsPage />} />
                             <Route path="profile" element={<ProfilePage />} />
+                            {isAdmin && <Route path="admin" element={<AdminPage />} />}
                             <Route path="*" element={<Navigate to="/dashboard" />} />
                         </Route>
                     )}
