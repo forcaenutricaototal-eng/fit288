@@ -1,6 +1,85 @@
 import React, { useState } from 'react';
-import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket } from 'lucide-react';
+import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, HelpCircle, Copy, Check } from 'lucide-react';
 import { useApp } from '../App';
+
+// Componente de ajuda que aparece dentro do formulário, em vez de tomar a tela inteira.
+const InlineRlsGuide: React.FC<{ type: 'UPDATE' | 'SELECT' | 'TABLE' }> = ({ type }) => {
+    const [copied, setCopied] = useState(false);
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const getContent = () => {
+        switch (type) {
+            case 'UPDATE':
+                return {
+                    title: 'Permissão de Uso (UPDATE) Faltando',
+                    textToCopy: 'is_used = false',
+                    steps: [
+                        'No Supabase, vá para: Authentication → Policies.',
+                        'Na tabela `access_codes`, clique em "New Policy" → "Create a new policy from scratch".',
+                        'Policy name: Dê um nome, como `Permitir uso de códigos`.',
+                        'Allowed operation: Marque APENAS a opção `UPDATE`.',
+                        'Target roles: Marque `anon`.',
+                        'USING expression: Cole o texto abaixo.',
+                    ]
+                };
+            case 'SELECT':
+                 return {
+                    title: 'Permissão de Leitura (SELECT) Faltando',
+                    textToCopy: 'true',
+                     steps: [
+                        'No Supabase, vá para: Authentication → Policies.',
+                        'Na tabela `access_codes`, clique em "New Policy" → "From a template".',
+                        'Selecione o template: "Enable read access for all users".',
+                        'Clique em "Review" e depois em "Save policy".',
+                    ]
+                };
+            case 'TABLE':
+                return {
+                    title: 'Tabela `access_codes` Não Encontrada',
+                    textToCopy: 'access_codes',
+                    steps: [
+                        'No Supabase, vá para: Table Editor.',
+                        'Encontre a sua tabela de códigos (ela pode estar com um nome antigo, como `simone11`).',
+                        'Renomeie a tabela para o nome exato abaixo.',
+                    ]
+                };
+            default: return null;
+        }
+    }
+
+    const content = getContent();
+    if (!content) return null;
+
+    return (
+        <div className="bg-red-50 p-4 rounded-md border border-red-200 mb-6 text-sm text-left animate-fade-in">
+            <div className="flex items-start space-x-3">
+                <HelpCircle className="text-red-600 flex-shrink-0 mt-1" size={20} />
+                <div>
+                    <h3 className="font-bold text-red-700">{content.title}</h3>
+                    <p className="text-neutral-800 mt-1">O cadastro falhou por um problema de configuração. Siga os passos abaixo para resolver:</p>
+                    <ol className="list-decimal list-inside mt-3 space-y-1 text-neutral-800">
+                        {content.steps.map((step, i) => <li key={i}>{step}</li>)}
+                    </ol>
+                    {content.textToCopy && (
+                         <div className="mt-2 p-2 bg-gray-800 rounded-md flex justify-between items-center">
+                            <code className="text-white select-all">{content.textToCopy}</code>
+                            <button onClick={() => copyToClipboard(content.textToCopy)} className="text-white">
+                                {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                            </button>
+                        </div>
+                    )}
+                    <p className="text-xs text-neutral-800 mt-3 font-semibold">Após corrigir, tente se cadastrar novamente.</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const LandingPage: React.FC = () => {
     const { login, signup, resetPassword } = useApp();
@@ -11,12 +90,14 @@ const LandingPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [accessCode, setAccessCode] = useState('');
     const [error, setError] = useState<string>('');
+    const [rlsErrorType, setRlsErrorType] = useState<'UPDATE' | 'SELECT' | 'TABLE' | null>(null);
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setRlsErrorType(null);
         setSuccessMessage('');
         setLoading(true);
 
@@ -45,11 +126,18 @@ const LandingPage: React.FC = () => {
                 const result = await signup(email, password, trimmedName, trimmedCode);
                 
                 if (result.error) {
-                    // Simplificando a mensagem de erro conforme solicitado pelo usuário.
-                    if (['RLS_UPDATE_POLICY_MISSING', 'TABLE_NOT_FOUND', 'RLS_SELECT_POLICY_MISSING'].includes(result.error.message)) {
-                        setError("O cadastro falhou. Verifique se o código é válido e as permissões do banco de dados (RLS) estão corretas.");
-                    } else {
-                        setError(result.error.message);
+                    switch (result.error.message) {
+                        case 'RLS_UPDATE_POLICY_MISSING':
+                            setRlsErrorType('UPDATE');
+                            break;
+                        case 'RLS_SELECT_POLICY_MISSING':
+                            setRlsErrorType('SELECT');
+                            break;
+                        case 'TABLE_NOT_FOUND':
+                            setRlsErrorType('TABLE');
+                            break;
+                        default:
+                            setError(result.error.message);
                     }
                 } else if (result.data.user && !result.data.session) {
                     setSuccessMessage("Cadastro realizado! Verifique seu e-mail para confirmar sua conta e poder fazer o login.");
@@ -80,6 +168,7 @@ const LandingPage: React.FC = () => {
     const toggleAuthMode = (mode: 'login' | 'signup' | 'recover') => {
         setAuthMode(mode);
         setError('');
+        setRlsErrorType(null);
         setSuccessMessage('');
         setPassword('');
         setAccessCode('');
@@ -87,6 +176,7 @@ const LandingPage: React.FC = () => {
 
     const renderAuthForm = () => (
          <div className="bg-white p-8 rounded-lg shadow-soft">
+            {rlsErrorType && <InlineRlsGuide type={rlsErrorType} />}
             <h2 className="text-lg sm:text-xl font-bold text-center text-neutral-900 mb-2">
                 {authMode === 'login' && 'Bem-vindo de volta'}
                 {authMode === 'signup' && 'Inicie sua transformação'}
