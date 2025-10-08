@@ -1,186 +1,9 @@
 import React, { useState } from 'react';
-import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, Settings, Key, Clipboard, ClipboardCheck, RefreshCw, DatabaseZap, AlertCircle } from 'lucide-react';
+import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket } from 'lucide-react';
 import { useApp } from '../App';
-import { useToast } from '../components/Toast';
-
-const SetupGuide: React.FC<{ errorType: 'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_MISSING' | 'RLS_SELECT_POLICY_MISSING'; onRetry: () => void }> = ({ errorType, onRetry }) => {
-    const { addToast } = useToast();
-    const [isCopied, setIsCopied] = useState(false);
-    const [isCopiedUsing, setIsCopiedUsing] = useState(false);
-
-    const handleCopy = (text: string, type: 'table' | 'using') => {
-        navigator.clipboard.writeText(text);
-        if (type === 'table') setIsCopied(true);
-        if (type === 'using') setIsCopiedUsing(true);
-        addToast("Texto copiado!", 'success');
-        setTimeout(() => {
-          setIsCopied(false);
-          setIsCopiedUsing(false);
-        }, 2000);
-    };
-
-    const renderTableNotFoundGuide = () => (
-        <div className="bg-white p-8 rounded-lg shadow-soft animate-fade-in text-sm text-left">
-            <div className="flex items-center gap-3 mb-4">
-                <DatabaseZap className="text-blue-600 flex-shrink-0" size={40} />
-                <h4 className="font-bold text-xl text-blue-700">Último Passo: Corrigir Nome da Tabela</h4>
-            </div>
-            <p className="text-neutral-800">
-                Encontramos o problema! O aplicativo está configurado para usar uma tabela chamada <strong>`access_codes`</strong>, mas ela não foi encontrada.
-            </p>
-            <p className="mt-2 text-neutral-800">
-                Pelas suas imagens, vimos que você está usando uma tabela chamada <strong>`simone11`</strong>. Para resolver, você só precisa renomeá-la.
-            </p>
-            
-            <div className="mt-4 bg-neutral-100 p-4 rounded-lg border border-neutral-200">
-                <p className="font-bold text-neutral-900 mb-2 text-base">Solução: Renomeie a Tabela `simone11`</p>
-                <ol className="list-decimal list-inside space-y-2 text-neutral-800">
-                    <li>No painel do Supabase, vá para: <strong>Table Editor</strong> (ícone de tabela).</li>
-                    <li>Encontre a tabela <strong>`simone11`</strong> na lista à esquerda.</li>
-                    <li className="font-bold text-primary-dark bg-red-50 p-3 rounded-md">Cuidado: Clique nos três pontinhos (<strong>...</strong>) ao lado do nome, não no nome da tabela em si.</li>
-                    <li>No menu, selecione <strong>"Rename table"</strong>.</li>
-                    <li className="p-3 bg-neutral-200 border border-neutral-300 rounded-md mt-1">
-                        <strong>Novo nome:</strong> Digite o nome exato abaixo. Use o botão para evitar erros.
-                        <div className="my-2 p-2 pr-12 bg-gray-800 rounded-md relative flex items-center">
-                            <code className="text-white select-all">access_codes</code>
-                            <button type="button" onClick={() => handleCopy('access_codes', 'table')} className="absolute right-2 p-1 rounded-md hover:bg-gray-600 transition-colors">
-                                {isCopied ? <ClipboardCheck size={16} className="text-green-400" /> : <Clipboard size={16} className="text-gray-400" />}
-                            </button>
-                        </div>
-                    </li>
-                    <li>Clique em <strong>"Confirm"</strong>.</li>
-                </ol>
-            </div>
-
-            <div className="mt-4 border-t pt-4">
-                <p className="font-semibold text-neutral-900">Está na tela errada?</p>
-                <p className="text-xs text-neutral-800 mt-1">Se você vir uma tela com o título "Update table simone11" e uma mensagem sobre "Composite primary key", você clicou no lugar errado. Apenas clique em <strong>"Cancel"</strong> e siga os passos acima novamente, clicando nos <strong>três pontinhos</strong>.</p>
-            </div>
-
-            <p className="mt-4 text-xs text-center text-neutral-800">Após renomear a tabela, clique no botão abaixo para tentar o cadastro novamente.</p>
-            <button onClick={onRetry} className="mt-4 w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-all">
-                <RefreshCw size={18} />
-                Já corrigi, tentar novamente!
-            </button>
-        </div>
-    );
-    
-    const renderRLSUpdateGuide = () => (
-         <div className="bg-white p-8 rounded-lg shadow-soft animate-fade-in text-sm text-left">
-            <div className="flex items-center gap-3 mb-4">
-                <Key className="text-blue-600 flex-shrink-0" size={40} />
-                <h4 className="font-bold text-xl text-blue-700">Último Passo da Configuração</h4>
-            </div>
-            <p className="text-neutral-800">O aplicativo precisa de uma permissão final para funcionar. Sem ela, ninguém consegue se cadastrar. Vamos criar a permissão de <strong>USO (UPDATE)</strong> agora.</p>
-            
-            <div className="mt-4 bg-neutral-100 p-4 rounded-lg border border-neutral-200">
-                <p className="font-bold text-neutral-900 mb-2 text-base">Solução: Crie a Política de UPDATE (Uso)</p>
-                <ol className="list-decimal list-inside space-y-3 text-neutral-800">
-                    <li>No painel do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
-                    <li>Na tabela <strong>`access_codes`</strong>, clique em <strong>"New Policy"</strong> → <strong>"Create a new policy from scratch"</strong>.</li>
-                    <li><strong>Policy name:</strong> Dê um nome, como `Permitir uso de códigos`.</li>
-                    <li className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                        <strong className="text-blue-800 text-base">Allowed operation (O PASSO MAIS IMPORTANTE):</strong>
-                        <p className="mt-1 text-neutral-800">Nesta seção, você verá várias opções. Certifique-se de que <strong>APENAS a opção `UPDATE`</strong> esteja marcada.</p>
-                        <div className="my-2 p-2 bg-gray-800 rounded-md text-center">
-                            <code className="text-white select-all text-xs">[ ] SELECT &nbsp; [ ] INSERT &nbsp; [X] UPDATE &nbsp; [ ] DELETE</code>
-                        </div>
-                        <p className="mt-1 text-xs font-bold text-red-700">⚠️ Se você marcar `SELECT` por engano, a regra não funcionará para o cadastro.</p>
-                    </li>
-                    <li><strong>Target roles:</strong> Marque <strong>`anon`</strong>.</li>
-                    <li className="p-3 bg-neutral-200 border border-neutral-300 rounded-md">
-                        <strong>USING expression:</strong>
-                        <p className="mt-1 text-neutral-800">Este é o segundo passo mais importante! No campo chamado <strong>"USING expression"</strong>, cole o texto exato abaixo. Use o botão para evitar erros de digitação.</p>
-                        <div className="my-2 p-2 pr-12 bg-gray-800 rounded-md relative flex items-center">
-                            <code className="text-white select-all">is_used = false</code>
-                            <button type="button" onClick={() => handleCopy('is_used = false', 'using')} className="absolute right-2 p-1 rounded-md hover:bg-gray-600 transition-colors">
-                                {isCopiedUsing ? <ClipboardCheck size={16} className="text-green-400" /> : <Clipboard size={16} className="text-gray-400" />}
-                            </button>
-                        </div>
-                         <p className="mt-2 text-xs font-bold text-red-700">⚠️ ATENÇÃO: Deixe o campo "WITH CHECK expression" vazio e a caixa "Use check expression" desmarcada. A regra deve ser colocada apenas no campo "USING".</p>
-                    </li>
-                    <li>Clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
-                </ol>
-            </div>
-            
-            <div className="mt-6 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                <div className="flex items-center gap-2">
-                    <AlertCircle className="text-yellow-600" size={20} />
-                    <h5 className="font-bold text-yellow-800">Solução de Problemas</h5>
-                </div>
-                <p className="mt-2 text-yellow-900 text-xs">
-                    <strong>Problema: Os botões (INSERT, UPDATE) estão cinzas e não consigo clicar?</strong>
-                    <br/>
-                    Isso significa que você criou a regra com o tipo errado (ex: `SELECT`). O Supabase não permite alterar o tipo de uma regra existente.
-                    <br/>
-                    <strong>Solução:</strong> Volte para a lista de políticas, <strong>APAGUE</strong> a regra incorreta e depois crie uma <strong>NOVA</strong> do zero seguindo os passos acima.
-                </p>
-            </div>
-
-             <p className="mt-4 text-xs text-center text-neutral-800">Após criar esta regra, volte para esta página e clique no botão abaixo.</p>
-             <button onClick={onRetry} className="mt-4 w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-all">
-                <RefreshCw size={18} />
-                Já corrigi, tentar cadastro novamente!
-            </button>
-        </div>
-    );
-    
-    const renderRLSSelectGuide = () => (
-         <div className="bg-white p-8 rounded-lg shadow-soft animate-fade-in text-sm text-left">
-            <div className="flex items-center gap-3 mb-4">
-                <Key className="text-blue-600 flex-shrink-0" size={40} />
-                <h4 className="font-bold text-xl text-blue-700">Configuração de Permissão (Leitura)</h4>
-            </div>
-            <p className="text-neutral-800">O sistema também precisa de permissão para <strong>VERIFICAR (SELECT)</strong> seu código de acesso. Sem isso, o cadastro não funciona.</p>
-            
-            <div className="mt-4 bg-neutral-100 p-4 rounded-lg border border-neutral-200">
-                <p className="font-bold text-neutral-900 mb-2 text-base">Solução: Crie a Política de SELECT (Leitura)</p>
-                <p className="text-xs text-neutral-800 mb-3">A forma mais fácil é usar um modelo pronto do Supabase.</p>
-                <ol className="list-decimal list-inside space-y-3 text-neutral-800">
-                    <li>No painel do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
-                    <li>Na tabela <strong>`access_codes`</strong>, clique em <strong>"New Policy"</strong>.</li>
-                    <li>Selecione a opção: <strong>"From a template"</strong>.</li>
-                    <li className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                        <strong className="text-blue-800 text-base">Selecione o Template Correto:</strong>
-                        <p className="mt-1 text-neutral-800">Na lista de modelos, escolha a opção que diz: <strong>"Enable read access for all users"</strong>.</p>
-                        <div className="my-2 p-2 bg-gray-800 rounded-md text-center">
-                            <code className="text-white select-all text-xs">Enable read access for all users</code>
-                        </div>
-                    </li>
-                    <li className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                      <strong className="text-yellow-800 text-base">Target Roles (Opcional):</strong>
-                      <p className="mt-1 text-yellow-900">Na interface do Supabase, você verá um campo chamado "Target Roles". <strong className="font-bold">DEIXE ESTE CAMPO EM BRANCO.</strong> O Supabase irá aplicar a regra a todos (public), que é o correto para esta política.</p>
-                    </li>
-                    <li>Clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
-                </ol>
-                <p className="mt-3 text-xs font-bold text-neutral-800">Isso irá criar a regra de leitura (`SELECT`) necessária. Certifique-se também de que a regra de `UPDATE` (mostrada no outro guia) também existe.</p>
-            </div>
-            
-             <p className="mt-4 text-xs text-center text-neutral-800">Após criar esta regra, volte para esta página e clique no botão abaixo.</p>
-             <button onClick={onRetry} className="mt-4 w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-all">
-                <RefreshCw size={18} />
-                Já corrigi, tentar cadastro novamente!
-            </button>
-        </div>
-    );
-
-
-    if (errorType === 'TABLE_NOT_FOUND') {
-        return renderTableNotFoundGuide();
-    }
-    if (errorType === 'RLS_UPDATE_POLICY_MISSING') {
-        return renderRLSUpdateGuide();
-    }
-     if (errorType === 'RLS_SELECT_POLICY_MISSING') {
-        return renderRLSSelectGuide();
-    }
-    return null;
-};
-
 
 const LandingPage: React.FC = () => {
     const { login, signup, resetPassword } = useApp();
-    const { addToast } = useToast();
     
     const [authMode, setAuthMode] = useState<'signup' | 'login' | 'recover'>('signup');
     const [name, setName] = useState('');
@@ -188,7 +11,6 @@ const LandingPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [accessCode, setAccessCode] = useState('');
     const [error, setError] = useState<string>('');
-    const [setupErrorType, setSetupErrorType] = useState<'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_MISSING' | 'RLS_SELECT_POLICY_MISSING' | null>(null);
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -197,7 +19,6 @@ const LandingPage: React.FC = () => {
         setError('');
         setSuccessMessage('');
         setLoading(true);
-        setSetupErrorType(null);
 
         try {
             if (authMode === 'recover') {
@@ -224,8 +45,9 @@ const LandingPage: React.FC = () => {
                 const result = await signup(email, password, trimmedName, trimmedCode);
                 
                 if (result.error) {
-                     if (result.error.message === 'RLS_UPDATE_POLICY_MISSING' || result.error.message === 'TABLE_NOT_FOUND' || result.error.message === 'RLS_SELECT_POLICY_MISSING') {
-                        setSetupErrorType(result.error.message as 'RLS_UPDATE_POLICY_MISSING' | 'TABLE_NOT_FOUND' | 'RLS_SELECT_POLICY_MISSING');
+                    // Simplificando a mensagem de erro conforme solicitado pelo usuário.
+                    if (['RLS_UPDATE_POLICY_MISSING', 'TABLE_NOT_FOUND', 'RLS_SELECT_POLICY_MISSING'].includes(result.error.message)) {
+                        setError("O cadastro falhou. Verifique se o código é válido e as permissões do banco de dados (RLS) estão corretas.");
                     } else {
                         setError(result.error.message);
                     }
@@ -259,7 +81,6 @@ const LandingPage: React.FC = () => {
         setAuthMode(mode);
         setError('');
         setSuccessMessage('');
-        setSetupErrorType(null);
         setPassword('');
         setAccessCode('');
     };
@@ -341,7 +162,7 @@ const LandingPage: React.FC = () => {
                     </div>
                 </div>
                 <div className="w-full max-w-md mx-auto animate-fade-in-left">
-                    {setupErrorType ? <SetupGuide errorType={setupErrorType} onRetry={() => setSetupErrorType(null)} /> : renderAuthForm()}
+                   {renderAuthForm()}
                 </div>
             </div>
         </div>
