@@ -1,10 +1,9 @@
 
-
 import React from 'react';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { Scale, User, Ruler } from 'lucide-react';
+import { Scale, User, Ruler, Target, CalendarCheck, Utensils } from 'lucide-react';
 
 const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string | number | undefined | null, unit?: string }> = ({ icon: Icon, label, value, unit }) => (
     <div className="bg-primary-light p-4 rounded-lg flex items-center space-x-3">
@@ -20,9 +19,37 @@ const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string
     </div>
 );
 
+const ProgressCard: React.FC<{ currentDay: number, totalDays: number }> = ({ currentDay, totalDays }) => {
+    const progressPercentage = Math.max(0, Math.min(100, ((currentDay - 1) / totalDays) * 100));
+    return (
+        <div className="bg-white p-6 rounded-lg shadow-soft flex flex-col justify-center">
+            <div className="flex justify-between items-center mb-2">
+                <h3 className="font-semibold text-lg text-neutral-900">Seu Progresso</h3>
+                <Target className="text-primary-dark" size={24}/>
+            </div>
+            <p className="text-neutral-800 text-sm mb-3">Você está no <span className="font-bold text-neutral-900">Dia {currentDay}</span> de {totalDays} do seu plano.</p>
+            <div className="w-full bg-neutral-200 rounded-full h-2.5">
+                <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progressPercentage}%` }}></div>
+            </div>
+        </div>
+    );
+};
+
+const ActionCard: React.FC<{ onNavigate: () => void, day: number }> = ({ onNavigate, day }) => (
+    <div className="bg-primary-dark p-6 rounded-lg shadow-soft text-white flex flex-col justify-center items-center text-center">
+        <CalendarCheck size={32} className="mb-2"/>
+        <h3 className="font-bold text-lg">Pronto para o Dia {day}?</h3>
+        <p className="text-red-100 text-sm mb-4">Seu plano alimentar e tarefas de hoje estão esperando por você.</p>
+        <button onClick={onNavigate} className="bg-white text-primary-dark font-bold py-2 px-6 rounded-md hover:bg-red-100 transition-all w-full flex items-center justify-center gap-2">
+            <Utensils size={18}/>
+            Ver plano de hoje
+        </button>
+    </div>
+);
+
 
 const DashboardPage: React.FC = () => {
-    const { userProfile, checkIns } = useApp();
+    const { userProfile, checkIns, planDuration } = useApp();
     const navigate = useNavigate();
 
     if (!userProfile) {
@@ -32,6 +59,8 @@ const DashboardPage: React.FC = () => {
             </div>
         );
     }
+    
+    const currentDay = Math.min(checkIns.length + 1, planDuration);
     
     // Safely extract data
     const name = userProfile.name;
@@ -50,15 +79,25 @@ const DashboardPage: React.FC = () => {
     return (
         <div className="space-y-6 animate-fade-in">
             <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">Dashboard</h1>
-                <p className="text-neutral-800">Seu resumo de progresso, {name}.</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">Bem-vindo, {name}.</h1>
+                <p className="text-neutral-800">Seu resumo de progresso está aqui.</p>
             </div>
 
+            {/* New Progress & Action Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ProgressCard currentDay={currentDay} totalDays={planDuration} />
+                <ActionCard onNavigate={() => navigate(`/meal-plan/day/${currentDay}`)} day={currentDay} />
+            </div>
+
+
             {/* User Summary Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard icon={User} label="Idade" value={age} unit=" anos" />
-                <StatCard icon={Ruler} label="Altura" value={height} unit=" cm" />
-                <StatCard icon={Scale} label="Seu Peso Atual" value={currentWeight?.toFixed(1)} unit=" kg" />
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-soft">
+                <h3 className="font-semibold text-lg text-neutral-900 mb-4">Resumo Pessoal</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <StatCard icon={User} label="Idade" value={age} unit=" anos" />
+                    <StatCard icon={Ruler} label="Altura" value={height} unit=" cm" />
+                    <StatCard icon={Scale} label="Seu Peso Atual" value={currentWeight?.toFixed(1)} unit=" kg" />
+                </div>
             </div>
 
             {/* Evolution Chart */}

@@ -65,7 +65,6 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
   const trimmedCode = accessCode.trim();
 
   // Etapa 1: "Reservar" atomicamente o código de acesso.
-  // Esta atualização só terá sucesso se uma linha com o código existir E is_used for false.
   const { data: reservedCode, error: reserveError } = await supabase
     .from(ACCESS_CODES_TABLE)
     .update({ is_used: true })
@@ -74,14 +73,19 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
     .select()
     .single();
 
-  if (reserveError || !reservedCode) {
-    // Se recebermos um erro ou nenhuma linha for atualizada, o código é inválido ou já foi usado.
-    // PGRST116 é o erro "nenhuma linha encontrada", que é o resultado esperado para um código inválido.
-    const message = reserveError && reserveError.code !== 'PGRST116' 
-      ? 'Ocorreu um erro ao verificar o código.' 
-      : 'Código de acesso inválido ou já utilizado.';
+  if (reserveError && reserveError.code !== 'PGRST116') {
+    // Um erro real ocorreu (pode ser RLS, rede, etc.).
+    // Repassa o erro para a UI para que ela possa exibir uma mensagem de ajuda.
+    return { data: { user: null, session: null }, error: reserveError as AuthError };
+  }
+
+  if (!reservedCode) {
+    // Este caso significa que nenhuma linha correspondeu aos critérios (código não encontrado ou is_used já era true).
+    // Este é o erro de "código inválido".
+    const message = 'Código de acesso inválido ou já utilizado.';
     return { data: { user: null, session: null }, error: { name: 'InvalidOrUsedCode', message } as AuthError };
   }
+
 
   // Etapa 2: Se o código foi reservado com sucesso, prosseguir com o cadastro do usuário.
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({

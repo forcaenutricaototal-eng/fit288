@@ -10,7 +10,7 @@ const LandingPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [accessCode, setAccessCode] = useState('');
-    const [error, setError] = useState('');
+    const [error, setError] = useState<React.ReactNode>('');
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -55,7 +55,40 @@ const LandingPage: React.FC = () => {
                 const result = await signup(email, password, trimmedName, trimmedCode);
                 
                 if (result.error) {
-                    setError(result.error.message);
+                    if (result.error.message && (result.error.message.includes('security policy') || result.error.message.includes('violates row-level security'))) {
+                        const rlsErrorGuide = (
+                            <div className="text-sm text-left">
+                                <h4 className="font-bold text-red-700">Falha de Permissão no Banco de Dados (RLS)</h4>
+                                <p className="mt-2 text-neutral-800">Este erro acontece quando o app não tem permissão para verificar os códigos de acesso. Para corrigir, você precisa criar <strong>DUAS</strong> políticas de segurança para a tabela <strong>'access_codes'</strong>.</p>
+                                
+                                <div className="mt-4 bg-neutral-100 p-3 rounded-md">
+                                    <p className="font-semibold text-neutral-900">1ª Política: Permitir Leitura (SELECT)</p>
+                                    <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
+                                        <li>No menu do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
+                                        <li>Na tabela <strong>access_codes</strong>, clique em <strong>"New Policy"</strong> → <strong>"From a template"</strong>.</li>
+                                        <li>Selecione o template: <strong>"Enable read access for all users"</strong>.</li>
+                                        <li>Clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
+                                    </ol>
+                                </div>
+
+                                <div className="mt-3 bg-neutral-100 p-3 rounded-md">
+                                    <p className="font-semibold text-neutral-900">2ª Política: Permitir Uso (UPDATE)</p>
+                                    <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
+                                        <li>Clique em <strong>"New Policy"</strong> → <strong>"Create a new policy from scratch"</strong>.</li>
+                                        <li><strong>Policy name:</strong> <code>Permitir uso de códigos</code></li>
+                                        <li><strong>Allowed operation:</strong> Marque <strong>UPDATE</strong>.</li>
+                                        <li><strong>Target roles:</strong> Marque <strong>anon</strong>.</li>
+                                        <li><strong>USING expression:</strong> Digite <code>is_used = false</code></li>
+                                        <li>Clique em <strong>"Review"</strong> e <strong>"Save policy"</strong>.</li>
+                                    </ol>
+                                </div>
+                                <p className="mt-3 text-xs text-neutral-800">Após criar as duas políticas, recarregue a página e tente se cadastrar novamente.</p>
+                            </div>
+                        );
+                        setError(rlsErrorGuide);
+                    } else {
+                        setError(result.error.message);
+                    }
                 } else if (result.data.user && !result.data.session) {
                     setSuccessMessage("Cadastro realizado! Verifique seu e-mail para confirmar sua conta e poder fazer o login.");
                     setAuthMode('login');
@@ -178,7 +211,7 @@ const LandingPage: React.FC = () => {
                                 </div>
                             )}
 
-                            {error && <p className="text-red-500 text-sm text-center font-semibold bg-red-50 p-2 rounded-md">{error}</p>}
+                            {error && <div className="text-red-500 text-sm font-semibold bg-red-50 p-3 rounded-md">{typeof error === 'string' ? <p className="text-center">{error}</p> : error}</div>}
                             {successMessage && <p className="text-green-600 text-sm text-center font-semibold bg-green-50 p-2 rounded-md">{successMessage}</p>}
                             
                             <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-red-300 disabled:scale-100">
