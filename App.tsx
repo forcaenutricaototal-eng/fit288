@@ -1,15 +1,9 @@
-
-
-
-
-
-
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
 import type { UserProfile, CheckInData } from './types';
 import { getSupabaseClient, isSupabaseConfigured } from './components/supabaseClient';
-import { getProfile, createProfile, updateProfile, addCheckInData, getCheckIns } from './services/supabaseService';
+import { getProfile, createProfile, updateProfile, addCheckInData, getCheckIns, signUpWithAccessCode } from './services/supabaseService';
 
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
@@ -28,7 +22,7 @@ interface AppContextType {
   isLoading: boolean;
   user: User | null;
   login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
-  signup: (email: string, pass: string, name: string) => Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }>;
+  signup: (email: string, pass: string, name: string, accessCode: string) => Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }>;
   logout: () => void;
   resetPassword: (email: string) => Promise<{ error: AuthError | null; }>;
   updateUserProfile: (updatedProfile: Partial<UserProfile>) => Promise<void>;
@@ -121,17 +115,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return { error };
   };
 
-  const signup = async (email: string, pass: string, name: string) => {
-    const { data, error } = await getSupabaseClient().auth.signUp({
-      email,
-      password: pass,
-      options: {
-        data: {
-          name: name,
-        },
-      },
-    });
-    return { data, error };
+  const signup = async (email: string, pass: string, name: string, accessCode: string) => {
+    return signUpWithAccessCode(email, pass, name, accessCode);
   };
 
   const logout = async () => {

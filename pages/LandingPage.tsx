@@ -1,7 +1,5 @@
-
-
 import React, { useState } from 'react';
-import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf } from 'lucide-react';
+import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket } from 'lucide-react';
 import { useApp } from '../App';
 
 const LandingPage: React.FC = () => {
@@ -11,6 +9,7 @@ const LandingPage: React.FC = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [accessCode, setAccessCode] = useState('');
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
@@ -35,8 +34,15 @@ const LandingPage: React.FC = () => {
                 if (loginError) setError(loginError.message);
             } else { // signup
                 const trimmedName = name.trim();
+                const trimmedCode = accessCode.trim();
+                
                 if (!trimmedName) {
                     setError("O nome é obrigatório e não pode ficar em branco.");
+                    setLoading(false);
+                    return;
+                }
+                 if (!trimmedCode) {
+                    setError("O código de acesso é obrigatório.");
                     setLoading(false);
                     return;
                 }
@@ -45,7 +51,9 @@ const LandingPage: React.FC = () => {
                     setLoading(false);
                     return;
                 }
-                const result = await signup(email, password, trimmedName);
+                
+                const result = await signup(email, password, trimmedName, trimmedCode);
+                
                 if (result.error) {
                     setError(result.error.message);
                 } else if (result.data.user && !result.data.session) {
@@ -53,6 +61,7 @@ const LandingPage: React.FC = () => {
                     setAuthMode('login');
                     setName('');
                     setPassword('');
+                    setAccessCode('');
                 }
             }
         } catch (e: any) {
@@ -78,6 +87,7 @@ const LandingPage: React.FC = () => {
         setError('');
         setSuccessMessage('');
         setPassword('');
+        setAccessCode('');
     };
 
     return (
@@ -124,13 +134,15 @@ const LandingPage: React.FC = () => {
                         
                         <form onSubmit={handleSubmit} className="space-y-5">
                             {authMode === 'signup' && (
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                                    <input
-                                        type="text" placeholder="Nome Completo" required value={name} onChange={(e) => setName(e.target.value)}
-                                        className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
-                                    />
-                                </div>
+                                <>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                        <input
+                                            type="text" placeholder="Nome Completo" required value={name} onChange={(e) => setName(e.target.value)}
+                                            className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                    </div>
+                                </>
                             )}
                             <div className="relative">
                                 <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -144,6 +156,15 @@ const LandingPage: React.FC = () => {
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                     <input
                                         type="password" placeholder={authMode === 'login' ? "Sua senha" : "Crie uma senha (mín. 6 caracteres)"} required value={password} onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
+                                    />
+                                </div>
+                            )}
+                             {authMode === 'signup' && (
+                                <div className="relative">
+                                    <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                    <input
+                                        type="text" placeholder="Código de Acesso" required value={accessCode} onChange={(e) => setAccessCode(e.target.value)}
                                         className="w-full pl-10 pr-3 py-3 bg-neutral-100 border-2 border-transparent rounded-md focus:outline-none focus:border-primary transition-colors"
                                     />
                                 </div>
