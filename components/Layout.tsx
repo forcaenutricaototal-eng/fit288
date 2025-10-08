@@ -12,7 +12,7 @@ const navItems = [
 ];
 
 const Layout: React.FC = () => {
-  const { userProfile, isAdmin } = useApp();
+  const { userProfile } = useApp();
     
    const mobileNavLinkClasses = ({ isActive }: { isActive: boolean }) =>
     `flex flex-col items-center justify-center p-2 rounded-lg transition-colors text-xs flex-1 ${
@@ -43,12 +43,6 @@ const Layout: React.FC = () => {
                 <span>{item.name}</span>
             </NavLink>
             ))}
-            {isAdmin && (
-                <NavLink to="/admin" className={desktopNavLinkClasses}>
-                    <Shield size={20} className="mr-3 text-gold" />
-                    <span>Admin</span>
-                </NavLink>
-            )}
         </nav>
     </div>
   );
@@ -75,12 +69,6 @@ const Layout: React.FC = () => {
                       <span>{item.name}</span>
                   </NavLink>
               ))}
-              {isAdmin && (
-                <NavLink to="/admin" className={mobileNavLinkClasses}>
-                    <Shield size={24} className="text-gold" />
-                    <span>Admin</span>
-                </NavLink>
-              )}
           </nav>
       </footer>
     </div>

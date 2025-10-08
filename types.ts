@@ -55,11 +55,3 @@ export interface CheckInData {
   observations?: string;
   created_at?: string;
 }
-
-export interface AccessCode {
-  id: number;
-  created_at: string;
-  code: string;
-  is_used: boolean;
-  used_by_user_id: string | null;
-}

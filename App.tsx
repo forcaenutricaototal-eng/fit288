@@ -13,7 +13,6 @@ import ProfilePage from './pages/ProfilePage';
 import LandingPage from './pages/LandingPage';
 import ProtocolsPage from './pages/ProtocolsPage';
 import OnboardingPage from './pages/OnboardingPage';
-import AdminPage from './pages/AdminPage'; // Import Admin Page
 import { ToastProvider, useToast } from './components/Toast';
 import { AlertTriangle } from 'lucide-react';
 
@@ -22,7 +21,6 @@ interface AppContextType {
   userProfile: UserProfile | null;
   isLoading: boolean;
   user: User | null;
-  isAdmin: boolean;
   login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
   signup: (email: string, pass: string, name: string, accessCode: string) => Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }>;
   logout: () => void;
@@ -50,13 +48,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
-  
-  const isAdmin = useMemo(() => {
-    // VITE_ADMIN_USER_ID is set in vite.config.ts from environment variables
-    const adminId = process.env.VITE_ADMIN_USER_ID;
-    return !!(adminId && userProfile && userProfile.id === adminId);
-  }, [userProfile]);
-
 
   const loadUserProfileAndData = useCallback(async (currentUser: User | null) => {
     if (!currentUser) {
@@ -204,7 +195,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     userProfile,
     isLoading,
     user,
-    isAdmin,
     login,
     signup,
     logout,
@@ -216,7 +206,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn]);
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, updateUserProfile, addCheckIn]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -251,16 +241,12 @@ const ConfigErrorMessage: React.FC = () => (
             <div className="space-y-6 text-left">
                 <div className="bg-neutral-100 p-4 rounded-md">
                     <p className="font-bold mb-2">1. Adicione as Chaves na Vercel:</p>
-                     <p className="text-sm text-neutral-800 mb-3">No seu projeto Vercel, vá para <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. Crie as quatro variáveis com os nomes <strong>exatos</strong> e os valores correspondentes:</p>
+                     <p className="text-sm text-neutral-800 mb-3">No seu projeto Vercel, vá para <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. Crie as três variáveis com os nomes <strong>exatos</strong> e os valores correspondentes:</p>
                     <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
                         <p>VITE_SUPABASE_URL=<span className="text-gray-400">[URL do seu projeto Supabase]</span></p>
                         <p>VITE_SUPABASE_ANON_KEY=<span className="text-gray-400">[Chave 'anon public' do Supabase]</span></p>
                         <p>CHAVE_API=<span className="text-gray-400">[Sua chave da API do Google Gemini]</span></p>
-                        <p>VITE_ADMIN_USER_ID=<span className="text-gray-400">[Seu User ID do Supabase]</span></p>
                     </div>
-                     <p className="text-xs text-neutral-800 mt-2">
-                        <strong>Atenção:</strong> Para encontrar seu User ID, vá para <code className="bg-neutral-200 px-1 rounded">Authentication → Users</code> no Supabase e copie o ID do seu usuário.
-                    </p>
                 </div>
                  <div className="bg-neutral-100 p-4 rounded-md">
                     <p className="font-bold mb-2">2. Faça o Redeploy:</p>
@@ -275,7 +261,7 @@ const ConfigErrorMessage: React.FC = () => (
 
 
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading, userProfile, isAdmin } = useApp();
+    const { isAuthenticated, isLoading, userProfile } = useApp();
     
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
@@ -310,7 +296,6 @@ const Main: React.FC = () => {
                             <Route path="meal-plan/day/:day" element={<PlanPage />} />
                             <Route path="protocols" element={<ProtocolsPage />} />
                             <Route path="profile" element={<ProfilePage />} />
-                            {isAdmin && <Route path="admin" element={<AdminPage />} />}
                             <Route path="*" element={<Navigate to="/dashboard" />} />
                         </Route>
                     )}
