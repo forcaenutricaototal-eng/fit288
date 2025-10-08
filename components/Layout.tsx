@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { BarChart2, MessageSquare, Utensils, User, BookOpen, Gem, Shield } from 'lucide-react';
+import { BarChart2, MessageSquare, Utensils, User, BookOpen, Shield } from 'lucide-react';
 import { useApp } from '../App';
 
 const navItems = [
@@ -12,7 +12,11 @@ const navItems = [
 ];
 
 const Layout: React.FC = () => {
-  const { userProfile } = useApp();
+  const { userProfile, isAdmin } = useApp();
+
+  const allNavItems = isAdmin 
+    ? [...navItems, { name: 'Admin', path: '/admin', icon: Shield }] 
+    : navItems;
     
    const mobileNavLinkClasses = ({ isActive }: { isActive: boolean }) =>
     `flex flex-col items-center justify-center p-2 rounded-lg transition-colors text-xs flex-1 ${
@@ -37,7 +41,7 @@ const Layout: React.FC = () => {
             <p className="text-neutral-900 font-semibold">{userProfile?.name}</p>
         </div>
         <nav className="flex-1 px-4">
-            {navItems.map((item) => (
+            {allNavItems.map((item) => (
             <NavLink key={item.name} to={item.path} className={desktopNavLinkClasses}>
                 <item.icon size={20} className="mr-3" />
                 <span>{item.name}</span>
@@ -63,7 +67,7 @@ const Layout: React.FC = () => {
       {/* Bottom Nav for mobile */}
       <footer className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-50">
           <nav className="flex justify-around items-center h-16">
-              {navItems.map((item) => (
+              {allNavItems.map((item) => (
                   <NavLink key={item.name} to={item.path} className={mobileNavLinkClasses}>
                       <item.icon size={24} />
                       <span>{item.name}</span>

@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../components/supabaseClient';
-import type { UserProfile, CheckInData } from '../types';
+import type { UserProfile, CheckInData, AccessCode } from '../types';
 import type { AuthError, Session, User } from '@supabase/js';
 
 const PROFILES_TABLE = 'profiles';
@@ -124,4 +124,39 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
   }
   
   return { data: signUpData, error: null };
+};
+
+
+// Access Code Admin Functions
+export const getAccessCodes = async (): Promise<AccessCode[]> => {
+  const { data, error } = await getSupabaseClient()
+    .from(ACCESS_CODES_TABLE)
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+};
+
+export const createAccessCodes = async (count: number): Promise<AccessCode[]> => {
+    const codes = Array.from({ length: count }, () => ({
+        code: `MJ-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    }));
+
+    const { data, error } = await getSupabaseClient()
+        .from(ACCESS_CODES_TABLE)
+        .insert(codes)
+        .select();
+    
+    if (error) throw error;
+    return data;
+};
+
+
+export const deleteAccessCode = async (id: number): Promise<void> => {
+    const { error } = await getSupabaseClient()
+        .from(ACCESS_CODES_TABLE)
+        .delete()
+        .eq('id', id)
+        .eq('is_used', false); // Safety check: only delete unused codes
+    if (error) throw error;
 };

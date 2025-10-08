@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 import LandingPage from './pages/LandingPage';
 import ProtocolsPage from './pages/ProtocolsPage';
 import OnboardingPage from './pages/OnboardingPage';
+import AdminPage from './pages/AdminPage';
 import { ToastProvider, useToast } from './components/Toast';
 import { AlertTriangle } from 'lucide-react';
 
@@ -21,6 +22,7 @@ interface AppContextType {
   userProfile: UserProfile | null;
   isLoading: boolean;
   user: User | null;
+  isAdmin: boolean;
   login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
   signup: (email: string, pass: string, name: string, accessCode: string) => Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }>;
   logout: () => void;
@@ -48,6 +50,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
+
+  const adminId = process.env.VITE_ADMIN_USER_ID;
+  const isAdmin = useMemo(() => !!(user && adminId && user.id === adminId), [user, adminId]);
 
   const loadUserProfileAndData = useCallback(async (currentUser: User | null) => {
     if (!currentUser) {
@@ -195,6 +200,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     userProfile,
     isLoading,
     user,
+    isAdmin,
     login,
     signup,
     logout,
@@ -206,7 +212,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, updateUserProfile, addCheckIn]);
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -247,6 +253,7 @@ const ConfigErrorMessage: React.FC = () => (
                         <p>VITE_SUPABASE_ANON_KEY=<span className="text-gray-400">[Chave 'anon public' do Supabase]</span></p>
                         <p>CHAVE_API=<span className="text-gray-400">[Sua chave da API do Google Gemini]</span></p>
                     </div>
+                     <p className="text-xs text-neutral-800 mt-2"><strong>Dica:</strong> Para habilitar o painel de admin, adicione também a variável <code className="bg-neutral-200 px-1 rounded">VITE_ADMIN_USER_ID</code> com o seu User ID do Supabase.</p>
                 </div>
                  <div className="bg-neutral-100 p-4 rounded-md">
                     <p className="font-bold mb-2">2. Faça o Redeploy:</p>
@@ -261,7 +268,7 @@ const ConfigErrorMessage: React.FC = () => (
 
 
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading, userProfile } = useApp();
+    const { isAuthenticated, isLoading, userProfile, isAdmin } = useApp();
     
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
@@ -296,6 +303,7 @@ const Main: React.FC = () => {
                             <Route path="meal-plan/day/:day" element={<PlanPage />} />
                             <Route path="protocols" element={<ProtocolsPage />} />
                             <Route path="profile" element={<ProfilePage />} />
+                            {isAdmin && <Route path="admin" element={<AdminPage />} />}
                             <Route path="*" element={<Navigate to="/dashboard" />} />
                         </Route>
                     )}
