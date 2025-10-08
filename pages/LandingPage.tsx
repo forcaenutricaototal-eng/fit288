@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket } from 'lucide-react';
+import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, ShieldOff, Clipboard, ClipboardCheck } from 'lucide-react';
 import { useApp } from '../App';
+import { useToast } from '../components/Toast';
 
 const LandingPage: React.FC = () => {
     const { login, signup, resetPassword } = useApp();
+    const { addToast } = useToast();
     
     const [authMode, setAuthMode] = useState<'signup' | 'login' | 'recover'>('signup');
     const [name, setName] = useState('');
@@ -13,6 +15,14 @@ const LandingPage: React.FC = () => {
     const [error, setError] = useState<React.ReactNode>('');
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopy = (text: string) => {
+        navigator.clipboard.writeText(text);
+        setIsCopied(true);
+        addToast("Texto copiado!", 'success');
+        setTimeout(() => setIsCopied(false), 2000);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -55,31 +65,37 @@ const LandingPage: React.FC = () => {
                 const result = await signup(email, password, trimmedName, trimmedCode);
                 
                 if (result.error) {
-                    if (result.error.message === 'RLS_UPDATE_POLICY_MISSING') {
+                     if (result.error.message === 'RLS_UPDATE_POLICY_MISSING') {
                         const rlsUpdateErrorGuide = (
-                            <div className="text-sm text-left">
-                                <h4 className="font-bold text-red-700">Ação Necessária: Falta a Permissão de "Uso" do Código</h4>
-                                <p className="mt-2 text-neutral-800">O sistema conseguiu encontrar seu código, mas foi impedido de marcá-lo como "usado". Isso acontece porque a permissão de <strong>UPDATE</strong> está faltando no Supabase.</p>
+                            <div className="text-sm text-left animate-fade-in">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <ShieldOff className="text-red-600" size={32} />
+                                    <h4 className="font-bold text-lg text-red-700">Ação Urgente: Permissão Faltando</h4>
+                                </div>
+                                <p className="text-neutral-800">O sistema foi **impedido** de usar seu código de acesso. Isso acontece porque a permissão de <strong>UPDATE (uso)</strong> está faltando no seu banco de dados Supabase.</p>
                                 
-                                <div className="mt-4 bg-neutral-100 p-3 rounded-md">
-                                    <p className="font-semibold text-neutral-900">Solução Rápida: Crie a Política de UPDATE</p>
-                                    <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
-                                        <li>No painel do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong> e selecione a tabela <strong>access_codes</strong>.</li>
-                                        <li>Clique em <strong>"New Policy"</strong> e escolha <strong>"Create a new policy from scratch"</strong>.</li>
-                                        <li><strong>Policy name:</strong> Dê um nome, como `Permitir uso de códigos`</li>
-                                        <li><strong className="text-primary-dark">Allowed operation:</strong> Marque <strong>APENAS UPDATE</strong>. (Este é o passo que falta!)</li>
-                                        <li><strong>Target roles:</strong> Marque <strong>anon</strong>.</li>
+                                <div className="mt-4 bg-neutral-100 p-4 rounded-lg border border-neutral-200">
+                                    <p className="font-bold text-neutral-900 mb-2">Solução: Crie a Política de UPDATE (Uso)</p>
+                                    <ol className="list-decimal list-inside space-y-2 text-neutral-800">
+                                        <li>No painel do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong>.</li>
+                                        <li>Na tabela <strong>`access_codes`</strong>, clique em <strong>"New Policy"</strong> → <strong>"Create a new policy from scratch"</strong>.</li>
+                                        <li><strong>Policy name:</strong> Dê um nome, como `Permitir uso de códigos`.</li>
+                                        <li><strong className="text-primary-dark">Allowed operation:</strong> Marque <strong>APENAS UPDATE</strong>. (Este é o passo que falta!).</li>
+                                        <li><strong>Target roles:</strong> Marque <strong>`anon`</strong>.</li>
                                         <li className="p-3 bg-red-50 border border-red-200 rounded-md mt-1">
                                             <strong>USING expression:</strong>
-                                            <p className="mt-1 text-neutral-800">Neste campo, cole o texto exato abaixo:</p>
-                                            <div className="my-2 p-3 bg-gray-800 rounded-md">
-                                                <code className="text-white text-base select-all">is_used = false</code>
+                                            <p className="mt-1 text-neutral-800">Neste campo, cole o texto exato abaixo. Use o botão para evitar erros de digitação.</p>
+                                            <div className="my-2 p-2 pr-12 bg-gray-800 rounded-md relative flex items-center">
+                                                <code className="text-white select-all">is_used = false</code>
+                                                <button type="button" onClick={() => handleCopy('is_used = false')} className="absolute right-2 p-1 rounded-md hover:bg-gray-600 transition-colors">
+                                                    {isCopied ? <ClipboardCheck size={16} className="text-green-400" /> : <Clipboard size={16} className="text-gray-400" />}
+                                                </button>
                                             </div>
                                         </li>
-                                        <li>Clique em <strong>"Review"</strong> e <strong>"Save policy"</strong>.</li>
+                                        <li>Clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
                                     </ol>
                                 </div>
-                                <p className="mt-3 text-xs text-neutral-800">Após criar esta regra, o cadastro funcionará. Não se esqueça de apagar regras duplicadas ou incorretas que você tenha criado antes.</p>
+                                <p className="mt-4 text-xs text-neutral-800">Após criar esta regra, recarregue a página (F5) e tente o cadastro novamente. O problema estará resolvido.</p>
                             </div>
                         );
                         setError(rlsUpdateErrorGuide);
@@ -208,7 +224,7 @@ const LandingPage: React.FC = () => {
                                 </div>
                             )}
 
-                            {error && <div className="text-red-500 text-sm font-semibold bg-red-50 p-3 rounded-md">{typeof error === 'string' ? <p className="text-center">{error}</p> : error}</div>}
+                            {error && <div className="text-red-500 font-semibold bg-red-50 p-4 rounded-md">{typeof error === 'string' ? <p className="text-center">{error}</p> : error}</div>}
                             {successMessage && <p className="text-green-600 text-sm text-center font-semibold bg-green-50 p-2 rounded-md">{successMessage}</p>}
                             
                             <button type="submit" disabled={loading} className="w-full bg-primary text-white font-bold py-3.5 rounded-md hover:bg-primary-dark transition-all duration-300 transform hover:scale-105 shadow-md disabled:bg-red-300 disabled:scale-100">
