@@ -95,11 +95,16 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
   // Se a reserva falhou (reservedCode é nulo), precisamos descobrir o porquê.
   if (!reservedCode) {
     // Vamos verificar se o código existe e está disponível.
-    const { data: codeStatus } = await supabase
+    const { data: codeStatus, error: selectError } = await supabase
       .from(ACCESS_CODES_TABLE)
       .select('is_used')
       .eq('code', trimmedCode)
       .single();
+
+    // NOVO: Detectar se a política de SELECT está faltando.
+    if (selectError && (selectError.message.includes('security policy') || selectError.message.includes('violates row-level security'))) {
+        return { data: { user: null, session: null }, error: { name: 'RLSError', message: 'RLS_SELECT_POLICY_MISSING' } as AuthError };
+    }
 
     // Cenário Crítico: O código existe e está disponível, mas a atualização falhou.
     // Isso confirma com 100% de certeza que a política de UPDATE está faltando.
