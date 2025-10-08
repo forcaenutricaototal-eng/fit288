@@ -74,15 +74,27 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
     .single();
 
   if (reserveError && reserveError.code !== 'PGRST116') {
-    // Um erro real ocorreu (pode ser RLS, rede, etc.).
-    // Repassa o erro para a UI para que ela possa exibir uma mensagem de ajuda.
+    // Erro real (RLS, rede, etc.).
     return { data: { user: null, session: null }, error: reserveError as AuthError };
   }
 
   if (!reservedCode) {
-    // Este caso significa que nenhuma linha correspondeu aos critérios (código não encontrado ou is_used já era true).
-    // Este é o erro de "código inválido".
-    const message = 'Código de acesso inválido ou já utilizado.';
+    // A reserva falhou. Agora vamos descobrir por quê para dar uma mensagem melhor.
+    const { data: codeStatus } = await supabase
+      .from(ACCESS_CODES_TABLE)
+      .select('is_used')
+      .eq('code', trimmedCode)
+      .single();
+    
+    let message = '';
+    if (!codeStatus) {
+        message = `O código de acesso "${trimmedCode}" não foi encontrado. Verifique se você digitou corretamente.`;
+    } else if (codeStatus.is_used) {
+        message = `O código de acesso "${trimmedCode}" já foi utilizado por outra pessoa.`;
+    } else {
+        message = 'Código de acesso inválido ou já utilizado.';
+    }
+
     return { data: { user: null, session: null }, error: { name: 'InvalidOrUsedCode', message } as AuthError };
   }
 
