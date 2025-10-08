@@ -6,6 +6,17 @@ const PROFILES_TABLE = 'profiles';
 const CHECKINS_TABLE = 'check_ins';
 const ACCESS_CODES_TABLE = 'access_codes';
 
+// Helper to check table existence and basic accessibility
+const checkTableExists = async (tableName: string): Promise<{ exists: boolean; error?: AuthError }> => {
+    const { error } = await getSupabaseClient().from(tableName).select('id', { count: 'exact', head: true }).limit(0);
+    if (error && error.code === '42P01') { // 42P01 = undefined_table
+        return { exists: false, error: { name: 'TableNotFound', message: 'TABLE_NOT_FOUND' } as AuthError };
+    }
+    // Any other error could be RLS, but the table exists.
+    return { exists: true };
+};
+
+
 // Profile Functions
 export const getProfile = async (userId: string): Promise<UserProfile | null> => {
   const { data, error } = await getSupabaseClient()
@@ -63,6 +74,12 @@ export const addCheckInData = async (userId: string, checkInData: Omit<CheckInDa
 export const signUpWithAccessCode = async (email: string, pass: string, name: string, accessCode: string): Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }> => {
   const supabase = getSupabaseClient();
   const trimmedCode = accessCode.trim();
+
+  // Etapa 0: Verificar se a tabela de códigos de acesso existe.
+  const tableCheck = await checkTableExists(ACCESS_CODES_TABLE);
+  if (!tableCheck.exists) {
+    return { data: { user: null, session: null }, error: tableCheck.error! };
+  }
 
   // Etapa 1: "Reservar" atomicamente o código de acesso.
   const { data: reservedCode, error: reserveError } = await supabase

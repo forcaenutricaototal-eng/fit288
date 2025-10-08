@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, ShieldOff, Clipboard, ClipboardCheck, RefreshCw } from 'lucide-react';
+import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, ShieldOff, Clipboard, ClipboardCheck, RefreshCw, DatabaseZap } from 'lucide-react';
 import { useApp } from '../App';
 import { useToast } from '../components/Toast';
 
-const RLSFixGuide: React.FC<{ onRetry: () => void }> = ({ onRetry }) => {
+const SetupGuide: React.FC<{ errorType: 'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_MISSING'; onRetry: () => void }> = ({ errorType, onRetry }) => {
     const { addToast } = useToast();
     const [isCopied, setIsCopied] = useState(false);
 
@@ -14,8 +14,54 @@ const RLSFixGuide: React.FC<{ onRetry: () => void }> = ({ onRetry }) => {
         setTimeout(() => setIsCopied(false), 2000);
     };
 
-    return (
+    const renderTableNotFoundGuide = () => (
         <div className="bg-white p-8 rounded-lg shadow-soft animate-fade-in text-sm text-left">
+            <div className="flex items-center gap-3 mb-4">
+                <DatabaseZap className="text-red-600 flex-shrink-0" size={40} />
+                <h4 className="font-bold text-xl text-red-700">Ação Urgente: Tabela de Códigos Incorreta!</h4>
+            </div>
+            <p className="text-neutral-800">
+                Encontramos o problema! O aplicativo está configurado para usar uma tabela chamada <strong>`access_codes`</strong>, mas ela não foi encontrada.
+            </p>
+            <p className="mt-2 text-neutral-800">
+                Pelas suas imagens, vimos que você está usando uma tabela chamada <strong>`simone11`</strong>. Para resolver, você só precisa renomeá-la.
+            </p>
+            
+            <div className="mt-4 bg-neutral-100 p-4 rounded-lg border border-neutral-200">
+                <p className="font-bold text-neutral-900 mb-2 text-base">Solução: Renomeie a Tabela `simone11`</p>
+                <ol className="list-decimal list-inside space-y-2 text-neutral-800">
+                    <li>No painel do Supabase, vá para: <strong>Table Editor</strong> (ícone de tabela).</li>
+                    <li>Encontre a tabela <strong>`simone11`</strong> na lista à esquerda.</li>
+                    <li className="font-bold text-primary-dark bg-red-50 p-3 rounded-md">Cuidado: Clique nos três pontinhos (<strong>...</strong>) ao lado do nome, não no nome da tabela em si.</li>
+                    <li>No menu, selecione <strong>"Rename table"</strong>.</li>
+                    <li className="p-3 bg-neutral-200 border border-neutral-300 rounded-md mt-1">
+                        <strong>Novo nome:</strong> Digite o nome exato abaixo. Use o botão para evitar erros.
+                        <div className="my-2 p-2 pr-12 bg-gray-800 rounded-md relative flex items-center">
+                            <code className="text-white select-all">access_codes</code>
+                            <button type="button" onClick={() => handleCopy('access_codes')} className="absolute right-2 p-1 rounded-md hover:bg-gray-600 transition-colors">
+                                {isCopied ? <ClipboardCheck size={16} className="text-green-400" /> : <Clipboard size={16} className="text-gray-400" />}
+                            </button>
+                        </div>
+                    </li>
+                    <li>Clique em <strong>"Confirm"</strong>.</li>
+                </ol>
+            </div>
+
+            <div className="mt-4 border-t pt-4">
+                <p className="font-semibold text-neutral-900">Está na tela errada?</p>
+                <p className="text-xs text-neutral-800 mt-1">Se você vir uma tela com o título "Update table simone11" e uma mensagem sobre "Composite primary key", você clicou no lugar errado. Apenas clique em <strong>"Cancel"</strong> e siga os passos acima novamente, clicando nos <strong>três pontinhos</strong>.</p>
+            </div>
+
+            <p className="mt-4 text-xs text-center text-neutral-800">Após renomear a tabela, clique no botão abaixo para tentar o cadastro novamente.</p>
+            <button onClick={onRetry} className="mt-4 w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-all">
+                <RefreshCw size={18} />
+                Já corrigi, tentar novamente!
+            </button>
+        </div>
+    );
+    
+    const renderRLSGuide = () => (
+         <div className="bg-white p-8 rounded-lg shadow-soft animate-fade-in text-sm text-left">
             <div className="flex items-center gap-3 mb-4">
                 <ShieldOff className="text-red-600 flex-shrink-0" size={40} />
                 <h4 className="font-bold text-xl text-red-700">Ação Urgente: Permissão Faltando!</h4>
@@ -50,6 +96,14 @@ const RLSFixGuide: React.FC<{ onRetry: () => void }> = ({ onRetry }) => {
             </button>
         </div>
     );
+
+    if (errorType === 'TABLE_NOT_FOUND') {
+        return renderTableNotFoundGuide();
+    }
+    if (errorType === 'RLS_UPDATE_POLICY_MISSING') {
+        return renderRLSGuide();
+    }
+    return null;
 };
 
 
@@ -63,7 +117,7 @@ const LandingPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [accessCode, setAccessCode] = useState('');
     const [error, setError] = useState<string>('');
-    const [showRLSGuide, setShowRLSGuide] = useState(false);
+    const [setupErrorType, setSetupErrorType] = useState<'TABLE_NOT_FOUND' | 'RLS_UPDATE_POLICY_MISSING' | null>(null);
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -72,7 +126,7 @@ const LandingPage: React.FC = () => {
         setError('');
         setSuccessMessage('');
         setLoading(true);
-        setShowRLSGuide(false);
+        setSetupErrorType(null);
 
         try {
             if (authMode === 'recover') {
@@ -99,8 +153,8 @@ const LandingPage: React.FC = () => {
                 const result = await signup(email, password, trimmedName, trimmedCode);
                 
                 if (result.error) {
-                     if (result.error.message === 'RLS_UPDATE_POLICY_MISSING') {
-                        setShowRLSGuide(true);
+                     if (result.error.message === 'RLS_UPDATE_POLICY_MISSING' || result.error.message === 'TABLE_NOT_FOUND') {
+                        setSetupErrorType(result.error.message);
                     } else {
                         setError(result.error.message);
                     }
@@ -134,7 +188,7 @@ const LandingPage: React.FC = () => {
         setAuthMode(mode);
         setError('');
         setSuccessMessage('');
-        setShowRLSGuide(false);
+        setSetupErrorType(null);
         setPassword('');
         setAccessCode('');
     };
@@ -216,7 +270,7 @@ const LandingPage: React.FC = () => {
                     </div>
                 </div>
                 <div className="w-full max-w-md mx-auto animate-fade-in-left">
-                    {showRLSGuide ? <RLSFixGuide onRetry={() => setShowRLSGuide(false)} /> : renderAuthForm()}
+                    {setupErrorType ? <SetupGuide errorType={setupErrorType} onRetry={() => setSetupErrorType(null)} /> : renderAuthForm()}
                 </div>
             </div>
         </div>
