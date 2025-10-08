@@ -73,13 +73,17 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
     .select()
     .single();
 
-  if (reserveError && reserveError.code !== 'PGRST116') {
-    // Erro real (RLS, rede, etc.).
-    return { data: { user: null, session: null }, error: reserveError as AuthError };
+  if (reserveError) {
+      if (reserveError.message.includes('violates row-level security policy')) {
+          const rlsErrorMessage = 'RLS_UPDATE_POLICY_MISSING'; // Custom error message
+          return { data: { user: null, session: null }, error: { name: 'RLSError', message: rlsErrorMessage } as AuthError };
+      }
+      if (reserveError.code !== 'PGRST116') { // Not a "no rows found" error, but something else
+          return { data: { user: null, session: null }, error: reserveError as AuthError };
+      }
   }
 
   if (!reservedCode) {
-    // A reserva falhou. Agora vamos descobrir por quê para dar uma mensagem melhor.
     const { data: codeStatus } = await supabase
       .from(ACCESS_CODES_TABLE)
       .select('is_used')
@@ -98,22 +102,13 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
     return { data: { user: null, session: null }, error: { name: 'InvalidOrUsedCode', message } as AuthError };
   }
 
-
-  // Etapa 2: Se o código foi reservado com sucesso, prosseguir com o cadastro do usuário.
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password: pass,
-    options: {
-      data: {
-        name: name,
-      },
-    },
+    options: { data: { name: name } },
   });
 
-  // Etapa 3: Lidar com o resultado do cadastro.
   if (signUpError) {
-    // IMPORTANTE: Se o cadastro falhar, devemos liberar o código reservado.
-    console.error('Cadastro falhou, revertendo a reserva do código de acesso...');
     await supabase
       .from(ACCESS_CODES_TABLE)
       .update({ is_used: false })
@@ -122,17 +117,10 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
   }
 
   if (signUpData.user) {
-    // Etapa 4: Se o cadastro for bem-sucedido, vincular permanentemente o código ao novo usuário.
-    const { error: updateError } = await supabase
+    await supabase
       .from(ACCESS_CODES_TABLE)
       .update({ used_by_user_id: signUpData.user.id })
       .eq('code', trimmedCode);
-      
-    if (updateError) {
-      // Isso não é crítico para o fluxo do usuário, mas deve ser registrado.
-      // O código já está marcado como usado, isso apenas adiciona o link do ID do usuário.
-      console.warn('Não foi possível vincular o ID do usuário ao código de acesso após o cadastro:', updateError.message);
-    }
   }
   
   return { data: signUpData, error: null };

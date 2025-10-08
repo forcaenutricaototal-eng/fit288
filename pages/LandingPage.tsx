@@ -55,58 +55,34 @@ const LandingPage: React.FC = () => {
                 const result = await signup(email, password, trimmedName, trimmedCode);
                 
                 if (result.error) {
-                    if (result.error.message && (result.error.message.includes('security policy') || result.error.message.includes('violates row-level security'))) {
-                        const rlsErrorGuide = (
+                    if (result.error.message === 'RLS_UPDATE_POLICY_MISSING') {
+                        const rlsUpdateErrorGuide = (
                             <div className="text-sm text-left">
-                                <h4 className="font-bold text-red-700">Falha de Permissão (RLS) - Verifique suas Políticas!</h4>
-                                <p className="mt-2 text-neutral-800">Este erro indica que as regras de segurança no seu banco de dados para a tabela <strong>'access_codes'</strong> não estão corretas. Pela imagem que você enviou, parece que há políticas duplicadas, o que pode causar conflitos.</p>
+                                <h4 className="font-bold text-red-700">Ação Necessária: Falta a Permissão de "Uso" do Código</h4>
+                                <p className="mt-2 text-neutral-800">O sistema conseguiu encontrar seu código, mas foi impedido de marcá-lo como "usado". Isso acontece porque a permissão de <strong>UPDATE</strong> está faltando no Supabase.</p>
                                 
                                 <div className="mt-4 bg-neutral-100 p-3 rounded-md">
-                                    <p className="font-semibold text-neutral-900">Solução: Limpar e Recriar as Políticas</p>
+                                    <p className="font-semibold text-neutral-900">Solução Rápida: Crie a Política de UPDATE</p>
                                     <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
                                         <li>No painel do Supabase, vá para: <strong>Authentication</strong> → <strong>Policies</strong> e selecione a tabela <strong>access_codes</strong>.</li>
-                                        <li><strong>APAGUE TODAS</strong> as políticas existentes para esta tabela (clique nos três pontinhos `...` ao lado de cada uma e depois em `Delete`).</li>
-                                        <li>Depois de apagar tudo, crie <strong>APENAS ESTAS DUAS</strong> políticas novas:</li>
-                                    </ol>
-                                </div>
-
-                                <div className="mt-3 bg-neutral-100 p-3 rounded-md">
-                                    <p className="font-semibold text-neutral-900">1ª Política: Permitir Leitura (SELECT)</p>
-                                    <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
-                                        <li>Clique em <strong>"New Policy"</strong> e escolha <strong>"From a template"</strong>.</li>
-                                        <li>Selecione o template: <strong>"Enable read access for all users"</strong>.</li>
-                                        <li>Clique em <strong>"Review"</strong> e depois em <strong>"Save policy"</strong>.</li>
-                                    </ol>
-                                </div>
-
-                                <div className="mt-3 bg-neutral-100 p-3 rounded-md">
-                                    <p className="font-semibold text-neutral-900">2ª Política: Permitir Uso do Código (UPDATE)</p>
-                                    <ol className="list-decimal list-inside mt-1 space-y-1 text-neutral-800">
                                         <li>Clique em <strong>"New Policy"</strong> e escolha <strong>"Create a new policy from scratch"</strong>.</li>
-                                        <li><strong>Policy name:</strong> Dê um nome, como `Permitir uso de códigos de acesso`</li>
-                                        <li><strong>Allowed operation:</strong> Marque <strong>APENAS UPDATE</strong>.</li>
+                                        <li><strong>Policy name:</strong> Dê um nome, como `Permitir uso de códigos`</li>
+                                        <li><strong className="text-primary-dark">Allowed operation:</strong> Marque <strong>APENAS UPDATE</strong>. (Este é o passo que falta!)</li>
                                         <li><strong>Target roles:</strong> Marque <strong>anon</strong>.</li>
-                                        <li className="font-bold text-red-700 mt-2">Atenção! Este é o passo mais importante:</li>
                                         <li className="p-3 bg-red-50 border border-red-200 rounded-md mt-1">
                                             <strong>USING expression:</strong>
-                                            <p className="mt-1 text-neutral-800">Neste campo, você <strong>DEVE</strong> digitar ou colar o texto abaixo. Qualquer erro, mesmo uma letra, fará com que não funcione.</p>
+                                            <p className="mt-1 text-neutral-800">Neste campo, cole o texto exato abaixo:</p>
                                             <div className="my-2 p-3 bg-gray-800 rounded-md">
                                                 <code className="text-white text-base select-all">is_used = false</code>
                                             </div>
-                                            <p className="mt-2 font-semibold text-red-700">⚠️ Erros Comuns a Evitar:</p>
-                                            <ul className="list-disc list-inside text-sm text-neutral-800 space-y-1 mt-1">
-                                                <li>Não digite <code className="bg-red-200 px-1 rounded">tis_used</code>. O correto é <code className="bg-green-200 px-1 rounded">is_used</code> (com 'i').</li>
-                                                <li>Não digite <code className="bg-red-200 px-1 rounded">falso</code>. O correto é <code className="bg-green-200 px-1 rounded">false</code> (em inglês).</li>
-                                            </ul>
                                         </li>
-                                        <li className="mt-2">Deixe o campo <strong>"WITH CHECK expression"</strong> em branco.</li>
                                         <li>Clique em <strong>"Review"</strong> e <strong>"Save policy"</strong>.</li>
                                     </ol>
                                 </div>
-                                <p className="mt-3 text-xs text-neutral-800">O segredo é apagar as políticas antigas primeiro para garantir uma configuração limpa. Após recriá-las, recarregue a página e o cadastro deve funcionar.</p>
+                                <p className="mt-3 text-xs text-neutral-800">Após criar esta regra, o cadastro funcionará. Não se esqueça de apagar regras duplicadas ou incorretas que você tenha criado antes.</p>
                             </div>
                         );
-                        setError(rlsErrorGuide);
+                        setError(rlsUpdateErrorGuide);
                     } else {
                         setError(result.error.message);
                     }
