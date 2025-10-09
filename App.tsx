@@ -98,6 +98,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         const errorMessage = error.message || '';
         if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
             setDataLoadError('TABLE_NOT_FOUND');
+        } else if (errorMessage.includes("column") && errorMessage.includes("created_at") && errorMessage.includes("does not exist")) {
+            setDataLoadError('COLUMN_CREATED_AT_MISSING');
         } else if (errorMessage.includes("Could not find") && errorMessage.includes("column")) {
             setDataLoadError('COLUMN_MISSING');
         } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
@@ -326,6 +328,25 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
         </>
     );
 
+    const CreatedAtColumnError = () => (
+        <>
+            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
+            <div className="space-y-6 text-left">
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">1. Adicione a Coluna `created_at`:</p>
+                    <p className="text-sm text-neutral-800 mb-3">O aplicativo precisa de uma coluna para rastrear quando o perfil foi criado. No seu projeto Supabase, vá para <code className="bg-neutral-200 px-1 rounded">SQL Editor → New query</code> e execute o comando abaixo na sua tabela <code className="bg-neutral-200 px-1 rounded">profiles</code>.</p>
+                    <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
+                        <pre className="whitespace-pre-wrap"><code>{`ALTER TABLE public.profiles\nADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now() NOT NULL;`}</code></pre>
+                    </div>
+                </div>
+                 <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">2. Atualize o Cache do Supabase:</p>
+                    <p className="text-sm text-neutral-800">Se o comando acima não resolver, o cache do Supabase pode estar desatualizado. Siga os passos da seção de erro "Coluna Faltando" para forçar uma atualização do schema.</p>
+                </div>
+            </div>
+        </>
+    );
+
     const RlsError = () => (
         <>
             <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
@@ -450,6 +471,12 @@ ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;`}
             title: "Erro de Configuração do Banco de Dados",
             description: "Uma ou mais tabelas essenciais (como 'profiles') não foram encontradas. Siga as instruções para criar a estrutura necessária no seu projeto Supabase.",
             content: <TableError />
+        },
+        'COLUMN_CREATED_AT_MISSING': {
+            icon: Database,
+            title: "Erro de Banco de Dados: Coluna 'created_at' Faltando",
+            description: "Não foi possível carregar seu perfil porque a coluna `created_at` está faltando na tabela `profiles`. Esta coluna é essencial para o funcionamento do app.",
+            content: <CreatedAtColumnError />
         },
         'COLUMN_MISSING': {
             icon: Database,
