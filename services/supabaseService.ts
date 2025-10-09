@@ -1,4 +1,3 @@
-
 import { getSupabaseClient } from '../components/supabaseClient';
 import type { UserProfile, CheckInData, AccessCode } from '../types';
 import type { AuthError, Session, User } from '@supabase/js';
@@ -6,6 +5,7 @@ import type { AuthError, Session, User } from '@supabase/js';
 const PROFILES_TABLE = 'profiles';
 const CHECKINS_TABLE = 'check_ins';
 const ACCESS_CODES_TABLE = 'access_codes';
+const PROFILE_COLUMNS = 'id, name, age, weight, height, dietary_restrictions, created_at, completed_items_by_day';
 
 // Helper to check table existence and basic accessibility
 const checkTableExists = async (tableName: string): Promise<{ exists: boolean; error?: AuthError }> => {
@@ -22,7 +22,7 @@ const checkTableExists = async (tableName: string): Promise<{ exists: boolean; e
 export const getProfile = async (userId: string): Promise<UserProfile | null> => {
   const { data, error } = await getSupabaseClient()
     .from(PROFILES_TABLE)
-    .select('*')
+    .select(PROFILE_COLUMNS)
     .eq('id', userId)
     .single();
   if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows found
@@ -33,7 +33,7 @@ export const createProfile = async (userId: string, name: string): Promise<UserP
   const { data, error } = await getSupabaseClient()
     .from(PROFILES_TABLE)
     .insert({ id: userId, name: name }) // Only insert the bare essentials to prevent errors
-    .select()
+    .select(PROFILE_COLUMNS)
     .single();
   if (error) throw error;
   return data;
@@ -44,7 +44,7 @@ export const updateProfile = async (userId: string, updatedData: Partial<UserPro
     .from(PROFILES_TABLE)
     .update(updatedData)
     .eq('id', userId)
-    .select()
+    .select(PROFILE_COLUMNS)
     .single();
   if (error) throw error;
   return data;

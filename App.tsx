@@ -124,9 +124,23 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return signUpWithAccessCode(email, pass, name, accessCode);
   };
 
-  const logout = async () => {
-    await getSupabaseClient().auth.signOut();
-  };
+  const logout = useCallback(async () => {
+    try {
+        const { error } = await getSupabaseClient().auth.signOut();
+        if (error) {
+            console.error("Error signing out:", error);
+            addToast("Ocorreu um erro ao tentar sair. Por favor, tente novamente.", 'info');
+        } else {
+            // Explicitly clear local state on successful logout to trigger re-route
+            setUser(null);
+            setUserProfile(null);
+            setCheckIns([]);
+        }
+    } catch (e) {
+        console.error("An unexpected error occurred during logout:", e);
+        addToast("Ocorreu um erro inesperado ao sair.", 'info');
+    }
+  }, [addToast]);
   
   const resetPassword = async (email: string) => {
     const { error } = await getSupabaseClient().auth.resetPasswordForEmail(email, {
@@ -212,7 +226,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn]);
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

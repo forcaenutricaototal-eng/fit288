@@ -214,7 +214,40 @@ const ProfilePage: React.FC = () => {
                 setIsEditing(false);
             } catch (err: any) {
                 const defaultMessage = "Ocorreu um erro ao salvar o perfil. Tente novamente.";
-                if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
+
+                if (err.message && err.message.includes("Could not find") && err.message.includes("column") && err.message.includes("schema cache")) {
+                    const columnErrorGuide = (
+                        <div className="text-sm text-left">
+                            <h4 className="font-bold text-red-700">Erro de Banco de Dados: Coluna ou Cache Desatualizado</h4>
+                            <p className="mt-2 text-neutral-800">Ocorreu um erro ao salvar: <code className="bg-neutral-200 px-1 rounded text-xs">{err.message}</code>. Isso geralmente significa uma de duas coisas:</p>
+                            <ol className="list-decimal list-inside mt-2 space-y-2 text-neutral-800">
+                                <li>A coluna <strong>'completed_items_by_day'</strong> não existe na sua tabela 'profiles'.</li>
+                                <li>O "cache de schema" do Supabase está desatualizado e não "vê" a coluna que já existe.</li>
+                            </ol>
+
+                            <p className="mt-3 text-neutral-900 font-semibold">Como Resolver:</p>
+                            
+                            <div className="mt-2 bg-neutral-100 p-3 rounded-md">
+                                <p className="font-semibold text-neutral-900">Solução 1: Adicionar a Coluna (se ela não existir)</p>
+                                <p className="mt-1">No seu painel Supabase, vá para <strong>SQL Editor</strong> e execute o comando abaixo para garantir que a coluna exista:</p>
+                                <div className="my-2 p-2 bg-gray-800 rounded-md">
+                                    <pre><code className="text-white text-xs whitespace-pre-wrap select-all">ALTER TABLE public.profiles ADD COLUMN completed_items_by_day jsonb NOT NULL DEFAULT '{{}}';</code></pre>
+                                </div>
+                            </div>
+
+                            <div className="mt-3 bg-neutral-100 p-3 rounded-md">
+                                <p className="font-semibold text-neutral-900">Solução 2: Atualizar o Cache do Supabase</p>
+                                <p className="mt-1">Se a coluna já existe, o cache pode estar desatualizado. Para forçar uma atualização:</p>
+                                <ul className="list-disc list-inside mt-1">
+                                    <li>Vá para <strong>Table Editor</strong> → tabela <strong>profiles</strong> no Supabase.</li>
+                                    <li>Adicione uma descrição a qualquer coluna (clique na coluna → Edit column). Salve. Depois pode remover a descrição.</li>
+                                    <li>Isso força o Supabase a recarregar o schema. Após isso, recarregue o app e tente salvar novamente.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    );
+                    setEditError(columnErrorGuide);
+                } else if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
                     const rlsErrorGuide = (
                         <div className="text-sm text-left">
                             <h4 className="font-bold text-red-700">Falha de Permissão ao Salvar (RLS)</h4>
