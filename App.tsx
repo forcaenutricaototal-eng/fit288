@@ -331,18 +331,43 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
 
     const CreatedAtColumnError = () => (
         <>
-            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
+            <h3 className="font-bold text-lg text-neutral-900 mb-4">Solução Definitiva: Recriar a Tabela 'profiles'</h3>
+            <p className="text-neutral-800 mb-4 text-sm text-left">
+                Este erro indica que a tabela `profiles` foi criada com uma estrutura antiga, sem a coluna `created_at`, que é essencial. A maneira mais segura de corrigir isso e garantir que a estrutura esteja 100% correta é apagar a tabela antiga e criá-la novamente com o script correto.
+            </p>
             <div className="space-y-6 text-left">
                 <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">1. Adicione a Coluna `created_at`:</p>
-                    <p className="text-sm text-neutral-800 mb-3">O aplicativo precisa de uma coluna para rastrear quando o perfil foi criado. No seu projeto Supabase, vá para <code className="bg-neutral-200 px-1 rounded">SQL Editor → New query</code> e execute o comando abaixo na sua tabela <code className="bg-neutral-200 px-1 rounded">profiles</code>.</p>
+                    <p className="font-bold mb-2">Passo 1: Apague a Tabela Antiga</p>
+                     <p className="text-sm text-neutral-800 mb-3">Vá para <code className="bg-neutral-200 px-1 rounded">SQL Editor → New query</code> no seu Supabase e execute o comando abaixo. <strong>Atenção:</strong> Isso apagará os dados da tabela de perfis, o que é seguro se sua cliente for a única usuária de teste.</p>
                     <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
-                        <pre className="whitespace-pre-wrap"><code>{`ALTER TABLE public.profiles\nADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now() NOT NULL;`}</code></pre>
+                        <pre className="whitespace-pre-wrap"><code>{`DROP TABLE public.profiles CASCADE;`}</code></pre>
                     </div>
                 </div>
                  <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">2. Atualize o Cache do Supabase:</p>
-                    <p className="text-sm text-neutral-800">Se o comando acima não resolver, o cache do Supabase pode estar desatualizado. Siga os passos da seção de erro "Coluna Faltando" para forçar uma atualização do schema.</p>
+                    <p className="font-bold mb-2">Passo 2: Crie a Tabela 'profiles' Corretamente</p>
+                    <p className="text-sm text-neutral-800 mb-3">No mesmo editor SQL, execute este comando para criar a tabela com todas as colunas necessárias.</p>
+                    <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
+                         <pre className="whitespace-pre-wrap"><code>
+{`-- Tabela de Perfis de Usuários (profiles)
+CREATE TABLE public.profiles (
+  id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  age integer,
+  weight double precision,
+  height double precision,
+  dietary_restrictions text[],
+  completed_items_by_day jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+-- Ativar Segurança em Nível de Linha (RLS)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;`}
+                        </code></pre>
+                    </div>
+                </div>
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">Passo 3: Verifique as Permissões (Policies)</p>
+                    <p className="text-sm text-neutral-800">Após recriar a tabela, vá para <code className="bg-neutral-200 px-1 rounded">Authentication → Policies</code> e garanta que as três regras (INSERT, SELECT, UPDATE) para a tabela `profiles` existem. Se não existirem, crie-as conforme as instruções da tela de erro de "Permissão (RLS)".</p>
                 </div>
             </div>
         </>
@@ -475,8 +500,8 @@ ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;`}
         },
         'COLUMN_CREATED_AT_MISSING': {
             icon: Database,
-            title: "Erro de Banco de Dados: Coluna 'created_at' Faltando",
-            description: "Não foi possível carregar seu perfil porque a coluna `created_at` está faltando na tabela `profiles`. Esta coluna é essencial para o funcionamento do app.",
+            title: "Erro Crítico: Tabela 'profiles' Desatualizada",
+            description: "Não foi possível carregar seu perfil porque a tabela `profiles` está com uma estrutura antiga e precisa ser recriada. Siga os passos abaixo para resolver o problema de forma definitiva.",
             content: <CreatedAtColumnError />
         },
         'COLUMN_MISSING': {
