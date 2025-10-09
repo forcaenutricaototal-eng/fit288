@@ -391,7 +391,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 6. CONCEDE PERMISSÕES DE EXECUÇÃO PARA AS FUNÇÕES
 -- Permite que qualquer pessoa (incluindo não logados) chame a função de validação
-GRANT EXECUTE ON FUNCTION public.validate_access_code(text) TO PUBLIC;
+GRANT EXECUTE ON FUNCTION public.validate_access_code(text) TO anon, authenticated;
 -- Permite que apenas usuários autenticados chamem a função para reivindicar o código
 GRANT EXECUTE ON FUNCTION public.claim_access_code(text) TO authenticated;
 
