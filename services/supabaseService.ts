@@ -95,7 +95,7 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
   }
 
 
-  // Etapa 2: Se o código for válido, criar o usuário.
+  // Etapa 2: Se o código for válido, criar o usuário. O gatilho no DB cuidará da criação do perfil.
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password: pass,
@@ -109,6 +109,11 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
             message: "Este e-mail já está cadastrado. Por favor, faça o login ou use a opção 'Esqueceu a senha?' se necessário."
         };
         return { data: { user: null, session: null }, error: customError as AuthError };
+    }
+    // O erro "Database error saving new user" será capturado aqui se o gatilho falhar.
+    if (signUpError.message.toLowerCase().includes('database error')) {
+      const customError = { ...signUpError, message: 'Database error saving new user' };
+      return { data: { user: null, session: null }, error: customError as AuthError };
     }
     return { data: { user: null, session: null }, error: signUpError };
   }
