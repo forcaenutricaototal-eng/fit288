@@ -7,17 +7,6 @@ const CHECKINS_TABLE = 'check_ins';
 const ACCESS_CODES_TABLE = 'access_codes';
 const PROFILE_COLUMNS = 'id, name, age, weight, height, dietary_restrictions, created_at, completed_items_by_day';
 
-// Helper to check table existence and basic accessibility
-const checkTableExists = async (tableName: string): Promise<{ exists: boolean; error?: AuthError }> => {
-    const { error } = await getSupabaseClient().from(tableName).select('id', { count: 'exact', head: true }).limit(0);
-    if (error && error.code === '42P01') { // 42P01 = undefined_table
-        return { exists: false, error: { name: 'TableNotFound', message: 'TABLE_NOT_FOUND' } as AuthError };
-    }
-    // Any other error could be RLS, but the table exists.
-    return { exists: true };
-};
-
-
 // Profile Functions
 export const getProfile = async (userId: string): Promise<UserProfile | null> => {
   const { data, error } = await getSupabaseClient()
@@ -76,50 +65,68 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
   const supabase = getSupabaseClient();
   const trimmedCode = accessCode.trim();
 
-  // Etapa 1: Criar o usuário primeiro. A validação do código de acesso agora é secundária e não-bloqueante.
+  // Etapa 1: Validar o código de acesso ANTES de criar o usuário.
+  try {
+    const { data: codeData, error: selectError } = await supabase
+      .from(ACCESS_CODES_TABLE)
+      .select('is_used')
+      .eq('code', trimmedCode)
+      .single();
+
+    if (selectError) {
+      if (selectError.code === '42P01') { // undefined_table
+        return { data: { user: null, session: null }, error: { name: 'TableNotFound', message: 'TABLE_NOT_FOUND' } as AuthError };
+      }
+      if (selectError.code === 'PGRST116') { // no rows found
+         return { data: { user: null, session: null }, error: { name: 'InvalidCredentials', message: 'Código de acesso inválido ou não encontrado.' } as AuthError };
+      }
+      // Qualquer outro erro é provavelmente uma política RLS de SELECT faltando
+      return { data: { user: null, session: null }, error: { name: 'RlsPolicyMissing', message: 'RLS_SELECT_POLICY_MISSING' } as AuthError };
+    }
+
+    if (codeData.is_used) {
+      return { data: { user: null, session: null }, error: { name: 'InvalidCredentials', message: 'Este código de acesso já foi utilizado.' } as AuthError };
+    }
+
+  } catch (e: any) {
+     return { data: { user: null, session: null }, error: { name: 'UnexpectedError', message: e.message || 'Erro inesperado ao validar o código.' } as AuthError };
+  }
+
+  // Etapa 2: Se o código for válido, criar o usuário.
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password: pass,
-    options: { data: { name: name } },
+    options: { data: { name } },
   });
 
-  // Se a criação do usuário falhar (ex: e-mail já existe), retorne o erro imediatamente.
   if (signUpError) {
     return { data: { user: null, session: null }, error: signUpError };
   }
+  
+  if (signUpError) {
+    // Retorna o erro de cadastro (ex: email já existe)
+    return { data: {user: null, session: null}, error: signUpError };
+  }
 
-  // Etapa 2: Se o usuário foi criado, tente validar e usar o código de acesso.
-  // Este processo é "best-effort" e não bloqueará o usuário se falhar.
+
+  // Etapa 3: Se o usuário foi criado, invalidar o código de acesso usando uma função RPC.
   if (signUpData.user) {
-    try {
-        const { data: codeData, error: selectError } = await supabase
-          .from(ACCESS_CODES_TABLE)
-          .select('id, is_used')
-          .eq('code', trimmedCode)
-          .single();
-
-        if (selectError || !codeData || codeData.is_used) {
-            // O código é inválido, já foi usado ou as políticas de RLS impedem a leitura.
-            // Apenas registramos um aviso no console e continuamos, pois o usuário já foi criado.
-            console.warn(`Cadastro bem-sucedido para ${email}, mas o código de acesso "${trimmedCode}" é inválido ou não pôde ser validado.`, selectError?.message || 'Código não encontrado ou já em uso.');
-        } else {
-            // O código é válido, então tentamos atualizá-lo.
-            const { error: updateError } = await supabase
-              .from(ACCESS_CODES_TABLE)
-              .update({ is_used: true, used_by_user_id: signUpData.user.id })
-              .eq('code', trimmedCode);
-
-            if (updateError) {
-                // As políticas de RLS podem bloquear a atualização. Apenas registramos e continuamos.
-                console.warn(`Cadastro bem-sucedido para ${email}, mas falhou ao marcar o código de acesso "${trimmedCode}" como usado.`, updateError.message);
-            }
+    // A função RPC 'claim_access_code' é a maneira mais segura de fazer isso do lado do cliente.
+    const { data: rpcData, error: rpcError } = await supabase.rpc('claim_access_code', {
+        code_to_claim: trimmedCode
+    });
+    
+    if (rpcError || !rpcData || rpcData.length === 0) {
+        console.error("ERRO CRÍTICO: Usuário criado mas falha ao reivindicar o código de acesso.", rpcError);
+        // Informa ao usuário que a função RPC está faltando para que possa ser corrigida.
+        if (rpcError && rpcError.message.includes('function claim_access_code') && rpcError.message.includes('does not exist')) {
+             return { data: { user: null, session: null }, error: { name: 'RpcFunctionMissing', message: 'RPC_FUNCTION_MISSING' } as AuthError };
         }
-    } catch(e) {
-        console.error("Erro inesperado durante a validação do código de acesso pós-cadastro:", e);
+        // Se a função existe mas falhou, é um problema sério, mas o cadastro do usuário já ocorreu.
+        // Apenas logamos o erro para não bloquear o usuário.
     }
   }
 
-  // Retorna o resultado da operação de cadastro, independentemente do sucesso da validação do código.
   return { data: signUpData, error: null };
 };
 

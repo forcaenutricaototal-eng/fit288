@@ -26,34 +26,34 @@ const InlineRlsGuide: React.FC<{ type: 'RPC' | 'SELECT' | 'TABLE' }> = ({ type }
         switch (type) {
             case 'RPC':
                 return {
-                    title: 'Ação Requerida: Configurar Função de Acesso',
+                    title: 'Ação Requerida: Configurar Função de Validação de Código',
                     steps: [
-                        'O método de validação de códigos foi atualizado para ser mais seguro, mas requer uma configuração no seu banco de dados.',
+                        'O cadastro requer uma função segura no banco de dados para validar e "queimar" o código de acesso de forma atômica.',
                         'No seu painel Supabase, vá para: SQL Editor → New query.',
                         'Cole o bloco de código SQL abaixo na íntegra no editor.',
-                        { code: `CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)\nRETURNS SETOF access_codes AS $$\nBEGIN\n  RETURN QUERY\n  UPDATE access_codes\n  SET is_used = TRUE\n  WHERE code = code_to_claim AND is_used = FALSE\n  RETURNING *;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;` },
+                        { code: `CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)\nRETURNS SETOF access_codes AS $$\nBEGIN\n  RETURN QUERY\n  UPDATE public.access_codes\n  SET\n    is_used = TRUE,\n    used_by_user_id = auth.uid()\n  WHERE code = code_to_claim AND is_used = FALSE\n  RETURNING *;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;` },
                         'Clique em "RUN" para criar a função.',
-                        'Esta função permite que o sistema valide e marque um código como "usado" de forma atômica e segura, resolvendo o problema de permissão permanentemente.'
+                        'Esta função permite que um usuário recém-autenticado reivindique seu código de acesso de forma segura, associando-o à sua conta.'
                     ]
                 };
             case 'SELECT':
                  return {
                     title: 'Ação Requerida: Configurar Permissão de Leitura (SELECT)',
                      steps: [
+                       'O sistema precisa verificar se um código é válido antes de criar um usuário. Para isso, é necessária uma permissão de leitura pública.',
                        'No seu painel Supabase, vá para: Authentication → Policies.',
                        'Na tabela `access_codes`, clique em "New Policy" → "From a template".',
                        'Selecione o template chamado "Enable read access for all users".',
-                       'Revise a política e clique em "Save policy". Esta regra permite que o sistema verifique se um código existe antes do cadastro.',
-                    ]
+                       'Revise e clique em "Save policy".',
+                     ]
                 };
             case 'TABLE':
                 return {
                     title: 'Ação Requerida: Tabela `access_codes` Não Encontrada',
                     steps: [
-                        'No seu painel Supabase, vá para: Table Editor.',
-                        'Encontre sua tabela de códigos de acesso. Ela pode ter um nome diferente (ex: `simone11`).',
-                        'Renomeie a tabela para o nome exato abaixo para que o aplicativo possa encontrá-la.',
-                         { code: 'access_codes' },
+                        'O aplicativo não encontrou a tabela de códigos de acesso para validar o cadastro.',
+                        'No seu painel Supabase, vá para: Table Editor → New table.',
+                        'Crie a tabela com o nome exato `access_codes` e com as colunas necessárias, ou use o script completo fornecido na tela de erro de login para criar todas as tabelas de uma vez.',
                     ]
                 };
             default: return null;
@@ -77,7 +77,7 @@ const InlineRlsGuide: React.FC<{ type: 'RPC' | 'SELECT' | 'TABLE' }> = ({ type }
                             : <li key={i}>{step}</li>
                         ))}
                     </ol>
-                    <p className="text-xs text-neutral-800 mt-3 font-semibold">Após corrigir, tente se cadastrar novamente.</p>
+                    <p className="text-xs text-neutral-800 mt-3 font-semibold">Após aplicar a correção, tente se cadastrar novamente.</p>
                 </div>
             </div>
         </div>
