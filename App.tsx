@@ -14,6 +14,7 @@ import LandingPage from './pages/LandingPage';
 import ProtocolsPage from './pages/ProtocolsPage';
 import OnboardingPage from './pages/OnboardingPage';
 import AdminPage from './pages/AdminPage';
+import EbookPage from './pages/EbookPage';
 import { ToastProvider, useToast } from './components/Toast';
 import { AlertTriangle, LogOut, Database, ShieldOff, Copy, Check } from 'lucide-react';
 
@@ -633,6 +634,7 @@ const Main: React.FC = () => {
                             <Route path="meal-plan" element={<PlanPage />} />
                             <Route path="meal-plan/day/:day" element={<PlanPage />} />
                             <Route path="protocols" element={<ProtocolsPage />} />
+                            <Route path="ebook" element={<EbookPage />} />
                             <Route path="profile" element={<ProfilePage />} />
                             {isAdmin && <Route path="admin" element={<AdminPage />} />}
                             <Route path="*" element={<Navigate to="/chat" />} />

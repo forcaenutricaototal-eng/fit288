@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -81,6 +80,18 @@ const DashboardPage: React.FC = () => {
             <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">Bem-vindo, {name}.</h1>
                 <p className="text-neutral-800">Seu resumo de progresso está aqui.</p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-soft border-l-4 border-gold">
+                <p className="text-neutral-800 text-sm mb-4">
+                    O emagrecimento verdadeiro não está em dietas extremas ou remédios milagrosos. Está em alinhar corpo e mente com hábitos corretos, como os japoneses fazem há séculos.
+                </p>
+                <p className="text-neutral-800 text-sm mb-4">
+                    Você não precisa lutar contra o seu corpo. Precisa trabalhar com ele.
+                </p>
+                <blockquote className="text-neutral-900 font-semibold italic text-sm">
+                    🌸 “Quando você vive em harmonia com seu corpo, ele te devolve equilíbrio, leveza e saúde.”
+                </blockquote>
             </div>
 
             {/* New Progress & Action Section */}

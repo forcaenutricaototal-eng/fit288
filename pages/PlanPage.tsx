@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { DailyPlan, Recipe } from '../types';
@@ -179,6 +177,13 @@ const RegenerateModal: React.FC<{
     );
 };
 
+const loadingMessages = [
+  "Analisando seu perfil e progresso...",
+  "Nossa IA, Luna, está montando as melhores refeições para você... 🍵",
+  "Criando um plano delicioso e alinhado aos seus objetivos...",
+  "Lembre-se de beber bastante água hoje! 💧",
+  "Estamos preparando tudo para o seu sucesso. Quase pronto! ✨",
+];
 
 const PlanPage: React.FC = () => {
     const { day } = useParams();
@@ -191,6 +196,7 @@ const PlanPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [showShoppingList, setShowShoppingList] = useState(false);
     const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
+    const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
     
     const completedItemsForDay = completedItemsByDay[dayId] || {};
 
@@ -219,12 +225,27 @@ const PlanPage: React.FC = () => {
         fetchPlan(dayId);
     }, [dayId, fetchPlan]);
 
+    useEffect(() => {
+      let interval: number;
+      if (isLoading) {
+        setLoadingMessageIndex(0); 
+        interval = window.setInterval(() => {
+          setLoadingMessageIndex(prevIndex => (prevIndex + 1) % loadingMessages.length);
+        }, 3000); 
+      }
+      return () => {
+        if (interval) {
+          window.clearInterval(interval);
+        }
+      };
+    }, [isLoading]);
+
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center">
                 <Loader className="animate-spin text-primary mb-4" size={48} />
-                <p className="text-neutral-900 font-semibold">Gerando seu plano personalizado para o Dia {dayId}...</p>
-                <p className="text-neutral-800">Isso pode levar alguns segundos.</p>
+                <p className="text-neutral-900 font-semibold text-lg">Gerando seu plano personalizado para o Dia {dayId}...</p>
+                <p className="text-neutral-800 mt-2 transition-opacity duration-500">{loadingMessages[loadingMessageIndex]}</p>
             </div>
         );
     }

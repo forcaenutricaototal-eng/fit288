@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { ChatMessage } from '../types';
 import { useApp } from '../App';
@@ -43,7 +41,7 @@ const ApiKeyErrorComponent: React.FC<{ onRetry: () => void; featureName: string 
 const ChatPage: React.FC = () => {
     const { userProfile } = useApp();
     const [messages, setMessages] = useState<ChatMessage[]>([
-        { id: '1', text: `Olá, ${userProfile?.name}! Eu sou a Luna, sua nutricionista virtual. Fico muito feliz em te acompanhar na sua jornada! Como posso te ajudar hoje? 😊`, sender: 'ai' }
+        { id: '1', text: `Olá, ${userProfile?.name}! Eu sou a Luna, sua nutricionista virtual. Fico muito feliz em te acompanhar na sua jornada! 😊\n\nPara começarmos com o pé direito, eu tenho uma recomendação especial: o nosso e-book "Monjaro Japonês". É um guia fantástico que te ensina a reaprender a comer e a viver com mais atenção. É o primeiro passo perfeito para a sua transformação! ✨\n\nVocê pode acessá-lo a qualquer momento na seção "E-book" do menu.\n\nComo posso te ajudar agora?`, sender: 'ai' }
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
