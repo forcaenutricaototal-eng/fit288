@@ -19,9 +19,14 @@ export const getProfile = async (userId: string): Promise<UserProfile | null> =>
 };
 
 export const createProfile = async (userId: string, name: string): Promise<UserProfile> => {
+  const newProfileData = {
+    id: userId,
+    name: name,
+    completed_items_by_day: {}, // Explicitamente define o valor padrão para garantir a consistência.
+  };
   const { data, error } = await getSupabaseClient()
     .from(PROFILES_TABLE)
-    .insert({ id: userId, name: name }) // Only insert the bare essentials to prevent errors
+    .insert(newProfileData)
     .select(PROFILE_COLUMNS)
     .single();
   if (error) throw error;
