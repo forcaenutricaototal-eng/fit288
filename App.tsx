@@ -1,4 +1,5 @@
 
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -281,11 +282,11 @@ const ConfigErrorMessage: React.FC = () => (
             <div className="space-y-6 text-left">
                 <div className="bg-neutral-100 p-4 rounded-md">
                     <p className="font-bold mb-2">1. Adicione as Chaves na Vercel:</p>
-                     <p className="text-sm text-neutral-800 mb-3">No seu projeto Vercel, vá para <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. Crie as três variáveis com os nomes <strong>exatos</strong> e os valores correspondentes:</p>
+                     <p className="text-sm text-neutral-800 mb-3">No seu projeto Vercel, vá para <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. Crie as três variáveis com os nomes <strong>exatos</strong> e os valores correspondentes. <strong>Atenção:</strong> Todas as chaves DEVEM começar com o prefixo <code className="bg-neutral-200 px-1 rounded">VITE_</code> para funcionar.</p>
                     <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
                         <p>VITE_SUPABASE_URL=<span className="text-gray-400">[URL do seu projeto Supabase]</span></p>
                         <p>VITE_SUPABASE_ANON_KEY=<span className="text-gray-400">[Chave 'anon public' do Supabase]</span></p>
-                        <p>CHAVE_API=<span className="text-gray-400">[Sua chave da API do Google Gemini]</span></p>
+                        <p>VITE_API_KEY=<span className="text-gray-400">[Sua chave da API do Google Gemini]</span></p>
                     </div>
                      <p className="text-xs text-neutral-800 mt-2"><strong>Dica:</strong> Para habilitar o painel de admin, adicione também a variável <code className="bg-neutral-200 px-1 rounded">VITE_ADMIN_USER_ID</code> com o seu User ID do Supabase.</p>
                 </div>

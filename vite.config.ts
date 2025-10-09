@@ -11,8 +11,8 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       // Mapeia as variáveis de ambiente do Vercel para o objeto process.env no lado do cliente.
-      // A SDK do Gemini exige 'API_KEY', então mapeamos a variável do usuário 'CHAVE_API' para ela.
-      'process.env.API_KEY': JSON.stringify(env.CHAVE_API),
+      // A SDK do Gemini exige 'API_KEY', então mapeamos a variável do usuário 'VITE_API_KEY' para ela.
+      'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY),
       'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
       'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
       // Adiciona a variável de ambiente para o ID do administrador
