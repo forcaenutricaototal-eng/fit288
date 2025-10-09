@@ -65,18 +65,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setDataLoadError(null);
     setRawError(null);
     try {
-      // O perfil agora é criado por um gatilho no DB. Se não for encontrado, é um erro crítico.
       let profile = await getProfile(currentUser.id);
       
-      // Adiciona uma pequena espera e nova tentativa para lidar com possível lag de replicação do DB.
       if (!profile) {
         await new Promise(resolve => setTimeout(resolve, 1500));
         profile = await getProfile(currentUser.id);
       }
 
       if (!profile) {
-        // Se ainda não houver perfil, o gatilho falhou ou não existe.
-        throw new Error("DB_SYNC_ERROR");
+        throw new Error("DB_SYNC_ERROR: Profile not found.");
       }
       
       if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
@@ -90,23 +87,31 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setCheckIns(checkInsData);
 
     } catch (error: any) {
-        console.error("Erro ao carregar dados do usuário:", error);
-        
-        setUserProfile(null);
-        setCheckIns([]);
-        setRawError(error.message || 'Ocorreu um erro desconhecido.');
+        const isCurrentUserAdmin = !!(currentUser && process.env.VITE_ADMIN_USER_ID && currentUser.id === process.env.VITE_ADMIN_USER_ID);
 
-        const errorMessage = error.message || '';
-        if (errorMessage.includes("DB_SYNC_ERROR")) {
-            setDataLoadError('DB_SYNC_ERROR');
-        } else if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
-            setDataLoadError('DB_SYNC_ERROR');
-        } else if (errorMessage.includes("column") && errorMessage.includes("does not exist")) {
-            setDataLoadError('DB_SYNC_ERROR');
-        } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
-            setDataLoadError('RLS_POLICY_MISSING');
+        if (isCurrentUserAdmin) {
+          // Admin is logged in but their profile might be missing (e.g., after a DB reset).
+          // We allow them to proceed to the app so they can access the Admin Panel and fix the DB.
+          console.warn("Admin profile not found. Allowing access to Admin Panel for recovery.");
+          setUserProfile(null);
+          setCheckIns([]);
+          // CRITICAL: DO NOT set dataLoadError for the admin to avoid the error screen loop.
         } else {
-            setDataLoadError('GENERIC_ERROR');
+          // For regular users, this is a critical error. Show the error screen.
+          console.error("Erro ao carregar dados do usuário:", error);
+          
+          setUserProfile(null);
+          setCheckIns([]);
+          setRawError(error.message || 'Ocorreu um erro desconhecido.');
+
+          const errorMessage = error.message || '';
+          if (errorMessage.includes("DB_SYNC_ERROR") || (errorMessage.includes("relation") && errorMessage.includes("does not exist")) || (errorMessage.includes("column") && errorMessage.includes("does not exist"))) {
+              setDataLoadError('DB_SYNC_ERROR');
+          } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
+              setDataLoadError('RLS_POLICY_MISSING');
+          } else {
+              setDataLoadError('GENERIC_ERROR');
+          }
         }
     }
   }, []);
@@ -312,7 +317,20 @@ const DatabaseSyncError: React.FC = () => {
     
     const fullResetScript = `-- SCRIPT DE RESET COMPLETO E DEFINITIVO
 
--- 1. APAGA TUDO EM ORDEM PARA UM RESET LIMPO
+-- AVISO: O User ID abaixo precisa ser o da SUA conta de administrador.
+-- Encontre-o na seção 'Authentication' do Supabase e substitua o valor.
+-- PASSO 1: CONFIGURE SEU ID DE ADMIN AQUI (OBRIGATÓRIO)
+CREATE OR REPLACE FUNCTION get_admin_user_id()
+RETURNS uuid AS $$
+BEGIN
+  -- COLE O SEU USER ID DE ADMIN AQUI DENTRO DAS ASPAS SIMPLES:
+  RETURN '${user?.id || 'COLE_SEU_USER_ID_DE_ADMIN_AQUI'}';
+END;
+$$ LANGUAGE plpgsql;
+
+-- O restante do script usa esta função para configurar as permissões.
+
+-- 2. APAGA TUDO EM ORDEM PARA UM RESET LIMPO
 DROP POLICY IF EXISTS "Admin can delete unused codes" ON public.access_codes;
 DROP POLICY IF EXISTS "Admin can create new codes" ON public.access_codes;
 DROP POLICY IF EXISTS "Admin can read all codes" ON public.access_codes;
@@ -324,21 +342,12 @@ DROP POLICY IF EXISTS "Enable update for users based on their UID" ON public.pro
 DROP POLICY IF EXISTS "Enable read access for users based on their UID" ON public.profiles;
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
-DROP FUNCTION IF EXISTS public.get_admin_user_id();
+-- A função get_admin_user_id() não é apagada aqui, pois a criamos/atualizamos no Passo 1.
 DROP FUNCTION IF EXISTS public.claim_access_code(text);
 DROP FUNCTION IF EXISTS public.validate_access_code(text);
 DROP TABLE IF EXISTS public.check_ins CASCADE;
 DROP TABLE IF EXISTS public.access_codes CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
-
--- 2. CRIA A FUNÇÃO QUE IDENTIFICA O ADMIN
-CREATE OR REPLACE FUNCTION get_admin_user_id()
-RETURNS uuid AS $$
-BEGIN
-  -- COLE O SEU USER ID DE ADMIN AQUI DENTRO DAS ASPAS SIMPLES:
-  RETURN '${user?.id || 'SEU_USER_ID_DE_ADMIN_AQUI'}';
-END;
-$$ LANGUAGE plpgsql;
 
 -- 3. CRIA A TABELA DE PERFIS (PROFILES)
 CREATE TABLE public.profiles (
@@ -459,9 +468,9 @@ CREATE POLICY "Admin can delete unused codes" ON public.access_codes FOR DELETE 
                 <p className="font-bold mb-2">Passo 1: Limpe os Usuários de Teste (Recomendado)</p>
                 <p className="text-sm text-neutral-800">Para evitar conflitos, apague os usuários criados durante os testes. No seu painel Supabase, vá para a seção <code className="bg-neutral-200 px-1 rounded">Authentication</code>, selecione os usuários de teste e clique em "Delete".</p>
             </div>
-            <div className="bg-neutral-100 p-4 rounded-md">
-                <p className="font-bold mb-2">Passo 2: Configure seu ID de Administrador (Obrigatório)</p>
-                <p className="text-sm text-neutral-800 mb-3">O script precisa saber qual é o seu User ID para lhe dar permissões de admin. Se o ID abaixo estiver incorreto ou mostrando um placeholder, encontre o ID correto na seção <code className="bg-neutral-200 px-1 rounded">Authentication</code> do Supabase e cole-o no lugar certo dentro do script antes de copiar.</p>
+            <div className="bg-orange-50 p-4 rounded-md border border-orange-200">
+                <p className="font-bold mb-2 text-orange-800">Passo 2: Configure seu ID de Administrador (Obrigatório)</p>
+                <p className="text-sm text-orange-700">O script precisa saber qual é o seu User ID para lhe dar permissões de admin. Antes de copiar o script abaixo, você precisa editar a primeira parte dele e inserir seu ID.</p>
             </div>
             <div className="bg-neutral-100 p-4 rounded-md">
                 <p className="font-bold mb-2">Passo 3: Execute o Script de Setup Completo</p>
@@ -595,7 +604,7 @@ const Main: React.FC = () => {
 
     if (isLoading) return <LoadingSpinner />;
 
-    if (dataLoadError || showDbSyncTool) {
+    if ((dataLoadError && !isAdmin) || showDbSyncTool) {
         return <DataLoadErrorComponent errorType={dataLoadError || 'DB_SYNC_ERROR'} onLogout={logout} rawError={rawError} />;
     }
 
