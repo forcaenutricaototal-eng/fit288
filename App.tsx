@@ -16,7 +16,7 @@ import ProtocolsPage from './pages/ProtocolsPage';
 import OnboardingPage from './pages/OnboardingPage';
 import AdminPage from './pages/AdminPage';
 import { ToastProvider, useToast } from './components/Toast';
-import { AlertTriangle, LogOut, Database, ShieldOff } from 'lucide-react';
+import { AlertTriangle, LogOut, Database, ShieldOff, Copy, Check } from 'lucide-react';
 
 interface AppContextType {
   isAuthenticated: boolean;
@@ -301,7 +301,18 @@ const ConfigErrorMessage: React.FC = () => (
 );
 
 const DatabaseSyncError: React.FC = () => {
-    const fullResetScript = `-- 1. APAGA AS TABELAS ANTIGAS E A FUNÇÃO RPC EM ORDEM
+    const [copied, setCopied] = useState(false);
+    
+    const fullResetScript = `-- 1. APAGA TUDO EM ORDEM PARA UM RESET LIMPO
+DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.access_codes;
+DROP POLICY IF EXISTS "Admin pode deletar códigos não usados" ON public.access_codes;
+DROP POLICY IF EXISTS "Admin pode criar novos códigos" ON public.access_codes;
+DROP POLICY IF EXISTS "Admin pode ler todos os códigos" ON public.access_codes;
+DROP POLICY IF EXISTS "Enable insert for users based on their UID" ON public.check_ins;
+DROP POLICY IF EXISTS "Enable read access for users based on their UID" ON public.check_ins;
+DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.profiles;
+DROP POLICY IF EXISTS "Enable update for users based on their UID" ON public.profiles;
+DROP POLICY IF EXISTS "Enable read access for users based on their UID" ON public.profiles;
 DROP FUNCTION IF EXISTS public.claim_access_code(text);
 DROP TABLE IF EXISTS public.check_ins CASCADE;
 DROP TABLE IF EXISTS public.access_codes CASCADE;
@@ -350,7 +361,7 @@ CREATE TABLE public.access_codes (
 );
 ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;
 
--- 5. CRIA A FUNÇÃO RPC PARA REIVINDICAR CÓDIGOS DE ACESSO DE FORMA SEGURA
+-- 5. CRIA A FUNÇÃO RPC PARA REIVINDICAR CÓDIGOS DE ACESSO
 CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)
 RETURNS SETOF access_codes AS $$
 BEGIN
@@ -363,32 +374,56 @@ BEGIN
   RETURNING *;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 6. CRIA TODAS AS POLÍTICAS DE SEGURANÇA (RLS)
+-- Políticas para a tabela 'profiles'
+CREATE POLICY "Enable read access for users based on their UID" ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Enable update for users based on their UID" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "Enable insert for authenticated users only" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Políticas para a tabela 'check_ins'
+CREATE POLICY "Enable read access for users based on their UID" ON public.check_ins FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Enable insert for users based on their UID" ON public.check_ins FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Políticas para a tabela 'access_codes' (acesso público para validação de código)
+CREATE POLICY "Enable read access for authenticated users" ON public.access_codes FOR SELECT USING (auth.role() = 'authenticated');
 `;
+    
+    const handleCopy = () => {
+        navigator.clipboard.writeText(fullResetScript);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+    };
 
     return (
         <div className="space-y-6 text-left">
             <p className="text-neutral-800 mb-4 text-sm text-left">
-                Este erro crítico acontece quando a estrutura do seu banco de dados no Supabase está desatualizada ou incompleta. A solução definitiva é resetar as tabelas e funções do aplicativo para garantir que estejam 100% corretas.
+                Este erro crítico acontece quando a estrutura do seu banco de dados no Supabase está desatualizada ou incompleta. A solução definitiva é resetar as tabelas, funções e permissões do aplicativo para garantir que estejam 100% corretas.
             </p>
              <div className="bg-neutral-100 p-4 rounded-md">
                 <p className="font-bold mb-2">Passo 1: Limpe os Usuários de Teste (Recomendado)</p>
                 <p className="text-sm text-neutral-800">Para evitar conflitos, apague os usuários criados durante os testes. No seu painel Supabase, vá para a seção <code className="bg-neutral-200 px-1 rounded">Authentication</code>, selecione os usuários de teste e clique em "Delete".</p>
             </div>
             <div className="bg-neutral-100 p-4 rounded-md">
-                <p className="font-bold mb-2">Passo 2: Execute o Script de Reset Completo</p>
-                <p className="text-sm text-neutral-800 mb-3">Este script irá apagar as tabelas antigas e recriá-las com a estrutura correta. Vá para <code className="bg-neutral-200 px-1 rounded">SQL Editor → New query</code>, copie TODO o bloco de código abaixo e clique em "RUN".</p>
-                <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-xs space-y-1 overflow-x-auto">
-                    <pre className="whitespace-pre-wrap"><code>{fullResetScript}</code></pre>
+                <p className="font-bold mb-2">Passo 2: Execute o Script de Setup Completo</p>
+                <p className="text-sm text-neutral-800 mb-3">Clique no botão abaixo para copiar o script completo. Depois, no seu painel Supabase, vá para <code className="bg-neutral-200 px-1 rounded">SQL Editor → New query</code>, cole o script e clique em "RUN".</p>
+                <div className="relative font-mono bg-gray-800 text-white p-4 rounded-md text-xs space-y-1 overflow-x-auto">
+                    <button 
+                        onClick={handleCopy}
+                        className="absolute top-2 right-2 flex items-center gap-1.5 bg-gray-700 hover:bg-gray-600 text-white font-sans text-xs font-semibold py-1 px-2 rounded-md transition-all"
+                    >
+                        {copied ? (
+                            <> <Check size={14} className="text-green-400"/> Copiado! </>
+                        ) : (
+                            <> <Copy size={14} /> Copiar Script </>
+                        )}
+                    </button>
+                    <pre className="whitespace-pre-wrap pr-24"><code>{fullResetScript}</code></pre>
                 </div>
             </div>
              <div className="bg-neutral-100 p-4 rounded-md">
-                <p className="font-bold mb-2">Passo 3: Verifique TODAS as Permissões (RLS Policies)</p>
-                <p className="text-sm text-neutral-800">Após recriar as tabelas, vá para <code className="bg-neutral-200 px-1 rounded">Authentication → Policies</code> e garanta que as seguintes permissões existem (use os templates "From a template" no Supabase para criá-las rapidamente):</p>
-                <ul className="list-disc list-inside mt-2 text-sm text-neutral-800 space-y-1">
-                    <li><strong>Tabela `profiles`</strong>: 3 políticas (SELECT, UPDATE, INSERT para usuários baseados em seu UID).</li>
-                    <li><strong>Tabela `check_ins`</strong>: 2 políticas (SELECT para usuários baseados em seu UID, INSERT para usuários autenticados).</li>
-                    <li><strong>Tabela `access_codes`</strong>: 1 política (SELECT para todos os usuários).</li>
-                </ul>
+                <p className="font-bold mb-2">Passo 3: Tente Novamente</p>
+                <p className="text-sm text-neutral-800">Após executar o script com sucesso, o banco de dados estará 100% sincronizado. Clique no botão "Sair e Tentar Novamente" para fazer o login.</p>
             </div>
         </div>
     );
