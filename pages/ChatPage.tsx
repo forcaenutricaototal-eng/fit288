@@ -1,11 +1,43 @@
 
 
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { ChatMessage } from '../types';
 import { useApp } from '../App';
 import { getGeminiResponse } from '../services/geminiService';
 import { Send, BrainCircuit } from 'lucide-react';
+
+const ApiKeyErrorComponent: React.FC<{ onRetry: () => void; featureName: string }> = ({ onRetry, featureName }) => (
+    <div className="text-center p-6 bg-red-50 rounded-lg border border-red-200 shadow-soft animate-fade-in h-full flex flex-col justify-center">
+        <div>
+            <h3 className="font-bold text-lg text-red-700 mb-2">Configuração da API Necessária</h3>
+            <p className="text-neutral-800 mb-4 max-w-2xl mx-auto">
+                Para que {featureName} funcione, o aplicativo precisa se conectar ao serviço de inteligência artificial (Google Gemini). A chave da API não foi encontrada.
+            </p>
+            <div className="bg-white p-4 rounded-md border border-neutral-200 text-left space-y-3">
+                <p className="font-semibold text-neutral-900">Como Resolver (Passo Final):</p>
+                <ol className="list-decimal list-inside space-y-3 text-sm text-neutral-800">
+                    <li>
+                        <strong>Verifique a Chave na Vercel:</strong> Confirme se a variável <code className="bg-neutral-200 px-1 rounded">VITE_API_KEY</code> existe em <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. O nome deve começar com <code className="bg-neutral-200 px-1 rounded">VITE_</code>.
+                    </li>
+                    <li>
+                        <strong>Faça o Redeploy Forçado (com Cache Limpo):</strong> Esta etapa é <strong>essencial</strong> para garantir que a Vercel use a nova chave. Às vezes, o cache antigo pode causar problemas.
+                        <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+                            <li>Vá para a aba <code className="bg-neutral-200 px-1 rounded">Deployments</code> no seu projeto Vercel.</li>
+                            <li>Encontre o deploy mais recente, clique no menu de três pontinhos (•••) e selecione <strong>"Redeploy"</strong>.</li>
+                            <li>Na janela de confirmação, <strong>desmarque a opção "Use existing Build Cache"</strong> e clique em "Redeploy".</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+            <button 
+                onClick={onRetry} 
+                className="mt-6 bg-primary text-white font-semibold px-6 py-2 rounded-md hover:bg-primary-dark transition-colors"
+            >
+                Tentar Novamente
+            </button>
+        </div>
+    </div>
+);
 
 
 const ChatPage: React.FC = () => {
@@ -15,6 +47,7 @@ const ChatPage: React.FC = () => {
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [configError, setConfigError] = useState<string | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -61,6 +94,11 @@ const ChatPage: React.FC = () => {
             setMessages(prev => [...prev.filter(m => !m.isLoading), aiMessage]);
         } catch (error: any) {
             console.error("Chat Error:", error);
+            if (error.message && error.message.includes("A chave da API Gemini não foi encontrada")) {
+                setConfigError(error.message);
+                setMessages(prev => prev.filter(m => !m.isLoading && m.id !== userMessage.id)); // Remove loading and user message
+                return;
+            }
             // The error message from geminiService is already user-friendly.
             const errorMessage: ChatMessage = {
                 id: (Date.now() + 1).toString(),
@@ -89,6 +127,10 @@ const ChatPage: React.FC = () => {
         "Me dê uma dica para não sair da dieta.",
         "Posso trocar frango por peixe hoje?"
     ];
+
+    if (configError) {
+        return <ApiKeyErrorComponent onRetry={() => setConfigError(null)} featureName="o chat com a IA" />;
+    }
 
     return (
         <div className="flex flex-col h-full max-h-[80vh] md:max-h-full bg-white rounded-lg shadow-soft">

@@ -558,7 +558,7 @@ const Main: React.FC = () => {
                         </>
                     ) : (
                         <Route path="/" element={<Layout />}>
-                            <Route index element={<Navigate to="/dashboard" />} />
+                            <Route index element={<Navigate to="/chat" />} />
                             <Route path="dashboard" element={<DashboardPage />} />
                             <Route path="chat" element={<ChatPage />} />
                             <Route path="meal-plan" element={<PlanPage />} />
@@ -566,7 +566,7 @@ const Main: React.FC = () => {
                             <Route path="protocols" element={<ProtocolsPage />} />
                             <Route path="profile" element={<ProfilePage />} />
                             {isAdmin && <Route path="admin" element={<AdminPage />} />}
-                            <Route path="*" element={<Navigate to="/dashboard" />} />
+                            <Route path="*" element={<Navigate to="/chat" />} />
                         </Route>
                     )}
                 </Routes>

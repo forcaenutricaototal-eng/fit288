@@ -7,6 +7,38 @@ import { generateMealPlan, generateShoppingList } from '../services/geminiServic
 import { useApp } from '../App';
 import { CheckCircle, Circle, Soup, Beef, Fish, Apple, Loader, ClipboardList, X, RefreshCw } from 'lucide-react';
 
+const ApiKeyErrorComponent: React.FC<{ onRetry: () => void; featureName: string }> = ({ onRetry, featureName }) => (
+    <div className="text-center p-6 bg-red-50 rounded-lg border border-red-200 shadow-soft animate-fade-in">
+        <h3 className="font-bold text-lg text-red-700 mb-2">Configuração da API Necessária</h3>
+        <p className="text-neutral-800 mb-4 max-w-2xl mx-auto">
+            Para que {featureName} funcione, o aplicativo precisa se conectar ao serviço de inteligência artificial (Google Gemini). A chave da API não foi encontrada.
+        </p>
+        <div className="bg-white p-4 rounded-md border border-neutral-200 text-left space-y-3">
+            <p className="font-semibold text-neutral-900">Como Resolver (Passo Final):</p>
+            <ol className="list-decimal list-inside space-y-3 text-sm text-neutral-800">
+                <li>
+                    <strong>Verifique a Chave na Vercel:</strong> Confirme se a variável <code className="bg-neutral-200 px-1 rounded">VITE_API_KEY</code> existe em <code className="bg-neutral-200 px-1 rounded">Settings → Environment Variables</code>. O nome deve começar com <code className="bg-neutral-200 px-1 rounded">VITE_</code>.
+                </li>
+                <li>
+                    <strong>Faça o Redeploy Forçado (com Cache Limpo):</strong> Esta etapa é <strong>essencial</strong> para garantir que a Vercel use a nova chave. Às vezes, o cache antigo pode causar problemas.
+                    <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+                        <li>Vá para a aba <code className="bg-neutral-200 px-1 rounded">Deployments</code> no seu projeto Vercel.</li>
+                        <li>Encontre o deploy mais recente, clique no menu de três pontinhos (•••) e selecione <strong>"Redeploy"</strong>.</li>
+                        <li>Na janela de confirmação, <strong>desmarque a opção "Use existing Build Cache"</strong> e clique em "Redeploy".</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+        <button 
+            onClick={onRetry} 
+            className="mt-6 bg-primary text-white font-semibold px-6 py-2 rounded-md hover:bg-primary-dark transition-colors"
+        >
+            Tentar Novamente
+        </button>
+    </div>
+);
+
+
 const MealCard: React.FC<{ recipe: Recipe, onToggle: () => void, completed: boolean }> = ({ recipe, onToggle, completed }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     
@@ -198,6 +230,9 @@ const PlanPage: React.FC = () => {
     }
     
     if (error) {
+        if (error.includes("A chave da API Gemini não foi encontrada")) {
+            return <ApiKeyErrorComponent onRetry={() => fetchPlan(dayId)} featureName="a geração de planos" />;
+        }
         return (
             <div className="text-center p-6 bg-red-50 rounded-lg border border-red-200 shadow-soft">
                 <h3 className="font-bold text-lg text-red-700 mb-2">Não foi possível gerar o plano.</h3>
