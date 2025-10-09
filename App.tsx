@@ -67,6 +67,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     try {
       let profile = await getProfile(currentUser.id);
       
+      // The DB trigger might take a moment. We wait and retry once.
       if (!profile) {
         await new Promise(resolve => setTimeout(resolve, 1500));
         profile = await getProfile(currentUser.id);
@@ -470,7 +471,7 @@ CREATE POLICY "Admin can delete unused codes" ON public.access_codes FOR DELETE 
             </div>
             <div className="bg-orange-50 p-4 rounded-md border border-orange-200">
                 <p className="font-bold mb-2 text-orange-800">Passo 2: Configure seu ID de Administrador (Obrigatório)</p>
-                <p className="text-sm text-orange-700">O script precisa saber qual é o seu User ID para lhe dar permissões de admin. Antes de copiar o script abaixo, você precisa editar a primeira parte dele e inserir seu ID.</p>
+                <p className="text-sm text-orange-700">O script precisa saber qual é o seu User ID para lhe dar permissões de admin. Se o ID abaixo estiver incorreto ou mostrando um placeholder, encontre o ID correto na seção <code className="bg-neutral-200 px-1 rounded">Authentication</code> do Supabase e cole-o no lugar certo dentro do script antes de copiar.</p>
             </div>
             <div className="bg-neutral-100 p-4 rounded-md">
                 <p className="font-bold mb-2">Passo 3: Execute o Script de Setup Completo</p>
@@ -619,7 +620,7 @@ const Main: React.FC = () => {
                             <Route path="/" element={<LandingPage />} />
                             <Route path="*" element={<Navigate to="/" />} />
                         </>
-                    ) : !hasCompletedOnboarding ? (
+                    ) : (!hasCompletedOnboarding && !isAdmin) ? (
                         <>
                             <Route path="/onboarding" element={<OnboardingPage />} />
                             <Route path="*" element={<Navigate to="/onboarding" />} />
