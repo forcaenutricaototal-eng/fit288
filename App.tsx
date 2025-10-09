@@ -385,12 +385,14 @@ BEGIN
     (count(*) > 0), -- is_valid
     (bool_or(ac.is_used)) -- is_used
   FROM public.access_codes ac
-  WHERE ac.code = code_to_validate;
+  WHERE trim(upper(ac.code)) = trim(upper(code_to_validate));
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 6. CONCEDE PERMISSÕES DE EXECUÇÃO PARA AS FUNÇÕES
-GRANT EXECUTE ON FUNCTION public.validate_access_code(text) TO anon, authenticated;
+-- Permite que qualquer pessoa (incluindo não logados) chame a função de validação
+GRANT EXECUTE ON FUNCTION public.validate_access_code(text) TO PUBLIC;
+-- Permite que apenas usuários autenticados chamem a função para reivindicar o código
 GRANT EXECUTE ON FUNCTION public.claim_access_code(text) TO authenticated;
 
 -- 7. CRIA TODAS AS POLÍTICAS DE SEGURANÇA (RLS)
