@@ -1,3 +1,4 @@
+
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -15,7 +16,7 @@ import ProtocolsPage from './pages/ProtocolsPage';
 import OnboardingPage from './pages/OnboardingPage';
 import AdminPage from './pages/AdminPage';
 import { ToastProvider, useToast } from './components/Toast';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, LogOut, Database, ShieldOff } from 'lucide-react';
 
 interface AppContextType {
   isAuthenticated: boolean;
@@ -34,6 +35,7 @@ interface AppContextType {
   completedItemsByDay: { [day: number]: { [itemId: string]: boolean } };
   toggleItemCompletion: (day: number, itemId: string) => Promise<void>;
   resetDayCompletion: (day: number) => Promise<void>;
+  dataLoadError: string | null;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -49,12 +51,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dataLoadError, setDataLoadError] = useState<string | null>(null);
   const { addToast } = useToast();
 
   const adminId = process.env.VITE_ADMIN_USER_ID;
   const isAdmin = useMemo(() => !!(user && adminId && user.id === adminId), [user, adminId]);
 
   const loadUserProfileAndData = useCallback(async (currentUser: User | null) => {
+    setDataLoadError(null);
     if (!currentUser) {
       setUser(null);
       setUserProfile(null);
@@ -71,7 +75,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       
       if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
         profile.completed_items_by_day = {};
-        updateProfile(currentUser.id, { completed_items_by_day: {} }).catch(console.error);
+        await updateProfile(currentUser.id, { completed_items_by_day: {} });
       }
       
       setUser(currentUser);
@@ -80,16 +84,24 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const checkInsData = await getCheckIns(currentUser.id);
       setCheckIns(checkInsData);
 
-    } catch (error) {
-      console.error("Erro ao carregar dados do usuário:", error);
-      addToast("Ocorreu um erro ao carregar seus dados.", 'info');
-      setUser(null);
-      setUserProfile(null);
-      setCheckIns([]);
+    } catch (error: any) {
+        console.error("Erro ao carregar dados do usuário:", error);
+        
+        const errorMessage = error.message || '';
+        if (errorMessage.includes("Could not find") && errorMessage.includes("column")) {
+            setDataLoadError('COLUMN_MISSING');
+        } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
+            setDataLoadError('RLS_POLICY_MISSING');
+        } else {
+            addToast("Ocorreu um erro ao carregar seus dados.", 'info');
+        }
+        
+        setUser(null);
+        setUserProfile(null);
+        setCheckIns([]);
     }
   }, [addToast]);
   
-  // Effect for initial session load
   useEffect(() => {
     if (!isSupabaseConfigured) {
         setIsLoading(false);
@@ -105,9 +117,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     checkInitialSession();
 
-    // Listen for auth changes after the initial load
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      // Don't set loading for subsequent changes, just update data
       await loadUserProfileAndData(session?.user ?? null);
     });
 
@@ -126,16 +136,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-        const { error } = await getSupabaseClient().auth.signOut();
-        if (error) {
-            console.error("Error signing out:", error);
-            addToast("Ocorreu um erro ao tentar sair. Por favor, tente novamente.", 'info');
-        } else {
-            // Explicitly clear local state on successful logout to trigger re-route
-            setUser(null);
-            setUserProfile(null);
-            setCheckIns([]);
-        }
+        await getSupabaseClient().auth.signOut();
+        setUser(null);
+        setUserProfile(null);
+        setCheckIns([]);
+        setDataLoadError(null);
     } catch (e) {
         console.error("An unexpected error occurred during logout:", e);
         addToast("Ocorreu um erro inesperado ao sair.", 'info');
@@ -226,7 +231,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     completedItemsByDay,
     toggleItemCompletion,
     resetDayCompletion,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout]);
+    dataLoadError,
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -281,8 +287,97 @@ const ConfigErrorMessage: React.FC = () => (
 );
 
 
+const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void }> = ({ errorType, onLogout }) => {
+    const ColumnError = () => (
+        <>
+            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
+            <div className="space-y-6 text-left">
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">1. Adicione a Coluna que Falta:</p>
+                    <p className="text-sm text-neutral-800 mb-3">No seu projeto Supabase, vá para <code className="bg-neutral-200 px-1 rounded">SQL Editor → New query</code> e execute o comando abaixo para garantir que a coluna <code className="bg-neutral-200 px-1 rounded">completed_items_by_day</code> exista na sua tabela <code className="bg-neutral-200 px-1 rounded">profiles</code>.</p>
+                    <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
+                        <p>ALTER TABLE public.profiles</p>
+                        <p>ADD COLUMN IF NOT EXISTS completed_items_by_day jsonb NOT NULL DEFAULT '{{}}';</p>
+                    </div>
+                </div>
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">2. Atualize o Cache do Supabase (se a coluna já existe):</p>
+                    <p className="text-sm text-neutral-800">Às vezes, o Supabase não "vê" a nova coluna imediatamente. Para forçar uma atualização do cache:</p>
+                    <ul className="list-disc list-inside mt-2 text-sm text-neutral-800 space-y-1">
+                        <li>Vá para <code className="bg-neutral-200 px-1 rounded">Table Editor → tabela profiles</code>.</li>
+                        <li>Clique em qualquer coluna (ex: 'name') e selecione "Edit column".</li>
+                        <li>Adicione uma descrição temporária e salve. Depois pode remover a descrição.</li>
+                        <li>Isso força o Supabase a recarregar o schema.</li>
+                    </ul>
+                </div>
+            </div>
+        </>
+    );
+
+    const RlsError = () => (
+        <>
+            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
+            <p className="text-neutral-800 mb-4 text-sm text-left">Para que o app possa carregar e salvar seus dados, a tabela <code className="bg-neutral-200 px-1 rounded">profiles</code> precisa de <strong>TRÊS</strong> regras de segurança (Policies). Crie-as no seu painel Supabase:</p>
+            <div className="space-y-4 text-left">
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">1. Política de Leitura (SELECT):</p>
+                    <p className="text-sm text-neutral-800">Vá para <code className="bg-neutral-200 px-1 rounded">Authentication → Policies</code>, selecione a tabela <code className="bg-neutral-200 px-1 rounded">profiles</code> e crie uma política com o template: <strong>"Enable read access for users based on their UID"</strong>.</p>
+                </div>
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">2. Política de Atualização (UPDATE):</p>
+                    <p className="text-sm text-neutral-800">Crie outra política com o template: <strong>"Enable update access for users based on their UID"</strong>.</p>
+                </div>
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">3. Política de Criação (INSERT):</p>
+                    <p className="text-sm text-neutral-800">Crie a terceira política com o template: <strong>"Enable insert for authenticated users only"</strong>.</p>
+                </div>
+            </div>
+        </>
+    );
+
+    const errorDetails = {
+        'COLUMN_MISSING': {
+            icon: Database,
+            title: "Erro de Banco de Dados",
+            description: "Não foi possível carregar seu perfil porque uma coluna essencial (`completed_items_by_day`) está faltando na tabela `profiles` ou o cache do Supabase está desatualizado.",
+            content: <ColumnError />
+        },
+        'RLS_POLICY_MISSING': {
+            icon: ShieldOff,
+            title: "Erro de Permissão (RLS)",
+            description: "O login falhou porque o aplicativo não tem permissão para ler seus dados do perfil. Isso é resolvido configurando as Políticas de Segurança de Nível de Linha (RLS) no Supabase.",
+            content: <RlsError />
+        }
+    };
+    
+    const details = errorDetails[errorType as keyof typeof errorDetails] || errorDetails['RLS_POLICY_MISSING'];
+
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-neutral-100 p-4 font-sans">
+            <div className="text-center bg-white p-8 rounded-lg shadow-soft max-w-3xl border-t-4 border-yellow-500">
+                <div className="flex justify-center mb-4">
+                    <details.icon className="text-yellow-600" size={40} />
+                </div>
+                <h2 className="text-2xl font-bold text-neutral-900 mb-3">{details.title}</h2>
+                <p className="text-neutral-800 mb-6">{details.description}</p>
+                
+                {details.content}
+
+                <div className="mt-8 border-t pt-6">
+                    <p className="text-sm text-neutral-800 mb-4">Após aplicar a correção no seu painel Supabase, saia e tente fazer o login novamente.</p>
+                    <button onClick={onLogout} className="bg-primary text-white font-bold py-2.5 px-6 rounded-md hover:bg-primary-dark transition-all flex items-center justify-center gap-2 mx-auto">
+                        <LogOut size={18} />
+                        Sair e Tentar Novamente
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading, userProfile, isAdmin } = useApp();
+    const { isAuthenticated, isLoading, userProfile, isAdmin, dataLoadError, logout } = useApp();
     
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
@@ -290,7 +385,10 @@ const Main: React.FC = () => {
 
     if (isLoading) return <LoadingSpinner />;
 
-    // A user has completed onboarding if their core physical stats are present.
+    if (dataLoadError) {
+        return <DataLoadErrorComponent errorType={dataLoadError} onLogout={logout} />;
+    }
+
     const hasCompletedOnboarding = !!(userProfile?.age && userProfile?.weight && userProfile?.height);
 
     return (
@@ -304,7 +402,6 @@ const Main: React.FC = () => {
                         </>
                     ) : !hasCompletedOnboarding ? (
                         <>
-                            {/* Force authenticated but non-onboarded users to this page */}
                             <Route path="/onboarding" element={<OnboardingPage />} />
                             <Route path="*" element={<Navigate to="/onboarding" />} />
                         </>
