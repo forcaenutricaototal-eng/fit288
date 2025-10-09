@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { getAccessCodes, createAccessCodes, deleteAccessCode } from '../services/supabaseService';
 import type { AccessCode } from '../types';
@@ -107,13 +106,18 @@ const AdminPage: React.FC = () => {
 
     const handleGenerate = async () => {
         setIsGenerating(true);
+        setError(null);
         try {
             const newCodes = await createAccessCodes(generateCount);
             setCodes(prev => [...newCodes, ...prev]);
             addToast(`${generateCount} novo(s) código(s) gerado(s) com sucesso!`, 'success');
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            addToast("Falha ao gerar códigos.", 'info');
+            if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
+                setError("RLS_ERROR");
+            } else {
+                addToast("Falha ao gerar códigos.", 'info');
+            }
         } finally {
             setIsGenerating(false);
         }
