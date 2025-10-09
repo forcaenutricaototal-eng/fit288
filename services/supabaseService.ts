@@ -105,12 +105,14 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
   });
 
   if (signUpError) {
+    if (signUpError.message.includes("User already registered")) {
+        const customError = {
+            ...signUpError,
+            message: "Este e-mail já está cadastrado. Por favor, faça o login ou use a opção 'Esqueceu a senha?' se necessário."
+        };
+        return { data: { user: null, session: null }, error: customError as AuthError };
+    }
     return { data: { user: null, session: null }, error: signUpError };
-  }
-  
-  if (signUpError) {
-    // Retorna o erro de cadastro (ex: email já existe)
-    return { data: {user: null, session: null}, error: signUpError };
   }
 
 
