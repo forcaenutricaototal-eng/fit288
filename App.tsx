@@ -91,18 +91,19 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } catch (error: any) {
         console.error("Erro ao carregar dados do usuário:", error);
         
-        setUser(currentUser);
+        setUser(currentUser); // Keep user logged in to show error screen
         setUserProfile(null);
         setCheckIns([]);
         setRawError(error.message || 'Ocorreu um erro desconhecido.');
 
+        // Centralize error detection logic. DB_SYNC_ERROR becomes the primary catch-all for schema issues.
         const errorMessage = error.message || '';
         if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
-            setDataLoadError('TABLE_NOT_FOUND');
-        } else if (errorMessage.includes("column") && errorMessage.includes("created_at") && errorMessage.includes("does not exist")) {
+            setDataLoadError('DB_SYNC_ERROR');
+        } else if (errorMessage.includes("column") && errorMessage.includes("does not exist")) {
             setDataLoadError('DB_SYNC_ERROR');
         } else if (errorMessage.includes("Could not find") && errorMessage.includes("column")) {
-            setDataLoadError('COLUMN_MISSING');
+            setDataLoadError('DB_SYNC_ERROR');
         } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
             setDataLoadError('RLS_POLICY_MISSING');
         } else {
@@ -128,14 +129,17 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        await loadUserProfileAndData(session.user);
-      } else {
+        // Only reload data if the user is changing or was previously null
+        if (session.user.id !== user?.id) {
+          await loadUserProfileAndData(session.user);
+        }
+      } else if (user !== null) { // If there was a user and now there is none
         await loadUserProfileAndData(null);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [loadUserProfileAndData]);
+  }, [loadUserProfileAndData, user]);
 
 
   const login = async (email: string, pass: string) => {
@@ -302,7 +306,8 @@ const ConfigErrorMessage: React.FC = () => (
 );
 
 const DatabaseSyncError: React.FC = () => {
-    const fullResetScript = `-- 1. APAGA AS TABELAS ANTIGAS EM ORDEM
+    const fullResetScript = `-- 1. APAGA AS TABELAS ANTIGAS E A FUNÇÃO RPC EM ORDEM
+DROP FUNCTION IF EXISTS public.claim_access_code(text);
 DROP TABLE IF EXISTS public.check_ins CASCADE;
 DROP TABLE IF EXISTS public.access_codes CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
@@ -349,12 +354,26 @@ CREATE TABLE public.access_codes (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;
+
+-- 5. CRIA A FUNÇÃO RPC PARA REIVINDICAR CÓDIGOS DE ACESSO DE FORMA SEGURA
+CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)
+RETURNS SETOF access_codes AS $$
+BEGIN
+  RETURN QUERY
+  UPDATE public.access_codes
+  SET
+    is_used = TRUE,
+    used_by_user_id = auth.uid()
+  WHERE code = code_to_claim AND is_used = FALSE
+  RETURNING *;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 `;
 
     return (
         <div className="space-y-6 text-left">
             <p className="text-neutral-800 mb-4 text-sm text-left">
-                Este erro crítico acontece quando a estrutura do seu banco de dados no Supabase está desatualizada ou incompleta. A solução definitiva é resetar as tabelas do aplicativo para garantir que estejam 100% corretas.
+                Este erro crítico acontece quando a estrutura do seu banco de dados no Supabase está desatualizada ou incompleta. A solução definitiva é resetar as tabelas e funções do aplicativo para garantir que estejam 100% corretas.
             </p>
              <div className="bg-neutral-100 p-4 rounded-md">
                 <p className="font-bold mb-2">Passo 1: Limpe os Usuários de Teste (Recomendado)</p>
@@ -369,13 +388,12 @@ ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;
             </div>
              <div className="bg-neutral-100 p-4 rounded-md">
                 <p className="font-bold mb-2">Passo 3: Verifique TODAS as Permissões (RLS Policies)</p>
-                <p className="text-sm text-neutral-800">Após recriar as tabelas, vá para <code className="bg-neutral-200 px-1 rounded">Authentication → Policies</code> e garanta que as seguintes permissões existem:</p>
+                <p className="text-sm text-neutral-800">Após recriar as tabelas, vá para <code className="bg-neutral-200 px-1 rounded">Authentication → Policies</code> e garanta que as seguintes permissões existem (use os templates "From a template" no Supabase para criá-las rapidamente):</p>
                 <ul className="list-disc list-inside mt-2 text-sm text-neutral-800 space-y-1">
                     <li><strong>Tabela `profiles`</strong>: 3 políticas (SELECT, UPDATE, INSERT para usuários baseados em seu UID).</li>
                     <li><strong>Tabela `check_ins`</strong>: 2 políticas (SELECT para usuários baseados em seu UID, INSERT para usuários autenticados).</li>
                     <li><strong>Tabela `access_codes`</strong>: 1 política (SELECT para todos os usuários).</li>
                 </ul>
-                <p className="text-xs text-neutral-800 mt-2">Use os templates "From a template" no Supabase para criar essas regras rapidamente.</p>
             </div>
         </div>
     );
@@ -383,32 +401,6 @@ ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;
 
 
 const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void; rawError: string | null }> = ({ errorType, onLogout, rawError }) => {
-    const ColumnError = () => (
-        <>
-            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
-            <div className="space-y-6 text-left">
-                <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">1. Adicione a Coluna que Falta:</p>
-                    <p className="text-sm text-neutral-800 mb-3">No seu projeto Supabase, vá para <code className="bg-neutral-200 px-1 rounded">SQL Editor → New query</code> e execute o comando abaixo para garantir que a coluna <code className="bg-neutral-200 px-1 rounded">completed_items_by_day</code> exista na sua tabela <code className="bg-neutral-200 px-1 rounded">profiles</code>.</p>
-                    <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-sm space-y-1">
-                        <p>ALTER TABLE public.profiles</p>
-                        <p>ADD COLUMN IF NOT EXISTS completed_items_by_day jsonb NOT NULL DEFAULT '{{}}';</p>
-                    </div>
-                </div>
-                <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">2. Atualize o Cache do Supabase (se a coluna já existe):</p>
-                    <p className="text-sm text-neutral-800">Às vezes, o Supabase não "vê" a nova coluna imediatamente. Para forçar uma atualização do cache:</p>
-                    <ul className="list-disc list-inside mt-2 text-sm text-neutral-800 space-y-1">
-                        <li>Vá para <code className="bg-neutral-200 px-1 rounded">Table Editor → tabela profiles</code>.</li>
-                        <li>Clique em qualquer coluna (ex: 'name') e selecione "Edit column".</li>
-                        <li>Adicione uma descrição temporária e salve. Depois pode remover a descrição.</li>
-                        <li>Isso força o Supabase a recarregar o schema.</li>
-                    </ul>
-                </div>
-            </div>
-        </>
-    );
-
     const RlsError = () => (
         <>
             <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
@@ -430,80 +422,11 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
         </>
     );
 
-    const TableError = () => (
-        <>
-            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
-            <p className="text-neutral-800 mb-4 text-sm text-left">
-                O aplicativo não encontrou uma ou mais tabelas essenciais (`profiles`, `check_ins`, `access_codes`) no seu banco de dados. Para corrigir, execute os seguintes comandos SQL no seu painel Supabase.
-            </p>
-            <div className="space-y-4 text-left">
-                <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">1. Vá para o Editor SQL:</p>
-                    <p className="text-sm text-neutral-800">No seu projeto Supabase, clique em <code className="bg-neutral-200 px-1 rounded">SQL Editor</code> na barra lateral e depois em <code className="bg-neutral-200 px-1 rounded">New query</code>.</p>
-                </div>
-                <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">2. Crie as Tabelas Essenciais:</p>
-                    <p className="text-sm text-neutral-800 mb-2">Copie e cole TODO o bloco de código abaixo no editor SQL e clique em "RUN". Isso criará as três tabelas com a estrutura correta.</p>
-                    <div className="font-mono bg-gray-800 text-white p-4 rounded-md text-xs space-y-1 overflow-x-auto">
-                        <pre className="whitespace-pre-wrap"><code>
-{`-- 1. Tabela de Perfis de Usuários (profiles)
-CREATE TABLE public.profiles (
-  id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  name text NOT NULL,
-  age integer,
-  weight double precision,
-  height double precision,
-  dietary_restrictions text[],
-  completed_items_by_day jsonb NOT NULL DEFAULT '{}'::jsonb,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
--- 2. Tabela de Check-ins (check_ins)
-CREATE TABLE public.check_ins (
-  id bigint GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  day integer NOT NULL,
-  weight double precision NOT NULL,
-  water_intake double precision,
-  fluid_retention integer,
-  waist double precision,
-  hips double precision,
-  neck double precision,
-  right_arm double precision,
-  left_arm double precision,
-  right_thigh double precision,
-  left_thigh double precision,
-  observations text,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-ALTER TABLE public.check_ins ENABLE ROW LEVEL SECURITY;
-
--- 3. Tabela de Códigos de Acesso (access_codes)
-CREATE TABLE public.access_codes (
-  id bigint GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  code text NOT NULL UNIQUE,
-  is_used boolean DEFAULT false NOT NULL,
-  used_by_user_id uuid REFERENCES auth.users(id),
-  created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;`}
-                        </code></pre>
-                    </div>
-                </div>
-                 <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">3. Configure as Permissões (RLS Policies):</p>
-                    <p className="text-sm text-neutral-800">Após criar as tabelas, você precisará configurar as permissões (Políticas de Segurança) para cada uma delas, como orientado nas outras telas de erro. Sem as permissões, o erro persistirá.</p>
-                </div>
-            </div>
-        </>
-    );
-
     const GenericError = () => (
          <>
             <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
             <p className="text-neutral-800 mb-4 text-sm text-left">
-                Ocorreu um erro inesperado que o aplicativo não conseguiu identificar automaticamente. A causa mais comum é uma configuração incompleta no seu painel Supabase ou um problema de rede.
+                Ocorreu um erro inesperado que o aplicativo não conseguiu identificar automaticamente. A causa mais comum é um problema de rede.
             </p>
             <div className="space-y-4 text-left">
                 <div className="bg-neutral-100 p-4 rounded-md">
@@ -513,7 +436,7 @@ ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;`}
                 {rawError && (
                     <div className="bg-neutral-100 p-4 rounded-md">
                         <p className="font-bold mb-2">2. Analise os Detalhes Técnicos:</p>
-                        <p className="text-sm text-neutral-800 mb-2">O erro específico retornado pelo sistema está abaixo. Isso pode ajudar a identificar o problema exato na sua configuração Supabase (por exemplo, uma permissão RLS ausente em uma tabela secundária).</p>
+                        <p className="text-sm text-neutral-800 mb-2">O erro específico retornado pelo sistema está abaixo. Isso pode ajudar a identificar a causa.</p>
                         <div className="text-xs text-neutral-800 font-mono bg-neutral-200 p-2 rounded-md whitespace-pre-wrap break-words">
                             {rawError}
                         </div>
@@ -528,23 +451,11 @@ ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;`}
     );
 
     const errorDetails = {
-        'TABLE_NOT_FOUND': {
-            icon: Database,
-            title: "Erro de Configuração do Banco de Dados",
-            description: "Uma ou mais tabelas essenciais (como 'profiles') não foram encontradas. Siga as instruções para criar a estrutura necessária no seu projeto Supabase.",
-            content: <TableError />
-        },
         'DB_SYNC_ERROR': {
             icon: Database,
             title: "Erro Crítico de Sincronização do Banco de Dados",
             description: "Não foi possível carregar seu perfil pois a estrutura do banco de dados está desatualizada. Siga os passos abaixo para resetar e corrigir o problema de forma definitiva.",
             content: <DatabaseSyncError />
-        },
-        'COLUMN_MISSING': {
-            icon: Database,
-            title: "Erro de Banco de Dados",
-            description: "Não foi possível carregar seu perfil porque uma coluna essencial (`completed_items_by_day`) está faltando na tabela `profiles` ou o cache do Supabase está desatualizado.",
-            content: <ColumnError />
         },
         'RLS_POLICY_MISSING': {
             icon: ShieldOff,
