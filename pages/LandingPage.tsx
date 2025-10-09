@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, HelpCircle, Copy, Check } from 'lucide-react';
 import { useApp } from '../App';

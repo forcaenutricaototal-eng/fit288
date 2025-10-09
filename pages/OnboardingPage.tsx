@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import { User, Scale, Ruler, Leaf, Target, Calendar, Sunrise } from 'lucide-react';

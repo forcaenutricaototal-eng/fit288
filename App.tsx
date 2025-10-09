@@ -319,9 +319,9 @@ const DatabaseSyncError: React.FC = () => {
     
     const fullResetScript = `-- SCRIPT DE RESET COMPLETO E DEFINITIVO
 
+-- PASSO 1: CONFIGURE SEU ID DE ADMIN AQUI (OBRIGATÓRIO)
 -- AVISO: O User ID abaixo precisa ser o da SUA conta de administrador.
 -- Encontre-o na seção 'Authentication' do Supabase e substitua o valor.
--- PASSO 1: CONFIGURE SEU ID DE ADMIN AQUI (OBRIGATÓRIO)
 CREATE OR REPLACE FUNCTION get_admin_user_id()
 RETURNS uuid AS $$
 BEGIN

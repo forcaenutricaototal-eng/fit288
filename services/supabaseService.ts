@@ -31,10 +31,8 @@ export const updateProfile = async (userId: string, updatedData: Partial<UserPro
   }
 
   // Etapa 2: Se a atualização foi bem-sucedida, buscar o perfil atualizado.
-  // Isso usa a função getProfile existente, que já é robusta.
   const updatedProfile = await getProfile(userId);
   if (!updatedProfile) {
-    // Isto teoricamente não deveria acontecer se a atualização foi bem-sucedida.
     throw new Error("Falha ao recuperar o perfil após a atualização.");
   }
   
