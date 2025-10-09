@@ -1,5 +1,4 @@
 
-
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -60,16 +59,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const adminId = process.env.VITE_ADMIN_USER_ID;
   const isAdmin = useMemo(() => !!(user && adminId && user.id === adminId), [user, adminId]);
 
-  const loadUserProfileAndData = useCallback(async (currentUser: User | null) => {
+  // Esta função é agora estável e não depende de estado que muda, prevenindo loops.
+  const loadDataForUser = useCallback(async (currentUser: User) => {
+    // Reseta os erros antes de tentar carregar.
     setDataLoadError(null);
     setRawError(null);
-    if (!currentUser) {
-      setUser(null);
-      setUserProfile(null);
-      setCheckIns([]);
-      return;
-    }
-
     try {
       let profile = await getProfile(currentUser.id);
       if (!profile) {
@@ -78,11 +72,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       }
       
       if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
-        profile.completed_items_by_day = {};
         await updateProfile(currentUser.id, { completed_items_by_day: {} });
+        profile.completed_items_by_day = {}; // Atualiza o perfil localmente também.
       }
       
-      setUser(currentUser);
       setUserProfile(profile);
 
       const checkInsData = await getCheckIns(currentUser.id);
@@ -91,12 +84,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } catch (error: any) {
         console.error("Erro ao carregar dados do usuário:", error);
         
-        setUser(currentUser); // Keep user logged in to show error screen
         setUserProfile(null);
         setCheckIns([]);
         setRawError(error.message || 'Ocorreu um erro desconhecido.');
 
-        // Centralize error detection logic. DB_SYNC_ERROR becomes the primary catch-all for schema issues.
+        // Centraliza a lógica de detecção de erros.
         const errorMessage = error.message || '';
         if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
             setDataLoadError('DB_SYNC_ERROR');
@@ -110,8 +102,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             setDataLoadError('GENERIC_ERROR');
         }
     }
-  }, [addToast]);
-  
+  }, []); // O array de dependências vazio torna esta função estável.
+
   useEffect(() => {
     if (!isSupabaseConfigured) {
         setIsLoading(false);
@@ -119,27 +111,34 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
     
     const supabase = getSupabaseClient();
-    const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      await loadUserProfileAndData(session?.user ?? null);
+    
+    // Verifica a sessão inicial.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        await loadDataForUser(currentUser);
+      }
       setIsLoading(false);
-    };
+    });
 
-    checkInitialSession();
-
+    // Ouve as mudanças de autenticação.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        // Only reload data if the user is changing or was previously null
-        if (session.user.id !== user?.id) {
-          await loadUserProfileAndData(session.user);
-        }
-      } else if (user !== null) { // If there was a user and now there is none
-        await loadUserProfileAndData(null);
+      const newUser = session?.user ?? null;
+      setUser(newUser); // Esta é a única fonte de verdade para o estado do usuário.
+      if (newUser) {
+        await loadDataForUser(newUser);
+      } else {
+        // No logout, limpa todos os dados específicos do usuário.
+        setUserProfile(null);
+        setCheckIns([]);
+        setDataLoadError(null);
+        setRawError(null);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [loadUserProfileAndData, user]);
+  }, [loadDataForUser]);
 
 
   const login = async (email: string, pass: string) => {
@@ -154,11 +153,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const logout = useCallback(async () => {
     try {
         await getSupabaseClient().auth.signOut();
-        setUser(null);
-        setUserProfile(null);
-        setCheckIns([]);
-        setDataLoadError(null);
-        setRawError(null);
+        // Não é preciso limpar o estado aqui, o onAuthStateChange cuidará disso.
     } catch (e) {
         console.error("An unexpected error occurred during logout:", e);
         addToast("Ocorreu um erro inesperado ao sair.", 'info');
