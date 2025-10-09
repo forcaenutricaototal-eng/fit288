@@ -87,18 +87,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } catch (error: any) {
         console.error("Erro ao carregar dados do usuário:", error);
         
+        // Mantenha o usuário autenticado para que a tela de erro possa ser exibida.
+        setUser(currentUser);
+        setUserProfile(null);
+        setCheckIns([]);
+
         const errorMessage = error.message || '';
         if (errorMessage.includes("Could not find") && errorMessage.includes("column")) {
             setDataLoadError('COLUMN_MISSING');
         } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
             setDataLoadError('RLS_POLICY_MISSING');
         } else {
-            addToast("Ocorreu um erro ao carregar seus dados.", 'info');
+            // Se for um erro genérico, exiba a tela de erro genérica.
+            setDataLoadError('GENERIC_ERROR');
         }
-        
-        setUser(null);
-        setUserProfile(null);
-        setCheckIns([]);
     }
   }, [addToast]);
   
@@ -118,7 +120,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     checkInitialSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      await loadUserProfileAndData(session?.user ?? null);
+      if (session?.user) {
+        await loadUserProfileAndData(session.user);
+      } else {
+        await loadUserProfileAndData(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -335,6 +341,25 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
         </>
     );
 
+    const GenericError = () => (
+         <>
+            <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
+            <p className="text-neutral-800 mb-4 text-sm text-left">
+                Isso pode acontecer por diversos motivos, como uma instabilidade temporária no serviço ou um erro inesperado.
+            </p>
+            <div className="space-y-4 text-left">
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">1. Tente Novamente:</p>
+                    <p className="text-sm text-neutral-800">Clique no botão "Sair e Tentar Novamente" abaixo e faça o login mais uma vez. Muitas vezes, o problema é temporário.</p>
+                </div>
+                <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">2. Verifique o Console:</p>
+                    <p className="text-sm text-neutral-800">Se o erro persistir, verifique o console de desenvolvedor do seu navegador (F12) para mensagens de erro mais detalhadas que possam ajudar a identificar a causa.</p>
+                </div>
+            </div>
+        </>
+    );
+
     const errorDetails = {
         'COLUMN_MISSING': {
             icon: Database,
@@ -347,10 +372,16 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
             title: "Erro de Permissão (RLS)",
             description: "O login falhou porque o aplicativo não tem permissão para ler seus dados do perfil. Isso é resolvido configurando as Políticas de Segurança de Nível de Linha (RLS) no Supabase.",
             content: <RlsError />
+        },
+        'GENERIC_ERROR': {
+            icon: AlertTriangle,
+            title: "Erro ao Carregar Dados",
+            description: "Não foi possível carregar as informações do seu perfil após o login. O serviço pode estar temporariamente indisponível.",
+            content: <GenericError />
         }
     };
     
-    const details = errorDetails[errorType as keyof typeof errorDetails] || errorDetails['RLS_POLICY_MISSING'];
+    const details = errorDetails[errorType as keyof typeof errorDetails] || errorDetails['GENERIC_ERROR'];
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-neutral-100 p-4 font-sans">
@@ -385,6 +416,8 @@ const Main: React.FC = () => {
 
     if (isLoading) return <LoadingSpinner />;
 
+    // Prioridade máxima para a tela de erro. Se houver um erro, exiba-o,
+    // independentemente do status de autenticação (desde que o erro seja detectado).
     if (dataLoadError) {
         return <DataLoadErrorComponent errorType={dataLoadError} onLogout={logout} />;
     }
