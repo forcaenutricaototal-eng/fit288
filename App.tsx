@@ -36,6 +36,7 @@ interface AppContextType {
   toggleItemCompletion: (day: number, itemId: string) => Promise<void>;
   resetDayCompletion: (day: number) => Promise<void>;
   dataLoadError: string | null;
+  rawError: string | null;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -52,6 +53,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<string | null>(null);
   const { addToast } = useToast();
 
   const adminId = process.env.VITE_ADMIN_USER_ID;
@@ -59,6 +61,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const loadUserProfileAndData = useCallback(async (currentUser: User | null) => {
     setDataLoadError(null);
+    setRawError(null);
     if (!currentUser) {
       setUser(null);
       setUserProfile(null);
@@ -90,6 +93,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setUser(currentUser);
         setUserProfile(null);
         setCheckIns([]);
+        setRawError(error.message || 'Ocorreu um erro desconhecido.');
 
         const errorMessage = error.message || '';
         if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
@@ -147,6 +151,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setUserProfile(null);
         setCheckIns([]);
         setDataLoadError(null);
+        setRawError(null);
     } catch (e) {
         console.error("An unexpected error occurred during logout:", e);
         addToast("Ocorreu um erro inesperado ao sair.", 'info');
@@ -238,7 +243,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     toggleItemCompletion,
     resetDayCompletion,
     dataLoadError,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError]);
+    rawError,
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError, rawError]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -293,7 +299,7 @@ const ConfigErrorMessage: React.FC = () => (
 );
 
 
-const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void }> = ({ errorType, onLogout }) => {
+const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void; rawError: string | null }> = ({ errorType, onLogout, rawError }) => {
     const ColumnError = () => (
         <>
             <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
@@ -414,15 +420,24 @@ ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;`}
          <>
             <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
             <p className="text-neutral-800 mb-4 text-sm text-left">
-                Isso pode acontecer por diversos motivos, como uma instabilidade temporária no serviço ou um erro inesperado.
+                Ocorreu um erro inesperado que o aplicativo não conseguiu identificar automaticamente. A causa mais comum é uma configuração incompleta no seu painel Supabase ou um problema de rede.
             </p>
             <div className="space-y-4 text-left">
                 <div className="bg-neutral-100 p-4 rounded-md">
                     <p className="font-bold mb-2">1. Tente Novamente:</p>
                     <p className="text-sm text-neutral-800">Clique no botão "Sair e Tentar Novamente" abaixo e faça o login mais uma vez. Muitas vezes, o problema é temporário.</p>
                 </div>
-                <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">2. Verifique o Console:</p>
+                {rawError && (
+                    <div className="bg-neutral-100 p-4 rounded-md">
+                        <p className="font-bold mb-2">2. Analise os Detalhes Técnicos:</p>
+                        <p className="text-sm text-neutral-800 mb-2">O erro específico retornado pelo sistema está abaixo. Isso pode ajudar a identificar o problema exato na sua configuração Supabase (por exemplo, uma permissão RLS ausente em uma tabela secundária).</p>
+                        <div className="text-xs text-neutral-800 font-mono bg-neutral-200 p-2 rounded-md whitespace-pre-wrap break-words">
+                            {rawError}
+                        </div>
+                    </div>
+                )}
+                 <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">{rawError ? '3. Verifique o Console:' : '2. Verifique o Console:'}</p>
                     <p className="text-sm text-neutral-800">Se o erro persistir, verifique o console de desenvolvedor do seu navegador (F12) para mensagens de erro mais detalhadas que possam ajudar a identificar a causa.</p>
                 </div>
             </div>
@@ -483,7 +498,7 @@ ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;`}
 
 
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading, userProfile, isAdmin, dataLoadError, logout } = useApp();
+    const { isAuthenticated, isLoading, userProfile, isAdmin, dataLoadError, logout, rawError } = useApp();
     
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
@@ -492,7 +507,7 @@ const Main: React.FC = () => {
     if (isLoading) return <LoadingSpinner />;
 
     if (dataLoadError) {
-        return <DataLoadErrorComponent errorType={dataLoadError} onLogout={logout} />;
+        return <DataLoadErrorComponent errorType={dataLoadError} onLogout={logout} rawError={rawError} />;
     }
 
     const hasCompletedOnboarding = !!(userProfile?.age && userProfile?.weight && userProfile?.height);
