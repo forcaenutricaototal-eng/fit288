@@ -1,10 +1,11 @@
 
+
 import React, { useState } from 'react';
 import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse, Droplets, Sparkles, Sunrise, Leaf, Ticket, HelpCircle, Copy, Check } from 'lucide-react';
 import { useApp } from '../App';
 
 // Componente de ajuda que aparece dentro do formulário, em vez de tomar a tela inteira.
-const InlineRlsGuide: React.FC<{ type: 'RPC' | 'SELECT' | 'TABLE' }> = ({ type }) => {
+const InlineRlsGuide: React.FC<{ type: 'RPC_CLAIM' | 'RPC_VALIDATE' | 'TABLE' }> = ({ type }) => {
     const [copiedStates, setCopiedStates] = useState<{[key: number]: boolean}>({});
 
     const copyToClipboard = (text: string, index: number) => {
@@ -24,36 +25,35 @@ const InlineRlsGuide: React.FC<{ type: 'RPC' | 'SELECT' | 'TABLE' }> = ({ type }
 
     const getContent = () => {
         switch (type) {
-            case 'RPC':
+            case 'RPC_VALIDATE':
                 return {
-                    title: 'Ação Requerida: Configurar Função de Validação de Código',
+                    title: 'Ação Requerida: Configurar Função de Validação',
                     steps: [
-                        'O cadastro requer uma função segura no banco de dados para validar e "queimar" o código de acesso de forma atômica.',
+                        'O cadastro falhou porque uma função segura de validação de código não foi encontrada no banco de dados. Esta é a solução definitiva para o erro de "código inválido".',
+                        'No seu painel Supabase, vá para: SQL Editor → New query.',
+                        'Copie e cole o bloco de código SQL abaixo no editor.',
+                        { code: `CREATE OR REPLACE FUNCTION validate_access_code(code_to_validate TEXT)\nRETURNS TABLE(is_valid BOOLEAN, is_used BOOLEAN) AS $$\nBEGIN\n  RETURN QUERY\n  SELECT\n    (count(*) > 0), -- is_valid\n    (bool_or(ac.is_used)) -- is_used\n  FROM public.access_codes ac\n  WHERE ac.code = code_to_validate;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;` },
+                        'Clique em "RUN" para criar a função.',
+                        'Esta função permite que o sistema verifique se um código existe e está disponível, de forma segura e à prova de falhas de permissão.'
+                    ]
+                };
+            case 'RPC_CLAIM':
+                return {
+                    title: 'Ação Requerida: Configurar Função de Reivindicação de Código',
+                    steps: [
+                        'O cadastro requer uma função segura no banco de dados para "queimar" o código de acesso após o uso.',
                         'No seu painel Supabase, vá para: SQL Editor → New query.',
                         'Cole o bloco de código SQL abaixo na íntegra no editor.',
                         { code: `CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)\nRETURNS SETOF access_codes AS $$\nBEGIN\n  RETURN QUERY\n  UPDATE public.access_codes\n  SET\n    is_used = TRUE,\n    used_by_user_id = auth.uid()\n  WHERE code = code_to_claim AND is_used = FALSE\n  RETURNING *;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;` },
                         'Clique em "RUN" para criar a função.',
-                        'Esta função permite que um usuário recém-autenticado reivindique seu código de acesso de forma segura, associando-o à sua conta.'
                     ]
-                };
-            case 'SELECT':
-                 return {
-                    title: 'Ação Requerida: Configurar Permissão de Leitura (SELECT)',
-                     steps: [
-                       'O sistema precisa verificar se um código é válido antes de criar um usuário. Para isso, é necessária uma permissão de leitura pública.',
-                       'No seu painel Supabase, vá para: Authentication → Policies.',
-                       'Na tabela `access_codes`, clique em "New Policy" → "From a template".',
-                       'Selecione o template chamado "Enable read access for all users".',
-                       'Revise e clique em "Save policy".',
-                     ]
                 };
             case 'TABLE':
                 return {
                     title: 'Ação Requerida: Tabela `access_codes` Não Encontrada',
                     steps: [
                         'O aplicativo não encontrou a tabela de códigos de acesso para validar o cadastro.',
-                        'No seu painel Supabase, vá para: Table Editor → New table.',
-                        'Crie a tabela com o nome exato `access_codes` e com as colunas necessárias, ou use o script completo fornecido na tela de erro de login para criar todas as tabelas de uma vez.',
+                        'Use o script completo fornecido na tela de erro de sincronização do banco de dados (que aparece após o login) para criar todas as tabelas de uma vez.',
                     ]
                 };
             default: return null;
@@ -94,7 +94,7 @@ const LandingPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [accessCode, setAccessCode] = useState('');
     const [error, setError] = useState<string>('');
-    const [rlsErrorType, setRlsErrorType] = useState<'RPC' | 'SELECT' | 'TABLE' | null>(null);
+    const [rlsErrorType, setRlsErrorType] = useState<'RPC_CLAIM' | 'RPC_VALIDATE' | 'TABLE' | null>(null);
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -131,11 +131,11 @@ const LandingPage: React.FC = () => {
                 
                 if (result.error) {
                     switch (result.error.message) {
-                        case 'RPC_FUNCTION_MISSING':
-                            setRlsErrorType('RPC');
+                        case 'RPC_VALIDATE_FUNCTION_MISSING':
+                            setRlsErrorType('RPC_VALIDATE');
                             break;
-                        case 'RLS_SELECT_POLICY_MISSING':
-                            setRlsErrorType('SELECT');
+                        case 'RPC_CLAIM_FUNCTION_MISSING':
+                            setRlsErrorType('RPC_CLAIM');
                             break;
                         case 'TABLE_NOT_FOUND':
                             setRlsErrorType('TABLE');

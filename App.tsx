@@ -313,6 +313,7 @@ DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.pro
 DROP POLICY IF EXISTS "Enable update for users based on their UID" ON public.profiles;
 DROP POLICY IF EXISTS "Enable read access for users based on their UID" ON public.profiles;
 DROP FUNCTION IF EXISTS public.claim_access_code(text);
+DROP FUNCTION IF EXISTS public.validate_access_code(text);
 DROP TABLE IF EXISTS public.check_ins CASCADE;
 DROP TABLE IF EXISTS public.access_codes CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
@@ -360,7 +361,8 @@ CREATE TABLE public.access_codes (
 );
 ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;
 
--- 5. CRIA A FUNÇÃO RPC PARA REIVINDICAR CÓDIGOS DE ACESSO
+-- 5. CRIA AS FUNÇÕES RPC
+-- Função para REIVINDICAR um código após o cadastro
 CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)
 RETURNS SETOF access_codes AS $$
 BEGIN
@@ -373,6 +375,20 @@ BEGIN
   RETURNING *;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Função para VALIDAR um código ANTES do cadastro (bypass RLS)
+CREATE OR REPLACE FUNCTION validate_access_code(code_to_validate TEXT)
+RETURNS TABLE(is_valid BOOLEAN, is_used BOOLEAN) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    (count(*) > 0), -- is_valid
+    (bool_or(ac.is_used)) -- is_used
+  FROM public.access_codes ac
+  WHERE ac.code = code_to_validate;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 -- 6. CRIA TODAS AS POLÍTICAS DE SEGURANÇA (RLS)
 -- Políticas para a tabela 'profiles'

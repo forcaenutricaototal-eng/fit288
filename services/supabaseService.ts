@@ -68,34 +68,34 @@ export const addCheckInData = async (userId: string, checkInData: Omit<CheckInDa
 // Auth function with access code validation
 export const signUpWithAccessCode = async (email: string, pass: string, name: string, accessCode: string): Promise<{ data: { user: User | null; session: Session | null; }; error: AuthError | null; }> => {
   const supabase = getSupabaseClient();
-  const trimmedCode = accessCode.trim();
+  const trimmedCode = accessCode.trim().toUpperCase();
 
-  // Etapa 1: Validar o código de acesso ANTES de criar o usuário.
+  // Etapa 1: Validar o código de acesso usando RPC para bypassar RLS. É mais seguro e confiável.
   try {
-    const { data: codeData, error: selectError } = await supabase
-      .from(ACCESS_CODES_TABLE)
-      .select('is_used')
-      .eq('code', trimmedCode)
+    const { data: validationData, error: rpcError } = await supabase
+      .rpc('validate_access_code', { code_to_validate: trimmedCode })
       .single();
 
-    if (selectError) {
-      if (selectError.code === '42P01') { // undefined_table
-        return { data: { user: null, session: null }, error: { name: 'TableNotFound', message: 'TABLE_NOT_FOUND' } as AuthError };
+    if (rpcError) {
+      if (rpcError.message.includes('function validate_access_code') && rpcError.message.includes('does not exist')) {
+        return { data: { user: null, session: null }, error: { name: 'RpcFunctionMissing', message: 'RPC_VALIDATE_FUNCTION_MISSING' } as AuthError };
       }
-      if (selectError.code === 'PGRST116') { // no rows found
-         return { data: { user: null, session: null }, error: { name: 'InvalidCredentials', message: 'Código de acesso inválido ou não encontrado.' } as AuthError };
-      }
-      // Qualquer outro erro é provavelmente uma política RLS de SELECT faltando
-      return { data: { user: null, session: null }, error: { name: 'RlsPolicyMissing', message: 'RLS_SELECT_POLICY_MISSING' } as AuthError };
+      console.error("RPC validation error:", rpcError);
+      return { data: { user: null, session: null }, error: { name: 'UnexpectedError', message: 'Falha ao validar o código. Verifique sua conexão e tente novamente.' } as AuthError };
+    }
+    
+    if (!validationData || !validationData.is_valid) {
+      return { data: { user: null, session: null }, error: { name: 'InvalidCredentials', message: 'Código de acesso inválido ou não encontrado.' } as AuthError };
     }
 
-    if (codeData.is_used) {
+    if (validationData.is_used) {
       return { data: { user: null, session: null }, error: { name: 'InvalidCredentials', message: 'Este código de acesso já foi utilizado.' } as AuthError };
     }
 
   } catch (e: any) {
      return { data: { user: null, session: null }, error: { name: 'UnexpectedError', message: e.message || 'Erro inesperado ao validar o código.' } as AuthError };
   }
+
 
   // Etapa 2: Se o código for válido, criar o usuário.
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -118,19 +118,15 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
 
   // Etapa 3: Se o usuário foi criado, invalidar o código de acesso usando uma função RPC.
   if (signUpData.user) {
-    // A função RPC 'claim_access_code' é a maneira mais segura de fazer isso do lado do cliente.
     const { data: rpcData, error: rpcError } = await supabase.rpc('claim_access_code', {
         code_to_claim: trimmedCode
     });
     
     if (rpcError || !rpcData || rpcData.length === 0) {
         console.error("ERRO CRÍTICO: Usuário criado mas falha ao reivindicar o código de acesso.", rpcError);
-        // Informa ao usuário que a função RPC está faltando para que possa ser corrigida.
         if (rpcError && rpcError.message.includes('function claim_access_code') && rpcError.message.includes('does not exist')) {
-             return { data: { user: null, session: null }, error: { name: 'RpcFunctionMissing', message: 'RPC_FUNCTION_MISSING' } as AuthError };
+             return { data: { user: null, session: null }, error: { name: 'RpcFunctionMissing', message: 'RPC_CLAIM_FUNCTION_MISSING' } as AuthError };
         }
-        // Se a função existe mas falhou, é um problema sério, mas o cadastro do usuário já ocorreu.
-        // Apenas logamos o erro para não bloquear o usuário.
     }
   }
 
