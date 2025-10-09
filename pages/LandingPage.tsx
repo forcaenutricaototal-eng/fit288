@@ -32,7 +32,7 @@ const InlineRlsGuide: React.FC<{ type: 'RPC_CLAIM' | 'RPC_VALIDATE' | 'TABLE' }>
                         'O cadastro falhou porque uma função segura de validação de código não foi encontrada no banco de dados. Esta é a solução definitiva para o erro de "código inválido".',
                         'No seu painel Supabase, vá para: SQL Editor → New query.',
                         'Copie e cole o bloco de código SQL abaixo no editor.',
-                        { code: `CREATE OR REPLACE FUNCTION validate_access_code(code_to_validate TEXT)\nRETURNS TABLE(is_valid BOOLEAN, is_used BOOLEAN) AS $$\nBEGIN\n  RETURN QUERY\n  SELECT\n    (count(*) > 0), -- is_valid\n    (bool_or(ac.is_used)) -- is_used\n  FROM public.access_codes ac\n  WHERE ac.code = code_to_validate;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;` },
+                        { code: `CREATE OR REPLACE FUNCTION validate_access_code(code_to_validate TEXT)\nRETURNS TABLE(is_valid BOOLEAN, is_used BOOLEAN) AS $$\nBEGIN\n  RETURN QUERY\n  SELECT\n    (count(*) > 0), -- is_valid\n    (bool_or(ac.is_used)) -- is_used\n  FROM public.access_codes ac\n  WHERE ac.code = code_to_validate;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;\n\n-- Permite que qualquer pessoa (mesmo não logada) possa chamar a função\nGRANT EXECUTE ON FUNCTION public.validate_access_code(text) TO anon, authenticated;` },
                         'Clique em "RUN" para criar a função.',
                         'Esta função permite que o sistema verifique se um código existe e está disponível, de forma segura e à prova de falhas de permissão.'
                     ]
@@ -44,7 +44,7 @@ const InlineRlsGuide: React.FC<{ type: 'RPC_CLAIM' | 'RPC_VALIDATE' | 'TABLE' }>
                         'O cadastro requer uma função segura no banco de dados para "queimar" o código de acesso após o uso.',
                         'No seu painel Supabase, vá para: SQL Editor → New query.',
                         'Cole o bloco de código SQL abaixo na íntegra no editor.',
-                        { code: `CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)\nRETURNS SETOF access_codes AS $$\nBEGIN\n  RETURN QUERY\n  UPDATE public.access_codes\n  SET\n    is_used = TRUE,\n    used_by_user_id = auth.uid()\n  WHERE code = code_to_claim AND is_used = FALSE\n  RETURNING *;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;` },
+                        { code: `CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)\nRETURNS SETOF access_codes AS $$\nBEGIN\n  RETURN QUERY\n  UPDATE public.access_codes\n  SET\n    is_used = TRUE,\n    used_by_user_id = auth.uid()\n  WHERE code = code_to_claim AND is_used = FALSE\n  RETURNING *;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;\n\n-- Permite que usuários logados possam chamar a função\nGRANT EXECUTE ON FUNCTION public.claim_access_code(text) TO authenticated;` },
                         'Clique em "RUN" para criar a função.',
                     ]
                 };

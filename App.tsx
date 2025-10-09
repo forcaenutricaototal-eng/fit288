@@ -389,8 +389,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 6. CONCEDE PERMISSÕES DE EXECUÇÃO PARA AS FUNÇÕES
+GRANT EXECUTE ON FUNCTION public.validate_access_code(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_access_code(text) TO authenticated;
 
--- 6. CRIA TODAS AS POLÍTICAS DE SEGURANÇA (RLS)
+-- 7. CRIA TODAS AS POLÍTICAS DE SEGURANÇA (RLS)
 -- Políticas para a tabela 'profiles'
 CREATE POLICY "Enable read access for users based on their UID" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Enable update for users based on their UID" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
