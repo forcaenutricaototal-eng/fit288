@@ -81,51 +81,30 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
     return { data: { user: null, session: null }, error: tableCheck.error! };
   }
 
-  // Etapa 1: Tentar "reservar" atomicamente o código de acesso.
-  // Esta operação de UPDATE é a que falha se a política de RLS estiver ausente.
-  const { data: reservedCode, error: reserveError } = await supabase
-    .from(ACCESS_CODES_TABLE)
-    .update({ is_used: true })
-    .eq('code', trimmedCode)
-    .eq('is_used', false)
-    .select()
+  // Etapa 1: Tentar "reservar" o código de acesso via uma função RPC segura.
+  // Isso substitui a lógica de UPDATE direto que dependia de políticas RLS complexas.
+  const { data: reservedCode, error: rpcError } = await supabase
+    .rpc('claim_access_code', { code_to_claim: trimmedCode })
     .single();
+
+  // Diagnóstico da Falha: Verificar se a função RPC existe.
+  if (rpcError && rpcError.code === '42883') { // 42883 = function does not exist
+      return { data: { user: null, session: null }, error: { name: 'RPCError', message: 'RPC_FUNCTION_MISSING' } as AuthError };
+  }
   
-  // Etapa 2: Diagnóstico da falha.
-  // Se a reserva falhou (reservedCode é nulo), precisamos descobrir o porquê.
+  // Se a reserva falhou (reservedCode é nulo), o código é inválido ou já foi usado.
   if (!reservedCode) {
-    // Vamos verificar se o código existe e está disponível.
-    const { data: codeStatus, error: selectError } = await supabase
-      .from(ACCESS_CODES_TABLE)
-      .select('is_used')
-      .eq('code', trimmedCode)
-      .single();
-
-    // NOVO: Detectar se a política de SELECT está faltando.
-    if (selectError && (selectError.message.includes('security policy') || selectError.message.includes('violates row-level security'))) {
-        return { data: { user: null, session: null }, error: { name: 'RLSError', message: 'RLS_SELECT_POLICY_MISSING' } as AuthError };
-    }
-
-    // Cenário Crítico: O código existe e está disponível, mas a atualização falhou.
-    // Isso confirma com 100% de certeza que a política de UPDATE está faltando.
-    if (codeStatus && !codeStatus.is_used) {
-      return { data: { user: null, session: null }, error: { name: 'RLSError', message: 'RLS_UPDATE_POLICY_MISSING' } as AuthError };
-    }
-    
-    // Outros cenários de erro.
-    let message = '';
-    if (!codeStatus) {
-        message = `O código de acesso "${trimmedCode}" não foi encontrado. Verifique se você digitou corretamente.`;
-    } else if (codeStatus.is_used) {
-        message = `O código de acesso "${trimmedCode}" já foi utilizado por outra pessoa.`;
-    } else {
-        // Fallback genérico, embora improvável de ser alcançado com a nova lógica.
-        message = 'Código de acesso inválido ou já utilizado.';
-    }
-    return { data: { user: null, session: null }, error: { name: 'InvalidOrUsedCode', message } as AuthError };
+      // Para manter a detecção de política SELECT ausente, fazemos uma verificação rápida.
+      const { error: selectError } = await supabase.from(ACCESS_CODES_TABLE).select('code').eq('code', trimmedCode).maybeSingle();
+      if (selectError && (selectError.message.includes('security policy') || selectError.message.includes('violates row-level security'))) {
+          return { data: { user: null, session: null }, error: { name: 'RLSError', message: 'RLS_SELECT_POLICY_MISSING' } as AuthError };
+      }
+      
+      const message = `O código de acesso "${trimmedCode}" é inválido ou já foi utilizado.`;
+      return { data: { user: null, session: null }, error: { name: 'InvalidOrUsedCode', message } as AuthError };
   }
 
-  // Etapa 3: Se a reserva foi bem-sucedida, criar o usuário.
+  // Etapa 2: Se a reserva foi bem-sucedida, criar o usuário.
   const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password: pass,
@@ -141,7 +120,7 @@ export const signUpWithAccessCode = async (email: string, pass: string, name: st
     return { data: { user: null, session: null }, error: signUpError };
   }
 
-  // Etapa 4: Se o usuário foi criado, vincular o ID do usuário ao código.
+  // Etapa 3: Se o usuário foi criado, vincular o ID do usuário ao código.
   if (signUpData.user) {
     await supabase
       .from(ACCESS_CODES_TABLE)

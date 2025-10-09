@@ -4,40 +4,36 @@ import { Lock, AtSign, User, TrendingUp, Star, DollarSign, SmilePlus, HeartPulse
 import { useApp } from '../App';
 
 // Componente de ajuda que aparece dentro do formulário, em vez de tomar a tela inteira.
-const InlineRlsGuide: React.FC<{ type: 'UPDATE' | 'SELECT' | 'TABLE' }> = ({ type }) => {
-    const [copied, setCopied] = useState(false);
+const InlineRlsGuide: React.FC<{ type: 'RPC' | 'SELECT' | 'TABLE' }> = ({ type }) => {
+    const [copiedStates, setCopiedStates] = useState<{[key: number]: boolean}>({});
 
-    const copyToClipboard = (text: string) => {
+    const copyToClipboard = (text: string, index: number) => {
         navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setCopiedStates(prev => ({ ...prev, [index]: true }));
+        setTimeout(() => setCopiedStates(prev => ({ ...prev, [index]: false })), 2000);
     };
 
-    const CodeBlock: React.FC<{ textToCopy: string }> = ({ textToCopy }) => (
-        <div className="my-2 p-2 bg-gray-800 rounded-md flex justify-between items-center ml-4">
-            <code className="text-white select-all">{textToCopy}</code>
-            <button onClick={() => copyToClipboard(textToCopy)} className="text-white p-1">
-                {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+    const CodeBlock: React.FC<{ textToCopy: string; index: number }> = ({ textToCopy, index }) => (
+        <div className="my-2 p-2 bg-gray-800 rounded-md relative group ml-4">
+            <pre className="text-white text-xs whitespace-pre-wrap select-all"><code>{textToCopy}</code></pre>
+            <button onClick={() => copyToClipboard(textToCopy, index)} className="absolute top-2 right-2 text-white p-1 bg-gray-700 rounded-md opacity-50 group-hover:opacity-100 transition-opacity">
+                {copiedStates[index] ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
             </button>
         </div>
     );
 
     const getContent = () => {
         switch (type) {
-            case 'UPDATE':
+            case 'RPC':
                 return {
-                    title: 'Ação Requerida: Configurar Permissão de UPDATE',
+                    title: 'Ação Requerida: Configurar Função de Acesso',
                     steps: [
-                        'No seu painel Supabase, vá para: Authentication → Policies.',
-                        'Na tabela `access_codes`, clique em "New Policy" e depois em "Create a new policy from scratch".',
-                        'Para "Policy name", dê um nome descritivo (ex: `Permitir uso de códigos`).',
-                        'Para "Allowed operation", marque APENAS a opção `UPDATE`.',
-                        'Para "Target roles", selecione `anon`.',
-                        <>No campo <strong>"USING expression"</strong>, cole o texto abaixo. Esta regra permite que a operação afete apenas códigos que ainda não foram usados.</>,
-                        { code: 'is_used = false' },
-                        <>Marque a caixa <strong>"Use check expression"</strong>.</>,
-                        <>No campo <strong>"WITH CHECK expression"</strong>, cole o texto abaixo. Esta regra garante que a única alteração permitida seja marcar o código como "usado".</>,
-                        { code: 'is_used = true' },
+                        'O método de validação de códigos foi atualizado para ser mais seguro, mas requer uma configuração no seu banco de dados.',
+                        'No seu painel Supabase, vá para: SQL Editor → New query.',
+                        'Cole o bloco de código SQL abaixo na íntegra no editor.',
+                        { code: `CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)\nRETURNS SETOF access_codes AS $$\nBEGIN\n  RETURN QUERY\n  UPDATE access_codes\n  SET is_used = TRUE\n  WHERE code = code_to_claim AND is_used = FALSE\n  RETURNING *;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;` },
+                        'Clique em "RUN" para criar a função.',
+                        'Esta função permite que o sistema valide e marque um código como "usado" de forma atômica e segura, resolvendo o problema de permissão permanentemente.'
                     ]
                 };
             case 'SELECT':
@@ -77,7 +73,7 @@ const InlineRlsGuide: React.FC<{ type: 'UPDATE' | 'SELECT' | 'TABLE' }> = ({ typ
                     <ol className="list-decimal list-inside mt-3 space-y-2 text-neutral-800">
                         {content.steps.map((step, i) => (
                             typeof step === 'object' && 'code' in step 
-                            ? <CodeBlock key={i} textToCopy={step.code} />
+                            ? <CodeBlock key={i} textToCopy={step.code} index={i} />
                             : <li key={i}>{step}</li>
                         ))}
                     </ol>
@@ -98,7 +94,7 @@ const LandingPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [accessCode, setAccessCode] = useState('');
     const [error, setError] = useState<string>('');
-    const [rlsErrorType, setRlsErrorType] = useState<'UPDATE' | 'SELECT' | 'TABLE' | null>(null);
+    const [rlsErrorType, setRlsErrorType] = useState<'RPC' | 'SELECT' | 'TABLE' | null>(null);
     const [successMessage, setSuccessMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -135,8 +131,8 @@ const LandingPage: React.FC = () => {
                 
                 if (result.error) {
                     switch (result.error.message) {
-                        case 'RLS_UPDATE_POLICY_MISSING':
-                            setRlsErrorType('UPDATE');
+                        case 'RPC_FUNCTION_MISSING':
+                            setRlsErrorType('RPC');
                             break;
                         case 'RLS_SELECT_POLICY_MISSING':
                             setRlsErrorType('SELECT');
