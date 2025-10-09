@@ -3,7 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
 import type { UserProfile, CheckInData } from './types';
 import { getSupabaseClient, isSupabaseConfigured } from './components/supabaseClient';
-import { getProfile, createProfile, updateProfile, addCheckInData, getCheckIns, signUpWithAccessCode } from './services/supabaseService';
+import { getProfile, updateProfile, addCheckInData, getCheckIns, signUpWithAccessCode } from './services/supabaseService';
 
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
@@ -61,21 +61,27 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const adminId = process.env.VITE_ADMIN_USER_ID;
   const isAdmin = useMemo(() => !!(user && adminId && user.id === adminId), [user, adminId]);
 
-  // Esta função é agora estável e não depende de estado que muda, prevenindo loops.
   const loadDataForUser = useCallback(async (currentUser: User) => {
-    // Reseta os erros antes de tentar carregar.
     setDataLoadError(null);
     setRawError(null);
     try {
+      // O perfil agora é criado por um gatilho no DB. Se não for encontrado, é um erro crítico.
       let profile = await getProfile(currentUser.id);
+      
+      // Adiciona uma pequena espera e nova tentativa para lidar com possível lag de replicação do DB.
       if (!profile) {
-        const initialName = currentUser.user_metadata?.name || 'Novo Usuário';
-        profile = await createProfile(currentUser.id, initialName);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        profile = await getProfile(currentUser.id);
+      }
+
+      if (!profile) {
+        // Se ainda não houver perfil, o gatilho falhou ou não existe.
+        throw new Error("DB_SYNC_ERROR");
       }
       
       if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
         await updateProfile(currentUser.id, { completed_items_by_day: {} });
-        profile.completed_items_by_day = {}; // Atualiza o perfil localmente também.
+        profile.completed_items_by_day = {};
       }
       
       setUserProfile(profile);
@@ -90,13 +96,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setCheckIns([]);
         setRawError(error.message || 'Ocorreu um erro desconhecido.');
 
-        // Centraliza a lógica de detecção de erros.
         const errorMessage = error.message || '';
-        if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
+        if (errorMessage.includes("DB_SYNC_ERROR")) {
+            setDataLoadError('DB_SYNC_ERROR');
+        } else if (errorMessage.includes("relation") && errorMessage.includes("does not exist")) {
             setDataLoadError('DB_SYNC_ERROR');
         } else if (errorMessage.includes("column") && errorMessage.includes("does not exist")) {
-            setDataLoadError('DB_SYNC_ERROR');
-        } else if (errorMessage.includes("Could not find") && errorMessage.includes("column")) {
             setDataLoadError('DB_SYNC_ERROR');
         } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
             setDataLoadError('RLS_POLICY_MISSING');
@@ -104,7 +109,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             setDataLoadError('GENERIC_ERROR');
         }
     }
-  }, []); // O array de dependências vazio torna esta função estável.
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -114,7 +119,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     
     const supabase = getSupabaseClient();
     
-    // Verifica a sessão inicial.
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -124,14 +128,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setIsLoading(false);
     });
 
-    // Ouve as mudanças de autenticação.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const newUser = session?.user ?? null;
-      setUser(newUser); // Esta é a única fonte de verdade para o estado do usuário.
+      setUser(newUser);
       if (newUser) {
         await loadDataForUser(newUser);
       } else {
-        // No logout, limpa todos os dados específicos do usuário.
         setUserProfile(null);
         setCheckIns([]);
         setDataLoadError(null);
@@ -155,7 +157,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const logout = useCallback(async () => {
     try {
         await getSupabaseClient().auth.signOut();
-        setShowDbSyncTool(false); // Garante que a ferramenta seja fechada ao sair.
+        setShowDbSyncTool(false);
     } catch (e) {
         console.error("An unexpected error occurred during logout:", e);
         addToast("Ocorreu um erro inesperado ao sair.", 'info');
@@ -308,7 +310,9 @@ const DatabaseSyncError: React.FC = () => {
     const { user } = useApp();
     const [copied, setCopied] = useState(false);
     
-    const fullResetScript = `-- 1. APAGA TUDO EM ORDEM PARA UM RESET LIMPO
+    const fullResetScript = `-- SCRIPT DE RESET COMPLETO E DEFINITIVO
+
+-- 1. APAGA TUDO EM ORDEM PARA UM RESET LIMPO
 DROP POLICY IF EXISTS "Admin can delete unused codes" ON public.access_codes;
 DROP POLICY IF EXISTS "Admin can create new codes" ON public.access_codes;
 DROP POLICY IF EXISTS "Admin can read all codes" ON public.access_codes;
@@ -318,6 +322,8 @@ DROP POLICY IF EXISTS "Enable read access for users based on their UID" ON publi
 DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON public.profiles;
 DROP POLICY IF EXISTS "Enable update for users based on their UID" ON public.profiles;
 DROP POLICY IF EXISTS "Enable read access for users based on their UID" ON public.profiles;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_new_user();
 DROP FUNCTION IF EXISTS public.get_admin_user_id();
 DROP FUNCTION IF EXISTS public.claim_access_code(text);
 DROP FUNCTION IF EXISTS public.validate_access_code(text);
@@ -325,9 +331,7 @@ DROP TABLE IF EXISTS public.check_ins CASCADE;
 DROP TABLE IF EXISTS public.access_codes CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 
--- 2. CRIA A FUNÇÃO DE ADMIN ID (ETAPA MANUAL)
--- AVISO: O User ID abaixo precisa ser o da SUA conta de administrador.
--- Encontre-o na seção 'Authentication' do Supabase e substitua o valor.
+-- 2. CRIA A FUNÇÃO QUE IDENTIFICA O ADMIN
 CREATE OR REPLACE FUNCTION get_admin_user_id()
 RETURNS uuid AS $$
 BEGIN
@@ -379,8 +383,21 @@ CREATE TABLE public.access_codes (
 );
 ALTER TABLE public.access_codes ENABLE ROW LEVEL SECURITY;
 
--- 6. CRIA AS FUNÇÕES RPC
--- Função para REIVINDICAR um código após o cadastro
+-- 6. CRIA O GATILHO PARA PERFIS AUTOMÁTICOS
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, name, completed_items_by_day)
+  VALUES (new.id, new.raw_user_meta_data ->> 'name', '{}'::jsonb);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 7. CRIA AS FUNÇÕES RPC
 CREATE OR REPLACE FUNCTION claim_access_code(code_to_claim TEXT)
 RETURNS SETOF access_codes AS $$
 BEGIN
@@ -393,43 +410,37 @@ BEGIN
   RETURNING *;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
--- Função para VALIDAR um código ANTES do cadastro (bypass RLS)
+
 CREATE OR REPLACE FUNCTION validate_access_code(code_to_validate TEXT)
 RETURNS TABLE(is_valid BOOLEAN, is_used BOOLEAN) AS $$
 BEGIN
   RETURN QUERY
   SELECT
-    (count(*) > 0), -- is_valid
-    (bool_or(ac.is_used)) -- is_used
+    (count(*) > 0),
+    (bool_or(ac.is_used))
   FROM public.access_codes ac
   WHERE trim(upper(ac.code)) = trim(upper(code_to_validate));
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 7. CONCEDE PERMISSÕES DE EXECUÇÃO PARA AS FUNÇÕES
--- Permite que qualquer pessoa (incluindo não logados) chame a função de validação
+-- 8. CONCEDE PERMISSÕES DE EXECUÇÃO PARA AS FUNÇÕES
 GRANT EXECUTE ON FUNCTION public.validate_access_code(text) TO anon, authenticated;
--- Permite que apenas usuários autenticados chamem a função para reivindicar o código
 GRANT EXECUTE ON FUNCTION public.claim_access_code(text) TO authenticated;
 
--- 8. CRIA TODAS AS POLÍTICAS DE SEGURANÇA (RLS)
--- Políticas para a tabela 'profiles'
+-- 9. CRIA TODAS AS POLÍTICAS DE SEGURANÇA (RLS)
+-- Políticas para 'profiles'
 CREATE POLICY "Enable read access for users based on their UID" ON public.profiles FOR SELECT TO authenticated USING (auth.uid() = id);
 CREATE POLICY "Enable update for users based on their UID" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 CREATE POLICY "Enable insert for authenticated users only" ON public.profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
 
--- Políticas para a tabela 'check_ins'
+-- Políticas para 'check_ins'
 CREATE POLICY "Enable read access for users based on their UID" ON public.check_ins FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Enable insert for users based on their UID" ON public.check_ins FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
--- Políticas para a tabela 'access_codes'
--- Permite que QUALQUER um valide um código (necessário para o cadastro)
+-- Políticas para 'access_codes'
 CREATE POLICY "Enable read access for all users" ON public.access_codes FOR SELECT USING (true);
--- Apenas o admin pode LER a lista completa de códigos
 CREATE POLICY "Admin can read all codes" ON public.access_codes FOR SELECT TO authenticated USING (auth.uid() = get_admin_user_id());
--- Apenas o admin pode CRIAR novos códigos
 CREATE POLICY "Admin can create new codes" ON public.access_codes FOR INSERT TO authenticated WITH CHECK (auth.uid() = get_admin_user_id());
--- Apenas o admin pode DELETAR códigos não usados
 CREATE POLICY "Admin can delete unused codes" ON public.access_codes FOR DELETE TO authenticated USING (auth.uid() = get_admin_user_id() AND is_used = false);
 `;
     
