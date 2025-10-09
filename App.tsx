@@ -1,4 +1,3 @@
-
 import React, { useState, createContext, useContext, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { User, AuthError, Session } from '@supabase/supabase-js';
@@ -304,7 +303,7 @@ const DatabaseSyncError: React.FC = () => {
     const [copied, setCopied] = useState(false);
     
     const fullResetScript = `-- 1. APAGA TUDO EM ORDEM PARA UM RESET LIMPO
-DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.access_codes;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.access_codes;
 DROP POLICY IF EXISTS "Admin pode deletar códigos não usados" ON public.access_codes;
 DROP POLICY IF EXISTS "Admin pode criar novos códigos" ON public.access_codes;
 DROP POLICY IF EXISTS "Admin pode ler todos os códigos" ON public.access_codes;
@@ -385,8 +384,8 @@ CREATE POLICY "Enable insert for authenticated users only" ON public.profiles FO
 CREATE POLICY "Enable read access for users based on their UID" ON public.check_ins FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Enable insert for users based on their UID" ON public.check_ins FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Políticas para a tabela 'access_codes' (acesso público para validação de código)
-CREATE POLICY "Enable read access for authenticated users" ON public.access_codes FOR SELECT USING (auth.role() = 'authenticated');
+-- Políticas para a tabela 'access_codes'
+CREATE POLICY "Enable read access for all users" ON public.access_codes FOR SELECT USING (true);
 `;
     
     const handleCopy = () => {

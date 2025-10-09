@@ -109,14 +109,14 @@ const AdminPage: React.FC = () => {
         setError(null);
         try {
             const newCodes = await createAccessCodes(generateCount);
-            setCodes(prev => [...newCodes, ...prev]);
-            addToast(`${generateCount} novo(s) código(s) gerado(s) com sucesso!`, 'success');
+            addToast(`${newCodes.length} novo(s) código(s) gerado(s) com sucesso!`, 'success');
+            await fetchCodes(); // Recarrega a lista para garantir consistência
         } catch (err: any) {
             console.error(err);
             if (err.message && (err.message.includes('security policy') || err.message.includes('violates row-level security'))) {
                 setError("RLS_ERROR");
             } else {
-                addToast("Falha ao gerar códigos.", 'info');
+                addToast("Falha ao gerar códigos. Verifique se as permissões (RLS) de Admin estão configuradas.", 'info');
             }
         } finally {
             setIsGenerating(false);
