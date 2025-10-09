@@ -36,6 +36,8 @@ interface AppContextType {
   resetDayCompletion: (day: number) => Promise<void>;
   dataLoadError: string | null;
   rawError: string | null;
+  showDbSyncTool: boolean;
+  setShowDbSyncTool: (show: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -53,6 +55,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
   const [rawError, setRawError] = useState<string | null>(null);
+  const [showDbSyncTool, setShowDbSyncTool] = useState(false);
   const { addToast } = useToast();
 
   const adminId = process.env.VITE_ADMIN_USER_ID;
@@ -152,7 +155,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const logout = useCallback(async () => {
     try {
         await getSupabaseClient().auth.signOut();
-        // Não é preciso limpar o estado aqui, o onAuthStateChange cuidará disso.
+        setShowDbSyncTool(false); // Garante que a ferramenta seja fechada ao sair.
     } catch (e) {
         console.error("An unexpected error occurred during logout:", e);
         addToast("Ocorreu um erro inesperado ao sair.", 'info');
@@ -245,7 +248,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     resetDayCompletion,
     dataLoadError,
     rawError,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError, rawError]);
+    showDbSyncTool,
+    setShowDbSyncTool,
+  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError, rawError, showDbSyncTool]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -548,7 +553,7 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
 
 
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading, userProfile, isAdmin, dataLoadError, logout, rawError } = useApp();
+    const { isAuthenticated, isLoading, userProfile, isAdmin, dataLoadError, logout, rawError, showDbSyncTool } = useApp();
     
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
@@ -556,8 +561,8 @@ const Main: React.FC = () => {
 
     if (isLoading) return <LoadingSpinner />;
 
-    if (dataLoadError) {
-        return <DataLoadErrorComponent errorType={dataLoadError} onLogout={logout} rawError={rawError} />;
+    if (dataLoadError || showDbSyncTool) {
+        return <DataLoadErrorComponent errorType={dataLoadError || 'DB_SYNC_ERROR'} onLogout={logout} rawError={rawError} />;
     }
 
     const hasCompletedOnboarding = !!(userProfile?.age && userProfile?.weight && userProfile?.height);

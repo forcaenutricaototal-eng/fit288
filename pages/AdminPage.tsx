@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getAccessCodes, createAccessCodes, deleteAccessCode } from '../services/supabaseService';
 import type { AccessCode } from '../types';
 import { useApp } from '../App';
-import { Shield, Plus, Trash2, Loader, Copy } from 'lucide-react';
+import { Shield, Plus, Trash2, Loader, Copy, Database, AlertTriangle } from 'lucide-react';
 import { useToast } from '../components/Toast';
 
 const RLSGuide: React.FC<{ adminId?: string }> = ({ adminId }) => (
@@ -72,9 +72,33 @@ const RLSGuide: React.FC<{ adminId?: string }> = ({ adminId }) => (
     </div>
 );
 
+const DbSyncCard: React.FC = () => {
+    const { setShowDbSyncTool } = useApp();
+    return (
+        <div className="bg-white p-6 rounded-lg shadow-soft border-l-4 border-yellow-500">
+            <div className="flex items-start gap-4">
+                <AlertTriangle className="text-yellow-600 flex-shrink-0" size={24} />
+                <div>
+                    <h2 className="text-lg font-semibold text-neutral-900 mb-2">Ferramenta de Sincronização do Banco de Dados</h2>
+                    <p className="text-neutral-800 text-sm mb-4">
+                        Se o cadastro de novos usuários estiver falhando com um erro de "código inválido" ou similar, seu banco de dados pode estar dessincronizado. Use esta ferramenta para acessar o script de reset completo e corrigir a estrutura das tabelas, funções e permissões.
+                    </p>
+                    <button
+                        onClick={() => setShowDbSyncTool(true)}
+                        className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-md font-semibold hover:bg-yellow-600 transition-colors"
+                    >
+                        <Database size={18} />
+                        Abrir Ferramenta de Sincronização
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const AdminPage: React.FC = () => {
-    const { user } = useApp();
+    const { user, setShowDbSyncTool } = useApp();
     const { addToast } = useToast();
     const [codes, setCodes] = useState<AccessCode[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -163,6 +187,8 @@ const AdminPage: React.FC = () => {
                     <p className="text-neutral-800">Gere e gerencie os códigos de acesso para seus clientes.</p>
                 </div>
             </div>
+            
+            <DbSyncCard />
 
             {/* Gerador de Códigos */}
             <div className="bg-white p-6 rounded-lg shadow-soft">
