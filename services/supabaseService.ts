@@ -19,15 +19,28 @@ export const getProfile = async (userId: string): Promise<UserProfile | null> =>
 };
 
 export const updateProfile = async (userId: string, updatedData: Partial<UserProfile>): Promise<UserProfile> => {
-  const { data, error } = await getSupabaseClient()
+  // Etapa 1: Realizar a atualização.
+  const { error } = await getSupabaseClient()
     .from(PROFILES_TABLE)
     .update(updatedData)
-    .eq('id', userId)
-    .select(PROFILE_COLUMNS)
-    .single();
-  if (error) throw error;
-  return data;
+    .eq('id', userId);
+
+  if (error) {
+    // Se a própria atualização falhar, lançar o erro.
+    throw error;
+  }
+
+  // Etapa 2: Se a atualização foi bem-sucedida, buscar o perfil atualizado.
+  // Isso usa a função getProfile existente, que já é robusta.
+  const updatedProfile = await getProfile(userId);
+  if (!updatedProfile) {
+    // Isto teoricamente não deveria acontecer se a atualização foi bem-sucedida.
+    throw new Error("Falha ao recuperar o perfil após a atualização.");
+  }
+  
+  return updatedProfile;
 };
+
 
 // Check-in Functions
 export const getCheckIns = async (userId: string): Promise<CheckInData[]> => {
