@@ -66,57 +66,61 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setDataLoadError(null);
     setRawError(null);
     try {
-      let profile = await getProfile(currentUser.id);
-      
-      // The DB trigger might take a moment. We wait and retry once.
-      if (!profile) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        profile = await getProfile(currentUser.id);
-      }
+        let profile = await getProfile(currentUser.id);
 
-      if (!profile) {
-        throw new Error("DB_SYNC_ERROR: Profile not found.");
-      }
-      
-      if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
-        await updateProfile(currentUser.id, { completed_items_by_day: {} });
-        profile.completed_items_by_day = {};
-      }
-      
-      setUserProfile(profile);
+        // The DB trigger might take a moment. We wait and retry once.
+        if (!profile) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            profile = await getProfile(currentUser.id);
+        }
 
-      const checkInsData = await getCheckIns(currentUser.id);
-      setCheckIns(checkInsData);
+        if (!profile) {
+            const isCurrentUserAdmin = !!(currentUser && process.env.VITE_ADMIN_USER_ID && currentUser.id === process.env.VITE_ADMIN_USER_ID);
+            if (isCurrentUserAdmin) {
+                // Admin has a session but no profile. Allow them to proceed to fix things.
+                console.warn("Admin profile not found. Allowing access to Admin Panel for recovery.");
+                setUserProfile(null);
+                setCheckIns([]);
+                return; // Exit here.
+            } else {
+                // A regular user has a session but no profile. This is an inconsistent state.
+                // Force a logout to clear the bad session from localStorage, which breaks the loop.
+                console.error("Profile not found for a valid session. Forcing logout to clear inconsistent state.");
+                await getSupabaseClient().auth.signOut();
+                return; // Exit function. The signOut will trigger onAuthStateChange to reset the UI.
+            }
+        }
+
+        // If we reach here, profile is guaranteed to exist.
+        if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
+            await updateProfile(currentUser.id, { completed_items_by_day: {} });
+            profile.completed_items_by_day = {};
+        }
+
+        setUserProfile(profile);
+
+        const checkInsData = await getCheckIns(currentUser.id);
+        setCheckIns(checkInsData);
 
     } catch (error: any) {
-        const isCurrentUserAdmin = !!(currentUser && process.env.VITE_ADMIN_USER_ID && currentUser.id === process.env.VITE_ADMIN_USER_ID);
+        // This catch block now handles other unexpected errors, like network or RLS issues on getCheckIns.
+        console.error("Erro ao carregar dados do usuário:", error);
+        
+        setUserProfile(null);
+        setCheckIns([]);
+        setRawError(error.message || 'Ocorreu um erro desconhecido.');
 
-        if (isCurrentUserAdmin) {
-          // Admin is logged in but their profile might be missing (e.g., after a DB reset).
-          // We allow them to proceed to the app so they can access the Admin Panel and fix the DB.
-          console.warn("Admin profile not found. Allowing access to Admin Panel for recovery.");
-          setUserProfile(null);
-          setCheckIns([]);
-          // CRITICAL: DO NOT set dataLoadError for the admin to avoid the error screen loop.
+        const errorMessage = error.message || '';
+        if ((errorMessage.includes("relation") && errorMessage.includes("does not exist")) || (errorMessage.includes("column") && errorMessage.includes("does not exist"))) {
+            setDataLoadError('DB_SYNC_ERROR');
+        } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
+            setDataLoadError('RLS_POLICY_MISSING');
         } else {
-          // For regular users, this is a critical error. Show the error screen.
-          console.error("Erro ao carregar dados do usuário:", error);
-          
-          setUserProfile(null);
-          setCheckIns([]);
-          setRawError(error.message || 'Ocorreu um erro desconhecido.');
-
-          const errorMessage = error.message || '';
-          if (errorMessage.includes("DB_SYNC_ERROR") || (errorMessage.includes("relation") && errorMessage.includes("does not exist")) || (errorMessage.includes("column") && errorMessage.includes("does not exist"))) {
-              setDataLoadError('DB_SYNC_ERROR');
-          } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
-              setDataLoadError('RLS_POLICY_MISSING');
-          } else {
-              setDataLoadError('GENERIC_ERROR');
-          }
+            setDataLoadError('GENERIC_ERROR');
         }
     }
   }, []);
+
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -126,8 +130,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     const supabase = getSupabaseClient();
     
-    // onAuthStateChange fires immediately with the initial session, so we don't need getSession().
-    // This avoids race conditions and potential loops from stale session data.
+    // onAuthStateChange fires immediately with the initial session.
+    // This is the most reliable way to handle auth state.
     let initialCheckCompleted = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -144,7 +148,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setRawError(null);
       }
 
-      // We set loading to false after the first auth check is complete.
+      // Set loading to false after the first auth check is complete.
       // This ensures the loading spinner is always removed, resolving the loop issue.
       if (!initialCheckCompleted) {
         setIsLoading(false);
