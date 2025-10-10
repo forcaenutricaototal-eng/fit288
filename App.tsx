@@ -120,35 +120,41 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-        setIsLoading(false);
-        return;
+      setIsLoading(false);
+      return;
     }
-    
+
     const supabase = getSupabaseClient();
     
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        await loadDataForUser(currentUser);
-      }
-      setIsLoading(false);
-    });
+    // onAuthStateChange fires immediately with the initial session, so we don't need getSession().
+    // This avoids race conditions and potential loops from stale session data.
+    let initialCheckCompleted = false;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const newUser = session?.user ?? null;
-      setUser(newUser);
-      if (newUser) {
-        await loadDataForUser(newUser);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      
+      if (currentUser) {
+        await loadDataForUser(currentUser);
       } else {
+        // Clear user-specific data on logout or session expiry
         setUserProfile(null);
         setCheckIns([]);
         setDataLoadError(null);
         setRawError(null);
       }
+
+      // We set loading to false after the first auth check is complete.
+      // This ensures the loading spinner is always removed, resolving the loop issue.
+      if (!initialCheckCompleted) {
+        setIsLoading(false);
+        initialCheckCompleted = true;
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [loadDataForUser]);
 
 
