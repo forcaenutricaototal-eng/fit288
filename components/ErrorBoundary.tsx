@@ -8,6 +8,7 @@ interface State {
 
 // FIX: The class must extend React.Component to be a valid class component.
 // This gives it access to `this.props`, `this.state`, and `this.setState`.
+// FIX: Extend React.Component to make this a valid class component, which provides access to `this.props` and `this.setState`.
 class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, State> {
   state: State = { hasError: false, error: null };
 

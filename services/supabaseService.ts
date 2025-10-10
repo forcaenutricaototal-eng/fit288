@@ -24,27 +24,31 @@ export const updateProfile = async (userId: string, updatedData: Partial<UserPro
     ...updatedData,
   };
 
-  // Use upsert to either create a new profile or update an existing one.
-  // .select() ensures the updated/created data is returned.
-  // .single() ensures we get a single object back, not an array.
-  const { data, error } = await getSupabaseClient()
+  // Etapa 1: Realiza o upsert. Esta operação cria o perfil se ele não existir
+  // ou o atualiza se já existir.
+  const { error: upsertError } = await getSupabaseClient()
     .from(PROFILES_TABLE)
-    .upsert(profileData)
-    .select(PROFILE_COLUMNS)
-    .single();
+    .upsert(profileData);
 
-  if (error) {
-    // If the upsert fails, throw the error.
-    throw error;
-  }
-
-  if (!data) {
-    // This case would be unusual if the upsert succeeded without an error, but it's a good safeguard.
-    throw new Error("Falha ao recuperar o perfil após a atualização.");
+  if (upsertError) {
+    console.error("Supabase upsert error:", upsertError);
+    // Lança o erro específico do Supabase para ser tratado na UI.
+    throw upsertError;
   }
   
-  // The returned data is the complete, updated profile.
-  return data;
+  // Etapa 2: Após o sucesso do upsert, busca explicitamente o perfil.
+  // Isso é mais robusto do que um '.select()' encadeado, pois evita race conditions
+  // com a aplicação de políticas RLS em registros recém-criados.
+  const profile = await getProfile(userId);
+  
+  if (!profile) {
+    // Se o perfil ainda não for encontrado, algo está fundamentalmente errado com as permissões.
+    console.error("Profile not found after successful upsert for user:", userId);
+    throw new Error("Falha ao recuperar o perfil após a atualização. Verifique as permissões (RLS) de SELECT na sua tabela de perfis.");
+  }
+  
+  // Retorna o perfil completo e atualizado.
+  return profile;
 };
 
 
