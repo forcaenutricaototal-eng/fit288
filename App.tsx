@@ -62,66 +62,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const adminId = process.env.VITE_ADMIN_USER_ID;
   const isAdmin = useMemo(() => !!(user && adminId && user.id === adminId), [user, adminId]);
 
-  const loadDataForUser = useCallback(async (currentUser: User) => {
-    setDataLoadError(null);
-    setRawError(null);
-    try {
-        let profile = await getProfile(currentUser.id);
-
-        // The DB trigger might take a moment. We wait and retry once.
-        if (!profile) {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            profile = await getProfile(currentUser.id);
-        }
-
-        if (!profile) {
-            const isCurrentUserAdmin = !!(currentUser && process.env.VITE_ADMIN_USER_ID && currentUser.id === process.env.VITE_ADMIN_USER_ID);
-            if (isCurrentUserAdmin) {
-                // Admin has a session but no profile. Allow them to proceed to fix things.
-                console.warn("Admin profile not found. Allowing access to Admin Panel for recovery.");
-                setUserProfile(null);
-                setCheckIns([]);
-                return; // Exit here.
-            } else {
-                // A regular user has a session but no profile. This is an inconsistent state.
-                // Force a logout to clear the bad session from localStorage, which breaks the loop.
-                console.error("Profile not found for a valid session. Forcing logout to clear inconsistent state.");
-                await getSupabaseClient().auth.signOut();
-                return; // Exit function. The signOut will trigger onAuthStateChange to reset the UI.
-            }
-        }
-
-        // If we reach here, profile is guaranteed to exist.
-        if (profile && (!profile.completed_items_by_day || typeof profile.completed_items_by_day !== 'object')) {
-            await updateProfile(currentUser.id, { completed_items_by_day: {} });
-            profile.completed_items_by_day = {};
-        }
-
-        setUserProfile(profile);
-
-        const checkInsData = await getCheckIns(currentUser.id);
-        setCheckIns(checkInsData);
-
-    } catch (error: any) {
-        // This catch block now handles other unexpected errors, like network or RLS issues on getCheckIns.
-        console.error("Erro ao carregar dados do usuário:", error);
-        
-        setUserProfile(null);
-        setCheckIns([]);
-        setRawError(error.message || 'Ocorreu um erro desconhecido.');
-
-        const errorMessage = error.message || '';
-        if ((errorMessage.includes("relation") && errorMessage.includes("does not exist")) || (errorMessage.includes("column") && errorMessage.includes("does not exist"))) {
-            setDataLoadError('DB_SYNC_ERROR');
-        } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
-            setDataLoadError('RLS_POLICY_MISSING');
-        } else {
-            setDataLoadError('GENERIC_ERROR');
-        }
-    }
-  }, []);
-
-
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setIsLoading(false);
@@ -130,36 +70,76 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     const supabase = getSupabaseClient();
     
-    // onAuthStateChange fires immediately with the initial session.
-    // This is the most reliable way to handle auth state.
-    let initialCheckCompleted = false;
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      if (currentUser) {
-        await loadDataForUser(currentUser);
-      } else {
-        // Clear user-specific data on logout or session expiry
+
+      if (!currentUser) {
+        // No user session, this is a stable state.
+        setUser(null);
         setUserProfile(null);
         setCheckIns([]);
         setDataLoadError(null);
         setRawError(null);
+        setIsLoading(false); // Stop loading.
+        return;
       }
 
-      // Set loading to false after the first auth check is complete.
-      // This ensures the loading spinner is always removed, resolving the loop issue.
-      if (!initialCheckCompleted) {
-        setIsLoading(false);
-        initialCheckCompleted = true;
+      // If we are here, a user session exists.
+      // We must now verify if their data exists before we stop loading.
+      try {
+        const profile = await getProfile(currentUser.id);
+
+        if (profile) {
+          // Happy path: User and Profile both exist.
+          setUser(currentUser);
+          setUserProfile(profile);
+          const checkInsData = await getCheckIns(currentUser.id);
+          setCheckIns(checkInsData);
+          setDataLoadError(null);
+          setRawError(null);
+          setIsLoading(false); // Stop loading.
+        } else {
+          // This is the "zombie session" state: Auth session exists, but profile data does not.
+          const isCurrentUserAdmin = !!(adminId && currentUser.id === adminId);
+          if (isCurrentUserAdmin) {
+            // Special case for admin: allow login without a profile to fix DB issues.
+            console.warn("Admin logged in without a profile. Proceeding to allow recovery.");
+            setUser(currentUser);
+            setUserProfile(null);
+            setCheckIns([]);
+            setIsLoading(false); // Stop loading for admin.
+          } else {
+            // For regular users, this is an inconsistent state. Force a sign-out.
+            console.error("Inconsistent state: User session exists but profile is missing. Forcing sign out.");
+            await supabase.auth.signOut();
+            // DO NOT set loading to false here.
+            // The signOut() call will trigger onAuthStateChange again. The next run will
+            // hit the `!currentUser` block above, clean the state, and THEN stop the loading.
+            // This prevents the render loop.
+          }
+        }
+      } catch (error: any) {
+        console.error("Error during authentication state change:", error);
+        setUser(session?.user ?? null);
+        setUserProfile(null);
+        setCheckIns([]);
+        setRawError(error.message || 'Ocorreu um erro desconhecido.');
+        const errorMessage = error.message || '';
+        if ((errorMessage.includes("relation") && errorMessage.includes("does not exist")) || (errorMessage.includes("column") && errorMessage.includes("does not exist"))) {
+            setDataLoadError('DB_SYNC_ERROR');
+        } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
+            setDataLoadError('RLS_POLICY_MISSING');
+        } else {
+            setDataLoadError('GENERIC_ERROR');
+        }
+        setIsLoading(false); // Stop loading on error.
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [loadDataForUser]);
+  }, [adminId]);
 
 
   const login = async (email: string, pass: string) => {
