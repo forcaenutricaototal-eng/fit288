@@ -323,6 +323,7 @@ $$ LANGUAGE plpgsql;
 -- O restante do script usa esta função para configurar as permissões.
 
 -- 2. APAGA TUDO EM ORDEM PARA UM RESET LIMPO
+DROP POLICY IF EXISTS "Admin can perform all actions on profiles" ON public.profiles;
 DROP POLICY IF EXISTS "Admin can delete unused codes" ON public.access_codes;
 DROP POLICY IF EXISTS "Admin can create new codes" ON public.access_codes;
 DROP POLICY IF EXISTS "Admin can read all codes" ON public.access_codes;
@@ -433,6 +434,7 @@ GRANT EXECUTE ON FUNCTION public.claim_access_code(text) TO authenticated;
 CREATE POLICY "Enable read access for users based on their UID" ON public.profiles FOR SELECT TO authenticated USING (auth.uid() = id);
 CREATE POLICY "Enable update for users based on their UID" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 CREATE POLICY "Enable insert for authenticated users only" ON public.profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+CREATE POLICY "Admin can perform all actions on profiles" ON public.profiles FOR ALL TO authenticated USING (auth.uid() = get_admin_user_id()) WITH CHECK (auth.uid() = get_admin_user_id());
 
 -- Políticas para 'check_ins'
 CREATE POLICY "Enable read access for users based on their UID" ON public.check_ins FOR SELECT TO authenticated USING (auth.uid() = user_id);
