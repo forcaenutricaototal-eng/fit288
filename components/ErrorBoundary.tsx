@@ -6,7 +6,7 @@ interface State {
   error: Error | null;
 }
 
-// Fix: The class must extend React.Component to be a valid class component.
+// FIX: The class must extend React.Component to be a valid class component.
 // This gives it access to `this.props`, `this.state`, and `this.setState`.
 class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, State> {
   state: State = { hasError: false, error: null };
@@ -28,6 +28,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, State> 
       window.location.reload();
     } catch (e) {
       console.error("Falha ao limpar o armazenamento:", e);
+      // FIX: The `setState` method is available on class components that extend React.Component.
       this.setState({
         error: new Error("Não foi possível limpar os dados automaticamente. Por favor, limpe os dados do site manualmente nas configurações do seu navegador e tente novamente.")
       });
@@ -66,6 +67,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, State> 
       );
     }
 
+    // FIX: The `props` property is available on class components that extend React.Component.
     return this.props.children;
   }
 }

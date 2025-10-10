@@ -19,24 +19,32 @@ export const getProfile = async (userId: string): Promise<UserProfile | null> =>
 };
 
 export const updateProfile = async (userId: string, updatedData: Partial<UserProfile>): Promise<UserProfile> => {
-  // Etapa 1: Realizar a atualização.
-  const { error } = await getSupabaseClient()
+  const profileData = {
+    id: userId,
+    ...updatedData,
+  };
+
+  // Use upsert to either create a new profile or update an existing one.
+  // .select() ensures the updated/created data is returned.
+  // .single() ensures we get a single object back, not an array.
+  const { data, error } = await getSupabaseClient()
     .from(PROFILES_TABLE)
-    .update(updatedData)
-    .eq('id', userId);
+    .upsert(profileData)
+    .select(PROFILE_COLUMNS)
+    .single();
 
   if (error) {
-    // Se a própria atualização falhar, lançar o erro.
+    // If the upsert fails, throw the error.
     throw error;
   }
 
-  // Etapa 2: Se a atualização foi bem-sucedida, buscar o perfil atualizado.
-  const updatedProfile = await getProfile(userId);
-  if (!updatedProfile) {
+  if (!data) {
+    // This case would be unusual if the upsert succeeded without an error, but it's a good safeguard.
     throw new Error("Falha ao recuperar o perfil após a atualização.");
   }
   
-  return updatedProfile;
+  // The returned data is the complete, updated profile.
+  return data;
 };
 
 
