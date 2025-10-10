@@ -18,11 +18,11 @@ import EbookPage from './pages/EbookPage';
 import { ToastProvider, useToast } from './components/Toast';
 import { AlertTriangle, LogOut, Database, ShieldOff, Copy, Check } from 'lucide-react';
 
+type InitializationStatus = 'PENDING' | 'AUTHENTICATED' | 'UNAUTHENTICATED';
+
 interface AppContextType {
-  isAuthenticated: boolean;
+  initializationStatus: InitializationStatus;
   userProfile: UserProfile | null;
-  isLoading: boolean;
-  isProfileLoaded: boolean;
   user: User | null;
   isAdmin: boolean;
   login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
@@ -51,11 +51,10 @@ export const useApp = () => {
 };
 
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [initializationStatus, setInitializationStatus] = useState<InitializationStatus>('PENDING');
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
   const [rawError, setRawError] = useState<string | null>(null);
   const [showDbSyncTool, setShowDbSyncTool] = useState(false);
@@ -63,109 +62,113 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const adminId = process.env.VITE_ADMIN_USER_ID;
   const isAdmin = useMemo(() => !!(user && adminId && user.id === adminId), [user, adminId]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setIsLoading(false);
-      return;
-    }
-
-    const supabase = getSupabaseClient();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const currentUser = session?.user ?? null;
-
-      if (!currentUser) {
-        // No user session, this is a stable state.
+  
+  const logout = useCallback(async () => {
+    try {
+        await getSupabaseClient().auth.signOut();
+        // Reset all states to default on logout
         setUser(null);
         setUserProfile(null);
         setCheckIns([]);
         setDataLoadError(null);
         setRawError(null);
-        setIsProfileLoaded(false);
-        setIsLoading(false); // Stop loading.
-        return;
-      }
-
-      // If we are here, a user session exists.
-      // We must now verify if their data exists before we stop loading.
-      try {
-        const profile = await getProfile(currentUser.id);
-
-        if (profile) {
-          // Happy path: User and Profile both exist.
-          setUser(currentUser);
-          setUserProfile(profile);
-          const checkInsData = await getCheckIns(currentUser.id);
-          setCheckIns(checkInsData);
-          setDataLoadError(null);
-          setRawError(null);
-          setIsProfileLoaded(true); // Profile is loaded!
-          setIsLoading(false); // Stop loading.
-        } else {
-          // This is the state where an Auth session exists, but profile data does not.
-          const isCurrentUserAdmin = !!(adminId && currentUser.id === adminId);
-          if (isCurrentUserAdmin) {
-            // Special case for admin: allow login without a profile to fix DB issues.
-            console.warn("Admin logged in without a profile. Proceeding to allow recovery.");
-            setUser(currentUser);
-            setUserProfile(null);
-            setCheckIns([]);
-            setIsProfileLoaded(true); // Allow admin to proceed.
-            setIsLoading(false); // Stop loading for admin.
-          } else {
-            // For regular users, this means they need to go through onboarding to create their profile.
-            console.log("User authenticated but profile is missing. The app will redirect to onboarding.");
-            setUser(currentUser);
-            setUserProfile(null);
-            setCheckIns([]);
-            setIsProfileLoaded(true); // We have loaded the state: there is no profile. This is crucial.
-            setIsLoading(false); // Stop loading. The router will handle the redirect.
-          }
-        }
-      } catch (error: any) {
-        console.error("Error during authentication state change:", error);
-        setUser(session?.user ?? null);
-        setUserProfile(null);
-        setCheckIns([]);
-        setIsProfileLoaded(false); // Profile failed to load.
-        setRawError(error.message || 'Ocorreu um erro desconhecido.');
-        const errorMessage = error.message || '';
-        if ((errorMessage.includes("relation") && errorMessage.includes("does not exist")) || (errorMessage.includes("column") && errorMessage.includes("does not exist"))) {
-            setDataLoadError('DB_SYNC_ERROR');
-        } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
-            setDataLoadError('RLS_POLICY_MISSING');
-        } else {
-            setDataLoadError('GENERIC_ERROR');
-        }
-        setIsLoading(false); // Stop loading on error.
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [adminId]);
-
-
-  const login = async (email: string, pass: string) => {
-    const { error } = await getSupabaseClient().auth.signInWithPassword({ email, password: pass });
-    return { error };
-  };
-
-  const signup = async (email: string, pass: string, name: string, accessCode: string) => {
-    return signUpWithAccessCode(email, pass, name, accessCode);
-  };
-
-  const logout = useCallback(async () => {
-    try {
-        await getSupabaseClient().auth.signOut();
         setShowDbSyncTool(false);
+        setInitializationStatus('UNAUTHENTICATED');
     } catch (e) {
         console.error("An unexpected error occurred during logout:", e);
         addToast("Ocorreu um erro inesperado ao sair.", 'info');
     }
   }, [addToast]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setInitializationStatus('UNAUTHENTICATED'); // Or some error state
+      return;
+    }
+
+    const initializeApp = async () => {
+      try {
+        const supabase = getSupabaseClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user ?? null;
+
+        if (!currentUser) {
+          setInitializationStatus('UNAUTHENTICATED');
+          return;
+        }
+
+        const profile = await getProfile(currentUser.id);
+
+        if (profile) {
+          setUser(currentUser);
+          setUserProfile(profile);
+          const checkInsData = await getCheckIns(currentUser.id);
+          setCheckIns(checkInsData);
+        } else {
+          const isCurrentUserAdmin = !!(adminId && currentUser.id === adminId);
+          if (isCurrentUserAdmin) {
+            console.warn("Admin logged in without a profile. Proceeding to allow recovery.");
+            setUser(currentUser);
+            setUserProfile(null); // Explicitly null
+          } else {
+            console.log("User authenticated but profile is missing. Redirecting to onboarding.");
+            setUser(currentUser);
+            setUserProfile(null); // Explicitly null
+          }
+        }
+        setInitializationStatus('AUTHENTICATED');
+
+      } catch (error: any) {
+        console.error("Error during app initialization:", error);
+        setRawError(error.message || 'Ocorreu um erro desconhecido.');
+        const errorMessage = error.message || '';
+        if ((errorMessage.includes("relation") && errorMessage.includes("does not exist")) || (errorMessage.includes("column") && errorMessage.includes("does not exist"))) {
+          setDataLoadError('DB_SYNC_ERROR');
+        } else if (errorMessage.includes('security policy') || errorMessage.includes('violates row-level security')) {
+          setDataLoadError('RLS_POLICY_MISSING');
+        } else {
+          setDataLoadError('GENERIC_ERROR');
+        }
+        // Even on error, we are authenticated, but the app will show an error screen.
+        // We need the user object to exist for the admin check and logout button.
+        const { data: { session } } = await getSupabaseClient().auth.getSession();
+        setUser(session?.user ?? null);
+        setInitializationStatus('AUTHENTICATED');
+      }
+    };
+
+    initializeApp();
+
+    // Listen for auth changes to handle login/logout after initial load
+    const { data: { subscription } } = getSupabaseClient().auth.onAuthStateChange((_event, session) => {
+        if (session?.user !== user) {
+            // State changed (e.g., user logged in/out on another tab), re-initialize.
+            initializeApp();
+        }
+    });
+
+    return () => {
+        subscription.unsubscribe();
+    };
+  }, [adminId, user]); // Depend on user to re-run if it changes
+
+
+  const login = async (email: string, pass: string) => {
+    const { error } = await getSupabaseClient().auth.signInWithPassword({ email, password: pass });
+    if (!error) {
+      setInitializationStatus('PENDING'); // Trigger re-initialization
+    }
+    return { error };
+  };
+
+  const signup = async (email: string, pass: string, name: string, accessCode: string) => {
+    const result = await signUpWithAccessCode(email, pass, name, accessCode);
+    if (!result.error && result.data.user) {
+        // Don't trigger re-initialization here, because user needs to confirm email.
+        // The state will update when they eventually log in.
+    }
+    return result;
+  };
   
   const resetPassword = async (email: string) => {
     const { error } = await getSupabaseClient().auth.resetPasswordForEmail(email, {
@@ -235,10 +238,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const planDuration = 28;
 
   const value = useMemo(() => ({
-    isAuthenticated: !!user,
+    initializationStatus,
     userProfile,
-    isLoading,
-    isProfileLoaded,
     user,
     isAdmin,
     login,
@@ -256,7 +257,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     rawError,
     showDbSyncTool,
     setShowDbSyncTool,
-  }), [user, userProfile, isLoading, isProfileLoaded, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError, rawError, showDbSyncTool]);
+  }), [user, userProfile, initializationStatus, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError, rawError, showDbSyncTool]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -597,26 +598,28 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
 
 
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading, userProfile, isAdmin, dataLoadError, logout, rawError, showDbSyncTool, isProfileLoaded } = useApp();
+    const { initializationStatus, userProfile, isAdmin, dataLoadError, logout, rawError, showDbSyncTool } = useApp();
     
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
     }
 
-    if (isLoading) return <LoadingSpinner />;
-
+    if (initializationStatus === 'PENDING') {
+        return <LoadingSpinner />;
+    }
+    
     if ((dataLoadError && !isAdmin) || showDbSyncTool) {
         return <DataLoadErrorComponent errorType={dataLoadError || 'DB_SYNC_ERROR'} onLogout={logout} rawError={rawError} />;
     }
 
+    const isAuthenticated = initializationStatus === 'AUTHENTICATED';
     const hasCompletedOnboarding = !!(userProfile?.age && userProfile?.weight && userProfile?.height);
-    const isReady = isAuthenticated && isProfileLoaded;
 
     return (
         <div className="bg-neutral-100 min-h-screen">
             <HashRouter>
                 <Routes>
-                    {!isReady ? (
+                    {!isAuthenticated ? (
                         <>
                             <Route path="/" element={<LandingPage />} />
                             <Route path="*" element={<Navigate to="/" />} />
