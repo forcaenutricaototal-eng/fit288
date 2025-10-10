@@ -22,6 +22,7 @@ interface AppContextType {
   isAuthenticated: boolean;
   userProfile: UserProfile | null;
   isLoading: boolean;
+  isProfileLoaded: boolean;
   user: User | null;
   isAdmin: boolean;
   login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
@@ -54,6 +55,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [checkIns, setCheckIns] = useState<CheckInData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
   const [rawError, setRawError] = useState<string | null>(null);
   const [showDbSyncTool, setShowDbSyncTool] = useState(false);
@@ -80,6 +82,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setCheckIns([]);
         setDataLoadError(null);
         setRawError(null);
+        setIsProfileLoaded(false);
         setIsLoading(false); // Stop loading.
         return;
       }
@@ -97,6 +100,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           setCheckIns(checkInsData);
           setDataLoadError(null);
           setRawError(null);
+          setIsProfileLoaded(true); // Profile is loaded!
           setIsLoading(false); // Stop loading.
         } else {
           // This is the "zombie session" state: Auth session exists, but profile data does not.
@@ -107,15 +111,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             setUser(currentUser);
             setUserProfile(null);
             setCheckIns([]);
+            setIsProfileLoaded(true); // Allow admin to proceed.
             setIsLoading(false); // Stop loading for admin.
           } else {
             // For regular users, this is an inconsistent state. Force a sign-out.
             console.error("Inconsistent state: User session exists but profile is missing. Forcing sign out.");
             await supabase.auth.signOut();
-            // DO NOT set loading to false here.
             // The signOut() call will trigger onAuthStateChange again. The next run will
             // hit the `!currentUser` block above, clean the state, and THEN stop the loading.
-            // This prevents the render loop.
+            // isProfileLoaded remains false, preventing rendering of protected routes.
           }
         }
       } catch (error: any) {
@@ -123,6 +127,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setUser(session?.user ?? null);
         setUserProfile(null);
         setCheckIns([]);
+        setIsProfileLoaded(false); // Profile failed to load.
         setRawError(error.message || 'Ocorreu um erro desconhecido.');
         const errorMessage = error.message || '';
         if ((errorMessage.includes("relation") && errorMessage.includes("does not exist")) || (errorMessage.includes("column") && errorMessage.includes("does not exist"))) {
@@ -232,6 +237,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     isAuthenticated: !!user,
     userProfile,
     isLoading,
+    isProfileLoaded,
     user,
     isAdmin,
     login,
@@ -249,7 +255,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     rawError,
     showDbSyncTool,
     setShowDbSyncTool,
-  }), [user, userProfile, isLoading, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError, rawError, showDbSyncTool]);
+  }), [user, userProfile, isLoading, isProfileLoaded, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError, rawError, showDbSyncTool]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -590,7 +596,7 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
 
 
 const Main: React.FC = () => {
-    const { isAuthenticated, isLoading, userProfile, isAdmin, dataLoadError, logout, rawError, showDbSyncTool } = useApp();
+    const { isAuthenticated, isLoading, userProfile, isAdmin, dataLoadError, logout, rawError, showDbSyncTool, isProfileLoaded } = useApp();
     
     if (!isSupabaseConfigured) {
         return <ConfigErrorMessage />;
@@ -603,12 +609,13 @@ const Main: React.FC = () => {
     }
 
     const hasCompletedOnboarding = !!(userProfile?.age && userProfile?.weight && userProfile?.height);
+    const isReady = isAuthenticated && isProfileLoaded;
 
     return (
         <div className="bg-neutral-100 min-h-screen">
             <HashRouter>
                 <Routes>
-                    {!isAuthenticated ? (
+                    {!isReady ? (
                         <>
                             <Route path="/" element={<LandingPage />} />
                             <Route path="*" element={<Navigate to="/" />} />
