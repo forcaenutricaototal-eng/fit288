@@ -63,10 +63,23 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const adminId = process.env.VITE_ADMIN_USER_ID;
   const isAdmin = useMemo(() => !!(user && adminId && user.id === adminId), [user, adminId]);
   
-  const logout = useCallback(async () => {
-    try {
-        await getSupabaseClient().auth.signOut();
-        // Reset all states to default on logout
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setInitializationStatus('UNAUTHENTICATED');
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    
+    // onAuthStateChange is the single source of truth for auth state.
+    // It fires once on initial load with the current session, and then on every auth event.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setInitializationStatus('PENDING'); // Show loader while we process the state change.
+      
+      const currentUser = session?.user ?? null;
+      
+      // This handles logout or if the user is not logged in initially.
+      if (!currentUser) {
         setUser(null);
         setUserProfile(null);
         setCheckIns([]);
@@ -74,52 +87,29 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setRawError(null);
         setShowDbSyncTool(false);
         setInitializationStatus('UNAUTHENTICATED');
-    } catch (e) {
-        console.error("An unexpected error occurred during logout:", e);
-        addToast("Ocorreu um erro inesperado ao sair.", 'info');
-    }
-  }, [addToast]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setInitializationStatus('UNAUTHENTICATED'); // Or some error state
-      return;
-    }
-
-    const initializeApp = async () => {
+        return;
+      }
+      
+      // If there is a user, fetch their profile and data.
       try {
-        const supabase = getSupabaseClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
-
-        if (!currentUser) {
-          setInitializationStatus('UNAUTHENTICATED');
-          return;
-        }
-
         const profile = await getProfile(currentUser.id);
-
+        
+        setUser(currentUser);
+        setUserProfile(profile); // This can be null, and the router will handle redirecting to onboarding.
+        
         if (profile) {
-          setUser(currentUser);
-          setUserProfile(profile);
           const checkInsData = await getCheckIns(currentUser.id);
           setCheckIns(checkInsData);
         } else {
-          const isCurrentUserAdmin = !!(adminId && currentUser.id === adminId);
-          if (isCurrentUserAdmin) {
-            console.warn("Admin logged in without a profile. Proceeding to allow recovery.");
-            setUser(currentUser);
-            setUserProfile(null); // Explicitly null
-          } else {
-            console.log("User authenticated but profile is missing. Redirecting to onboarding.");
-            setUser(currentUser);
-            setUserProfile(null); // Explicitly null
-          }
+          setCheckIns([]); // Ensure check-ins are cleared if there's no profile.
         }
+        
+        setDataLoadError(null); // Clear any previous errors on a successful load.
+        setRawError(null);
         setInitializationStatus('AUTHENTICATED');
 
       } catch (error: any) {
-        console.error("Error during app initialization:", error);
+        console.error("Error during app initialization/auth change:", error);
         setRawError(error.message || 'Ocorreu um erro desconhecido.');
         const errorMessage = error.message || '';
         if ((errorMessage.includes("relation") && errorMessage.includes("does not exist")) || (errorMessage.includes("column") && errorMessage.includes("does not exist"))) {
@@ -129,44 +119,35 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         } else {
           setDataLoadError('GENERIC_ERROR');
         }
-        // Even on error, we are authenticated, but the app will show an error screen.
-        // We need the user object to exist for the admin check and logout button.
-        const { data: { session } } = await getSupabaseClient().auth.getSession();
-        setUser(session?.user ?? null);
-        setInitializationStatus('AUTHENTICATED');
+        setUser(currentUser); // Keep user object so the error screen can show a logout button.
+        setInitializationStatus('AUTHENTICATED'); // Set to authenticated to show the error screen instead of login.
       }
-    };
-
-    initializeApp();
-
-    // Listen for auth changes to handle login/logout after initial load
-    const { data: { subscription } } = getSupabaseClient().auth.onAuthStateChange((_event, session) => {
-        if (session?.user !== user) {
-            // State changed (e.g., user logged in/out on another tab), re-initialize.
-            initializeApp();
-        }
     });
 
     return () => {
-        subscription.unsubscribe();
+      subscription.unsubscribe();
     };
-  }, [adminId, user]); // Depend on user to re-run if it changes
-
+  }, [adminId]); // Depends only on static adminId. This effect runs once.
 
   const login = async (email: string, pass: string) => {
+    // The onAuthStateChange listener will handle all state updates automatically.
     const { error } = await getSupabaseClient().auth.signInWithPassword({ email, password: pass });
-    if (!error) {
-      setInitializationStatus('PENDING'); // Trigger re-initialization
-    }
     return { error };
   };
 
+  const logout = useCallback(async () => {
+    try {
+        // The onAuthStateChange listener will handle resetting state.
+        await getSupabaseClient().auth.signOut();
+    } catch (e) {
+        console.error("An unexpected error occurred during logout:", e);
+        addToast("Ocorreu um erro inesperado ao sair.", 'info');
+    }
+  }, [addToast]);
+
   const signup = async (email: string, pass: string, name: string, accessCode: string) => {
     const result = await signUpWithAccessCode(email, pass, name, accessCode);
-    if (!result.error && result.data.user) {
-        // Don't trigger re-initialization here, because user needs to confirm email.
-        // The state will update when they eventually log in.
-    }
+    // The listener will handle the state if the user needs to confirm email, nothing to do here.
     return result;
   };
   
@@ -178,14 +159,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const updateUserProfile = useCallback(async (updatedData: Partial<UserProfile>) => {
-    const currentUser = user;
-    if (!currentUser) {
+    if (!user) {
         const err = new Error('Você precisa estar logado para atualizar o perfil.');
         addToast(err.message, 'info');
         throw err;
     }
     try {
-        const updated = await updateProfile(currentUser.id, updatedData);
+        const updated = await updateProfile(user.id, updatedData);
         setUserProfile(updated);
         addToast('Perfil atualizado com sucesso!', 'success');
     } catch (error) {
@@ -196,14 +176,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, [user, addToast]);
 
   const addCheckIn = useCallback(async (data: Omit<CheckInData, 'day' | 'user_id' | 'id'>) => {
-      const currentUser = user;
-      if (!currentUser) {
+      if (!user) {
           const err = new Error('Você precisa estar logado para fazer um check-in.');
           addToast(err.message, 'info');
           throw err;
       }
       try {
-          const newCheckInData = await addCheckInData(currentUser.id, data, checkIns.length);
+          const newCheckInData = await addCheckInData(user.id, data, checkIns.length);
           setCheckIns(prev => [...prev, newCheckInData]);
           addToast('Check-in adicionado com sucesso!', 'success');
       } catch (error) {
@@ -257,7 +236,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     rawError,
     showDbSyncTool,
     setShowDbSyncTool,
-  }), [user, userProfile, initializationStatus, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError, rawError, showDbSyncTool]);
+  }), [user, userProfile, initializationStatus, checkIns, completedItemsByDay, isAdmin, updateUserProfile, addCheckIn, logout, dataLoadError, rawError, showDbSyncTool, signup, resetPassword]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
@@ -526,26 +505,31 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
          <>
             <h3 className="font-bold text-lg text-neutral-900 mb-4">Como Resolver:</h3>
             <p className="text-neutral-800 mb-4 text-sm text-left">
-                Ocorreu um erro inesperado que o aplicativo não conseguiu identificar automaticamente. A causa mais comum é um problema de rede.
+                Ocorreu um erro de conexão que o aplicativo não conseguiu identificar. As causas mais comuns são:
             </p>
+            <ul className="list-disc list-inside text-left bg-neutral-100 p-4 rounded-md space-y-2 text-sm text-neutral-800 mb-4">
+                <li>Sua conexão com a internet está instável ou offline.</li>
+                <li>Uma extensão do seu navegador (como um bloqueador de anúncios ou VPN) está impedindo a comunicação.</li>
+                <li>Você está em uma rede corporativa ou pública com um firewall restrito.</li>
+            </ul>
             <div className="space-y-4 text-left">
+                 <div className="bg-neutral-100 p-4 rounded-md">
+                    <p className="font-bold mb-2">1. Verifique sua Conexão:</p>
+                    <p className="text-sm text-neutral-800">Tente acessar outros sites ou usar uma rede diferente (como dados móveis em vez de Wi-Fi) para confirmar se o problema é da sua conexão.</p>
+                </div>
                 <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">1. Tente Novamente:</p>
-                    <p className="text-sm text-neutral-800">Clique no botão "Sair e Tentar Novamente" abaixo e faça o login mais uma vez. Muitas vezes, o problema é temporário.</p>
+                    <p className="font-bold mb-2">2. Desative Extensões:</p>
+                    <p className="text-sm text-neutral-800">Desative temporariamente extensões como AdBlock, uBlock Origin, VPNs ou antivírus e recarregue a página.</p>
                 </div>
                 {rawError && (
                     <div className="bg-neutral-100 p-4 rounded-md">
-                        <p className="font-bold mb-2">2. Analise os Detalhes Técnicos:</p>
-                        <p className="text-sm text-neutral-800 mb-2">O erro específico retornado pelo sistema está abaixo. Isso pode ajudar a identificar a causa.</p>
+                        <p className="font-bold mb-2">3. Analise os Detalhes Técnicos:</p>
+                        <p className="text-sm text-neutral-800 mb-2">O erro específico retornado pelo sistema foi:</p>
                         <div className="text-xs text-neutral-800 font-mono bg-neutral-200 p-2 rounded-md whitespace-pre-wrap break-words">
                             {rawError}
                         </div>
                     </div>
                 )}
-                 <div className="bg-neutral-100 p-4 rounded-md">
-                    <p className="font-bold mb-2">{rawError ? '3. Verifique o Console:' : '2. Verifique o Console:'}</p>
-                    <p className="text-sm text-neutral-800">Se o erro persistir, verifique o console de desenvolvedor do seu navegador (F12) para mensagens de erro mais detalhadas que possam ajudar a identificar a causa.</p>
-                </div>
             </div>
         </>
     );
@@ -566,7 +550,7 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
         'GENERIC_ERROR': {
             icon: AlertTriangle,
             title: "Erro ao Carregar Dados",
-            description: "Não foi possível carregar as informações do seu perfil após o login. O serviço pode estar temporariamente indisponível.",
+            description: "Não foi possível carregar as informações do seu perfil após o login. Ocorreu uma falha na comunicação com o servidor.",
             content: <GenericError />
         }
     };
@@ -585,7 +569,7 @@ const DataLoadErrorComponent: React.FC<{ errorType: string; onLogout: () => void
                 {details.content}
 
                 <div className="mt-8 border-t pt-6">
-                    <p className="text-sm text-neutral-800 mb-4">Após aplicar a correção no seu painel Supabase, saia e tente fazer o login novamente.</p>
+                    <p className="text-sm text-neutral-800 mb-4">Após tentar as soluções acima, saia e faça o login novamente.</p>
                     <button onClick={onLogout} className="bg-primary text-white font-bold py-2.5 px-6 rounded-md hover:bg-primary-dark transition-all flex items-center justify-center gap-2 mx-auto">
                         <LogOut size={18} />
                         Sair e Tentar Novamente

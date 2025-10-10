@@ -28,6 +28,39 @@ const getAi = () => {
     }
 }
 
+const handleGeminiError = (error: any, context: 'chat' | 'plan'): string => {
+    console.error(`Erro ao chamar a API Gemini (${context}):`, error);
+
+    let userMessage = "Desculpe, não consegui processar sua solicitação no momento. Tente novamente mais tarde.";
+
+    if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("resource_exhausted")) {
+            return context === 'chat'
+                ? 'Luna está descansando um pouco! Nosso serviço de IA atingiu o limite de uso. Por favor, tente novamente em alguns minutos.'
+                : 'Não foi possível gerar o plano. Nosso serviço de IA atingiu o limite de uso no momento. Por favor, tente novamente mais tarde.';
+        }
+        
+        // Tenta extrair um erro mais específico da mensagem, se for um JSON
+        try {
+            if (errorMessage.includes('{')) {
+                const jsonString = error.message.substring(error.message.indexOf('{'));
+                const parsedError = JSON.parse(jsonString);
+                const apiError = parsedError.error || parsedError;
+                if (apiError.message) {
+                    return `A IA encontrou um problema: ${apiError.message}`;
+                }
+            }
+        } catch (e) {
+             // Se o parsing falhar, apenas usa a mensagem original
+             return error.message;
+        }
+        return error.message;
+    }
+    
+    return userMessage;
+};
+
 export const getGeminiResponse = async (
   history: { role: 'user' | 'model'; parts: { text: string }[] }[],
   newMessage: string,
@@ -121,27 +154,7 @@ export const getGeminiResponse = async (
 
     return response.text;
   } catch (error: any) {
-    console.error("Erro ao chamar a API Gemini:", error);
-
-    let userMessage = "Desculpe, não consegui processar sua solicitação no momento. Tente novamente mais tarde.";
-
-    try {
-        if (error.message && typeof error.message === 'string' && error.message.includes('{')) {
-            const jsonString = error.message.substring(error.message.indexOf('{'));
-            const parsedError = JSON.parse(jsonString);
-            const apiError = parsedError.error || parsedError;
-
-            if (apiError.code === 503 || apiError.status === 'UNAVAILABLE') {
-                userMessage = 'A IA está sobrecarregada no momento. Por favor, aguarde um pouco e tente novamente.';
-            } else if (apiError.message) {
-                userMessage = 'A IA encontrou um problema ao processar sua mensagem. Tente reformular a pergunta.';
-            }
-        }
-    } catch (e) {
-        console.error("Não foi possível analisar a mensagem de erro da Gemini:", e);
-    }
-    
-    throw new Error(userMessage);
+    throw new Error(handleGeminiError(error, 'chat'));
   }
 };
 
@@ -267,11 +280,7 @@ export const generateMealPlan = async (userProfile: UserProfile, day: number, fe
         return JSON.parse(jsonText) as DailyPlan;
 
     } catch (error) {
-        console.error("Erro ao gerar o plano alimentar:", error);
-        if (error instanceof Error) {
-            throw error;
-        }
-        throw new Error("Não foi possível gerar o plano. Tente novamente.");
+        throw new Error(handleGeminiError(error, 'plan'));
     }
 }
 
