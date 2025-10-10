@@ -103,7 +103,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           setIsProfileLoaded(true); // Profile is loaded!
           setIsLoading(false); // Stop loading.
         } else {
-          // This is the "zombie session" state: Auth session exists, but profile data does not.
+          // This is the state where an Auth session exists, but profile data does not.
           const isCurrentUserAdmin = !!(adminId && currentUser.id === adminId);
           if (isCurrentUserAdmin) {
             // Special case for admin: allow login without a profile to fix DB issues.
@@ -114,12 +114,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             setIsProfileLoaded(true); // Allow admin to proceed.
             setIsLoading(false); // Stop loading for admin.
           } else {
-            // For regular users, this is an inconsistent state. Force a sign-out.
-            console.error("Inconsistent state: User session exists but profile is missing. Forcing sign out.");
-            await supabase.auth.signOut();
-            // The signOut() call will trigger onAuthStateChange again. The next run will
-            // hit the `!currentUser` block above, clean the state, and THEN stop the loading.
-            // isProfileLoaded remains false, preventing rendering of protected routes.
+            // For regular users, this means they need to go through onboarding to create their profile.
+            console.log("User authenticated but profile is missing. The app will redirect to onboarding.");
+            setUser(currentUser);
+            setUserProfile(null);
+            setCheckIns([]);
+            setIsProfileLoaded(true); // We have loaded the state: there is no profile. This is crucial.
+            setIsLoading(false); // Stop loading. The router will handle the redirect.
           }
         }
       } catch (error: any) {

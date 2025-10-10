@@ -6,10 +6,9 @@ interface State {
   error: Error | null;
 }
 
+// Fix: The class must extend React.Component to be a valid class component.
+// This gives it access to `this.props`, `this.state`, and `this.setState`.
 class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, State> {
-  // Fix: Initialize state using a class property. 
-  // This is modern React syntax and correctly defines the `state` property on the component instance, 
-  // resolving TypeScript errors about `state`, `setState`, and `props` not being found.
   state: State = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): State {
